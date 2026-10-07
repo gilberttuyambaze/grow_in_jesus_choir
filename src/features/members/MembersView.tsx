@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import {
   Users,
   Search,
@@ -8,14 +9,12 @@ import {
   Clock,
   Phone,
   BellRing,
-  Sparkles,
   Send,
-  UserCheck,
-  AlertCircle
+  MailPlus,
+  MessagesSquare,
+  LoaderCircle
 } from 'lucide-react'
 import { Member, FinancialRecord, UserRole } from '@/types'
-import { Card } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
 import { sendRemindersAction } from '@/features/members/actions'
 import { useToast } from '@/components/ui/Toast'
 
@@ -32,6 +31,8 @@ export function MembersView({ members, records = [], userRole }: MembersViewProp
   const [activeStatus, setActiveStatus] = React.useState<'all' | 'recorded' | 'pending'>('all')
   const [search, setSearch] = React.useState('')
   const [isSendingBatch, setIsSendingBatch] = React.useState(false)
+  const [pendingReminderId, setPendingReminderId] = React.useState<string | null>(null)
+  const reminderLock = React.useRef(false)
 
   // Dynamically compute recorded contributions from database records
   const recordedMemberIds = React.useMemo(() => {
@@ -68,30 +69,41 @@ export function MembersView({ members, records = [], userRole }: MembersViewProp
   }, [members, activeVoice, activeStatus, search, recordedMemberIds])
 
   const handleSendSingleReminder = async (member: Member) => {
-    const res = await sendRemindersAction([member.id])
-    if (res.success) {
-      showToastSuccess(
-        'Reminder Sent',
-        `Gentle reminder dispatched to ${member.fullName}.`
-      )
-    } else {
-      showToastError('Could not send reminder', res.error)
+    if (reminderLock.current) return
+    reminderLock.current = true
+    setPendingReminderId(member.id)
+    try {
+      const res = await sendRemindersAction([member.id])
+      if (res.success) {
+        showToastSuccess('Reminder queued', res.message || `A reminder email was queued for ${member.fullName}.`)
+      } else {
+        showToastError('Could not send reminder', res.error)
+      }
+    } catch {
+      showToastError('Could not send reminder', 'Please try again.')
+    } finally {
+      reminderLock.current = false
+      setPendingReminderId(null)
     }
   }
 
   const handleSendBatchReminders = async () => {
+    if (reminderLock.current) return
+    reminderLock.current = true
     setIsSendingBatch(true)
     const pendingIds = pendingMembers.map((m) => m.id)
-    const res = await sendRemindersAction(pendingIds)
-    setIsSendingBatch(false)
-
-    if (res.success) {
-      showToastSuccess(
-        'Batch Reminders Dispatched',
-        res.message || `Gentle reminders sent to ${pendingMembers.length} members.`
-      )
-    } else {
-      showToastError('Could not send reminders', res.error)
+    try {
+      const res = await sendRemindersAction(pendingIds)
+      if (res.success) {
+        showToastSuccess('Batch reminders queued', res.message || `Gentle reminders queued for ${pendingMembers.length} members.`)
+      } else {
+        showToastError('Could not send reminders', res.error)
+      }
+    } catch {
+      showToastError('Could not send reminders', 'Please try again.')
+    } finally {
+      reminderLock.current = false
+      setIsSendingBatch(false)
     }
   }
 
@@ -123,14 +135,23 @@ export function MembersView({ members, records = [], userRole }: MembersViewProp
           </div>
 
           {isLeader && (
+            <>
+            <Link href="/members/invitations" className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-white px-4 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">
+              <MailPlus className="h-3.5 w-3.5" /> Invite member
+            </Link>
+            <Link href="/communications" className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white px-4 py-2 text-xs font-semibold text-cyan-700 hover:bg-cyan-50">
+              <MessagesSquare className="h-3.5 w-3.5" /> Communicate
+            </Link>
             <button
               onClick={handleSendBatchReminders}
-              disabled={isSendingBatch}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-semibold shadow-xs transition-all disabled:opacity-50 shrink-0"
+              disabled={isSendingBatch || pendingReminderId !== null || pendingCount === 0}
+              aria-busy={isSendingBatch}
+              className="brand-button inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold shrink-0 disabled:cursor-wait disabled:opacity-60"
             >
-              <Send className="w-3.5 h-3.5" />
+              {isSendingBatch ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               <span>{isSendingBatch ? 'Sending...' : `Remind ${pendingCount} Pending`}</span>
             </button>
+            </>
           )}
         </div>
       </div>
@@ -258,11 +279,13 @@ export function MembersView({ members, records = [], userRole }: MembersViewProp
 
                   {!isRecorded && isLeader && (
                     <button
-                      onClick={() => handleSendSingleReminder(member)}
-                      className="px-3 py-1 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold transition-colors flex items-center gap-1 shadow-xs"
+                      onClick={() => void handleSendSingleReminder(member)}
+                      disabled={isSendingBatch || pendingReminderId !== null}
+                      aria-busy={pendingReminderId === member.id}
+                      className="px-3 py-1 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold transition-colors flex items-center gap-1 shadow-xs disabled:cursor-wait disabled:opacity-60"
                     >
-                      <BellRing className="w-3 h-3" />
-                      <span>Remind</span>
+                      {pendingReminderId === member.id ? <LoaderCircle className="w-3 h-3 animate-spin" /> : <BellRing className="w-3 h-3" />}
+                      <span>{pendingReminderId === member.id ? 'Queueing…' : 'Remind'}</span>
                     </button>
                   )}
                 </div>

@@ -11,10 +11,11 @@ import {
   Layers
 } from 'lucide-react'
 import { getSessionUser } from '@/lib/auth/session'
-import { getFinancialCategories, getMemberByUserId, getMembers } from '@/lib/db'
-import { ProfileEditCard } from '@/components/settings/ProfileEditCard'
+import { getFinancialCategories, getMembers, getOnboardingUserProgress } from '@/lib/db'
 import { PasswordChangeCard } from '@/components/settings/PasswordChangeCard'
+import { OnboardingProgressCard } from '@/components/settings/OnboardingProgressCard'
 import { canManageMembers } from '@/lib/permissions'
+import { WORKSPACE_TOUR_ID, WORKSPACE_TOUR_VERSION } from '@/features/onboarding/config'
 
 export default async function SettingsPage() {
   const session = await getSessionUser()
@@ -22,11 +23,13 @@ export default async function SettingsPage() {
     redirect('/login')
   }
 
-  const [member, incomeCategories, expenseCategories, members] = await Promise.all([
-    getMemberByUserId(session.userId),
+  const [incomeCategories, expenseCategories, members, onboardingUsers] = await Promise.all([
     getFinancialCategories('income'),
     getFinancialCategories('expense'),
-    canManageMembers(session.role) ? getMembers() : Promise.resolve([])
+    canManageMembers(session.role) ? getMembers() : Promise.resolve([]),
+    canManageMembers(session.role)
+      ? getOnboardingUserProgress(WORKSPACE_TOUR_ID, WORKSPACE_TOUR_VERSION)
+      : Promise.resolve([])
   ])
   const activeCount = members.filter((m) => m.status === 'active').length
 
@@ -41,7 +44,7 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Choir Identity Card matching Reference */}
         <div className="card-surface p-6 bg-white space-y-4">
           <div className="flex items-center gap-3">
@@ -80,19 +83,15 @@ export default async function SettingsPage() {
           </div>
         </div>
 
-        {/* User Account Profile Card with Live Edit Capability */}
-        <ProfileEditCard
-          initialFullName={session.fullName}
-          initialPhone={member?.phone}
-          email={session.email}
-          role={session.role}
-          voicePart={member?.voicePart}
-        />
       </div>
 
       <div className="max-w-2xl">
         <PasswordChangeCard />
       </div>
+
+      {canManageMembers(session.role) && (
+        <OnboardingProgressCard users={onboardingUsers} />
+      )}
 
       {/* Financial Categories Management Overview (Section 16 & 127) */}
       <div className="card-surface p-6 bg-white space-y-5">

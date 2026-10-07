@@ -86,7 +86,7 @@ export function CommandSearchModal({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search records, members, sections, or navigate..."
-            className="w-full text-xs text-slate-900 placeholder-slate-400 focus:outline-none bg-transparent"
+            className="command-search-input w-full text-xs text-slate-900 placeholder-slate-400 focus:outline-none bg-transparent"
           />
           <kbd className="hidden sm:inline-block px-1.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-[10px] font-mono text-slate-500">
             ESC

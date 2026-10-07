@@ -11,12 +11,15 @@ import {
   FileText,
   Settings,
   Bell,
-  ArrowRight,
   LogOut,
   ChevronDown,
   ShieldCheck,
   FolderLock,
-  X
+  CalendarDays,
+  Mail,
+  UserRound,
+  X,
+  LoaderCircle
 } from 'lucide-react'
 import { UserRole } from '@/types'
 import { logoutAction } from '@/features/auth/actions'
@@ -40,6 +43,20 @@ export function Sidebar({
   onNavigate
 }: SidebarProps) {
   const pathname = usePathname()
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false)
+  const logoutLock = React.useRef(false)
+
+  const handleLogout = async () => {
+    if (logoutLock.current) return
+    logoutLock.current = true
+    setIsLoggingOut(true)
+    try {
+      await logoutAction()
+    } catch {
+      logoutLock.current = false
+      setIsLoggingOut(false)
+    }
+  }
 
   const handleLinkClick = () => {
     if (onNavigate) onNavigate()
@@ -51,6 +68,7 @@ export function Sidebar({
       return [
         { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { label: 'My Contributions', href: '/finances', icon: WalletCards },
+        { label: 'Sessions', href: '/sessions', icon: CalendarDays },
         { label: 'Notifications', href: '/notifications', icon: Bell },
         { label: 'Documents', href: '/documents', icon: FileText },
         { label: 'Settings', href: '/settings', icon: Settings }
@@ -59,7 +77,11 @@ export function Sidebar({
     return [
       { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
       { label: 'Financial Records', href: '/finances', icon: WalletCards, count: pendingCount > 0 ? pendingCount : undefined },
+      { label: 'Sessions', href: '/sessions', icon: CalendarDays },
       { label: 'Choir Members', href: '/members', icon: Users },
+      ...(userRole === 'LEADER' || userRole === 'ADMIN'
+        ? [{ label: 'Communications', href: '/communications', icon: Mail }]
+        : []),
       { label: 'Reports & Analytics', href: '/reports', icon: BarChart3 },
       { label: 'Documents', href: '/documents', icon: FileText },
       { label: 'Audit Logs', href: '/activity', icon: ShieldCheck },
@@ -80,9 +102,7 @@ export function Sidebar({
                 <span className="font-bold text-sm tracking-tight text-slate-900 leading-none truncate">
                   GROW IN JESUS
                 </span>
-                <span className="text-[9px] font-semibold tracking-wider uppercase px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 shrink-0">
-                  CHOIR
-                </span>
+
               </div>
               <p className="text-[10px] text-slate-500 font-medium mt-0.5 truncate">Financial Workspace</p>
             </div>
@@ -136,49 +156,56 @@ export function Sidebar({
         </nav>
       </div>
 
-      {/* Bottom Cards: Copilot and Profile */}
-      <div className="pt-6 space-y-4">
-        {/* Financial Copilot Card matching Reference */}
-        <div className="p-3.5 rounded-2xl bg-gradient-to-br from-indigo-50/90 via-purple-50/50 to-blue-50/40 border border-indigo-100/80 shadow-xs">
-          <ChoirLogo className="w-7 h-7 rounded-lg object-contain mb-2.5" />
-          <h4 className="text-xs font-bold text-slate-900 mb-1">Financial Copilot</h4>
-          <p className="text-[10px] text-slate-500 leading-relaxed mb-3">
-            Ask, analyze and monitor choir finances with your intelligent Copilot.
-          </p>
-          <Link
-            href="/reports"
-            onClick={handleLinkClick}
-            className="w-full py-2 px-3 rounded-xl bg-white hover:bg-indigo-50 border border-indigo-200/70 text-indigo-700 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all shadow-xs"
-          >
-            <span>Open Copilot</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
+      {/* User Card */}
+      <div className="pt-6">
         {/* User Card matching Reference */}
-        <div className="p-2 rounded-2xl bg-slate-50/80 border border-slate-200/70 flex items-center justify-between">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
-              {userInitials}
+        <div className="p-2 rounded-2xl bg-slate-50/80 border border-slate-200/70 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
+                {userInitials}
+              </div>
+              <div className="truncate min-w-0">
+                <span className="font-semibold text-xs text-slate-900 block truncate leading-tight">
+                  {userName}
+                </span>
+                <span className="text-[10px] text-slate-500 capitalize block truncate">
+                  {userRole.toLowerCase()}
+                </span>
+              </div>
             </div>
-            <div className="truncate min-w-0">
-              <span className="font-semibold text-xs text-slate-900 block truncate leading-tight">
-                {userName}
-              </span>
-              <span className="text-[10px] text-slate-500 capitalize block truncate">
-                {userRole.toLowerCase()}
-              </span>
-            </div>
+
+            <button
+              onClick={() => void handleLogout()}
+              disabled={isLoggingOut}
+              aria-busy={isLoggingOut}
+              title={isLoggingOut ? 'Signing out…' : 'Sign out'}
+              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-white transition-colors disabled:cursor-wait disabled:opacity-50"
+            >
+              {isLoggingOut ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
+              <span className="sr-only">{isLoggingOut ? 'Signing out' : 'Sign out'}</span>
+            </button>
           </div>
 
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={() => logoutAction()}
-              title="Sign out"
-              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-white transition-colors"
+          <div className="grid grid-cols-2 gap-1 border-t border-slate-200/70 pt-2">
+            <Link
+              href="/profile"
+              onClick={handleLinkClick}
+              aria-current={pathname === '/profile' ? 'page' : undefined}
+              className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-semibold transition-colors ${pathname === '/profile' ? 'text-indigo-700 bg-indigo-50' : 'text-slate-500 hover:text-indigo-700 hover:bg-white'}`}
             >
-              <LogOut className="w-4 h-4" />
-            </button>
+              <UserRound className="w-3.5 h-3.5" />
+              Profile
+            </Link>
+            <Link
+              href="/settings"
+              onClick={handleLinkClick}
+              aria-current={pathname.startsWith('/settings') ? 'page' : undefined}
+              className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-semibold transition-colors ${pathname.startsWith('/settings') ? 'text-indigo-700 bg-indigo-50' : 'text-slate-500 hover:text-indigo-700 hover:bg-white'}`}
+            >
+              <Settings className="w-3.5 h-3.5" />
+              Settings
+            </Link>
           </div>
         </div>
       </div>

@@ -137,7 +137,7 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
           {exportStep === 'idle' && (
             <button
               onClick={handleStartExport}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-semibold shadow-md shadow-indigo-500/20 transition-all shrink-0"
+              className="brand-button inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold shrink-0"
             >
               <Download className="w-4 h-4" />
               <span>Generate CSV Report</span>

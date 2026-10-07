@@ -6,10 +6,12 @@ import {
   getFinancialSummary,
   getFinancialRecords,
   getNotifications,
-  getMemberByUserId
+  getMemberByUserId,
+  getOnboardingProgress
 } from '@/lib/db'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 import { canViewAllFinances } from '@/lib/permissions'
+import { WORKSPACE_TOUR_ID, WORKSPACE_TOUR_VERSION } from '@/features/onboarding/config'
 
 export default async function DashboardLayout({
   children
@@ -35,7 +37,7 @@ export default async function DashboardLayout({
     healthStatus: 'Healthy' as const
   }
 
-  const [categories, members, summary, records, notifications] = await Promise.all([
+  const [categories, members, summary, records, notifications, onboardingProgress] = await Promise.all([
     getFinancialCategories(),
     canSeeAllFinances ? getMembers() : member ? Promise.resolve([member]) : Promise.resolve([]),
     canSeeAllFinances ? getFinancialSummary() : member ? getFinancialSummary({ memberId: member.id }) : Promise.resolve(noSummary),
@@ -44,7 +46,8 @@ export default async function DashboardLayout({
       : member
       ? getFinancialRecords({ memberId: member.id, limit: 100 })
       : Promise.resolve([]),
-    getNotifications(session.userId)
+    getNotifications(session.userId),
+    getOnboardingProgress(session.userId, WORKSPACE_TOUR_ID, WORKSPACE_TOUR_VERSION)
   ])
 
   return (
@@ -57,6 +60,7 @@ export default async function DashboardLayout({
       members={members}
       records={records}
       notifications={notifications}
+      onboardingProgress={onboardingProgress}
     >
       {children}
     </DashboardShell>

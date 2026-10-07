@@ -3,7 +3,7 @@
 import * as React from 'react'
 import Link from 'next/link'
 import gsap from 'gsap'
-import { Search, Plus, Menu, FolderLock } from 'lucide-react'
+import { Search, Plus, Menu, FolderLock, CircleHelp } from 'lucide-react'
 import { UserRole, NotificationItem } from '@/types'
 import { canCreateRecord } from '@/lib/permissions'
 import { NotificationCenter } from './NotificationCenter'
@@ -14,6 +14,7 @@ interface TopbarProps {
   notifications: NotificationItem[]
   onOpenAddRecord: () => void
   onOpenSearch: () => void
+  onOpenTour: () => void
   onToggleMobileNav?: () => void
 }
 
@@ -23,6 +24,7 @@ export function Topbar({
   notifications,
   onOpenAddRecord,
   onOpenSearch,
+  onOpenTour,
   onToggleMobileNav
 }: TopbarProps) {
   const headerRef = React.useRef<HTMLElement>(null)
@@ -93,7 +95,7 @@ export function Topbar({
   }, [])
 
   return (
-    <header ref={headerRef} className="h-16 sm:h-20 px-3 sm:px-8 lg:px-10 border-b border-slate-200/60 bg-white/70 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between gap-2 sm:gap-6">
+    <header ref={headerRef} className="h-20 sm:h-24 shrink-0 px-3 sm:px-8 lg:px-10 border-b border-slate-200/60 bg-white/70 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between gap-2 sm:gap-6">
       {/* Left: Mobile Drawer Trigger */}
       <div className="flex items-center gap-2">
         {onToggleMobileNav && (
@@ -141,6 +143,16 @@ export function Topbar({
 
       {/* Right Side Actions matching Reference */}
       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        <button
+          type="button"
+          onClick={onOpenTour}
+          className="inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white text-slate-600 shadow-xs transition-colors hover:bg-indigo-50 hover:text-indigo-700"
+          title="Start or resume the workspace tour"
+          aria-label="Start or resume the workspace tour"
+        >
+          <CircleHelp className="h-4 w-4" />
+        </button>
+
         {/* Notification Bell */}
         <div className="rounded-full bg-white border border-slate-200/80 shadow-xs p-1 flex items-center justify-center shrink-0">
           <NotificationCenter notifications={notifications} />
@@ -159,7 +171,7 @@ export function Topbar({
         {canCreateRecord(userRole) && (
           <button
             onClick={onOpenAddRecord}
-            className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-semibold shadow-md shadow-indigo-500/25 transition-all active:scale-[0.98] shrink-0"
+            className="brand-button inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-semibold shrink-0"
           >
             <Plus className="w-3.5 sm:w-4 h-3.5 sm:h-4 stroke-[2.5]" />
             <span className="hidden xs:inline sm:inline">

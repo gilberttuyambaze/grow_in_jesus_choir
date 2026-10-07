@@ -24,17 +24,20 @@ function loadEnv() {
 loadEnv()
 
 const connectionString =
-  process.env.POSTGRES_DIRECT_URL ||
   process.env.POSTGRES_DATABASE_URL ||
+  process.env.POSTGRES_DIRECT_URL ||
   process.env.DATABASE_URL
 
 if (!connectionString) {
   throw new Error('Set POSTGRES_DATABASE_URL (or POSTGRES_DIRECT_URL) before applying PostgreSQL migrations.')
 }
 
+const caCertPath = process.env.POSTGRES_CA_CERT_PATH?.trim()
+const caCert = caCertPath ? fs.readFileSync(path.resolve(process.cwd(), caCertPath), 'utf8') : undefined
+
 const pool = new pg.Pool({
   connectionString,
-  ssl: { rejectUnauthorized: true },
+  ssl: { rejectUnauthorized: true, ...(caCert ? { ca: caCert } : {}) },
   max: 2,
   connectionTimeoutMillis: 10000
 })

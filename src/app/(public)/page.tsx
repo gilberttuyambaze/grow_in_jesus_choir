@@ -7,7 +7,7 @@ export default async function LandingPage() {
   const session = await getSessionUser()
 
   return (
-    <div className="min-h-screen bg-[#f4f6fc] text-slate-900 flex flex-col justify-between selection:bg-indigo-600 selection:text-white">
+    <div className="min-h-screen text-slate-900 flex flex-col justify-between selection:bg-indigo-600 selection:text-white">
       {/* Navigation matching Reference */}
       <header className="h-16 sm:h-20 px-4 sm:px-8 lg:px-12 border-b border-slate-200/80 bg-white/70 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between max-w-7xl w-full mx-auto">
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -29,7 +29,7 @@ export default async function LandingPage() {
           </Link>
           <Link
             href={session ? '/dashboard' : '/login'}
-            className="inline-flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-semibold shadow-md shadow-indigo-500/20 transition-all shrink-0"
+            className="brand-button inline-flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-semibold shrink-0"
           >
             <span>{session ? 'Workspace' : 'Get Started'}</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -56,7 +56,7 @@ export default async function LandingPage() {
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             href={session ? '/dashboard' : '/login'}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm font-semibold shadow-lg shadow-indigo-500/25 transition-all flex items-center justify-center gap-2"
+            className="brand-button w-full sm:w-auto px-8 py-3.5 rounded-full text-sm font-semibold flex items-center justify-center gap-2"
           >
             <span>Enter Financial Dashboard</span>
             <ArrowUpRight className="w-4 h-4" />

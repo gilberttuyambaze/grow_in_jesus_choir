@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock, XCircle, MoreHorizontal } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock, XCircle, MoreHorizontal, LoaderCircle } from 'lucide-react'
 import { FinancialRecord, UserRole } from '@/types'
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatDate } from '@/lib/utils/date'
@@ -26,7 +26,10 @@ export function FinancialRecordTable({
   const { success: showToastSuccess, error: showToastError } = useToast()
   const [selectedRecord, setSelectedRecord] = React.useState<FinancialRecord | null>(null)
   const [activeReviewId, setActiveReviewId] = React.useState<string | null>(null)
+  const [activeDecision, setActiveDecision] = React.useState<'approve' | 'reject' | null>(null)
   const [isProcessing, setIsProcessing] = React.useState(false)
+  const reviewLock = React.useRef(false)
+  const canReview = userRole === 'LEADER' || userRole === 'ADMIN'
 
   React.useEffect(() => {
     if (initialSelectedRecordId) {
@@ -38,27 +41,35 @@ export function FinancialRecordTable({
   }, [initialSelectedRecordId, records])
 
   const handleReview = async (recordId: string, decision: 'approve' | 'reject') => {
+    if (reviewLock.current) return
+    reviewLock.current = true
     setIsProcessing(true)
-    const res = await reviewRecordAction(recordId, decision)
-    setIsProcessing(false)
-    setActiveReviewId(null)
-    if (res.success) {
-      showToastSuccess(
-        decision === 'approve' ? 'Record Approved' : 'Record Rejected',
-        res.message
-      )
-      if (onStatusChange) onStatusChange()
-    } else {
-      showToastError('Review Failed', res.error)
+    setActiveReviewId(recordId)
+    setActiveDecision(decision)
+    try {
+      const res = await reviewRecordAction(recordId, decision)
+      if (res.success) {
+        showToastSuccess(decision === 'approve' ? 'Record Approved' : 'Record Rejected', res.message)
+        if (onStatusChange) onStatusChange()
+      } else {
+        showToastError('Review Failed', res.error)
+      }
+    } catch {
+      showToastError('Review Failed', 'Please try again.')
+    } finally {
+      reviewLock.current = false
+      setIsProcessing(false)
+      setActiveReviewId(null)
+      setActiveDecision(null)
     }
   }
 
   if (records.length === 0) {
     return (
-      <div className="py-12 text-center border border-dashed border-[#dce6df] rounded-2xl bg-[#fafcfa]">
-        <Clock className="w-9 h-9 text-[#85988e] mx-auto mb-2 opacity-60" />
-        <h4 className="text-sm font-semibold text-[#294237]">No financial records found</h4>
-        <p className="text-xs text-[#718079] max-w-xs mx-auto mt-1">
+      <div className="py-12 text-center border border-dashed border-slate-200 rounded-2xl bg-white/60">
+        <Clock className="w-9 h-9 text-slate-400 mx-auto mb-2 opacity-60" />
+        <h4 className="text-sm font-semibold text-slate-900">No financial records found</h4>
+        <p className="text-xs text-slate-500 max-w-xs mx-auto mt-1">
           Once choir transactions or contributions are entered, they will be tracked here.
         </p>
       </div>
@@ -68,20 +79,20 @@ export function FinancialRecordTable({
   return (
     <div>
       {/* DESKTOP TABLE VIEW (Visible md and above) */}
-      <div className="hidden md:block overflow-x-auto rounded-2xl border border-[#e2e9e4] bg-white">
+      <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200/80 bg-white/95">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-[#edf2ee] bg-[#f9fbf9] text-[11px] font-bold text-[#718379] uppercase tracking-wider">
+            <tr className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               <th className="py-3.5 px-4">Date</th>
               <th className="py-3.5 px-4">Description</th>
               <th className="py-3.5 px-4">Category</th>
               <th className="py-3.5 px-4">Member / Added by</th>
               <th className="py-3.5 px-4 text-right">Amount</th>
               <th className="py-3.5 px-4 text-center">Status</th>
-              {userRole === 'LEADER' && <th className="py-3.5 px-4 text-right">Action</th>}
+              {canReview && <th className="py-3.5 px-4 text-right">Action</th>}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#f0f4f1] text-xs">
+          <tbody className="divide-y divide-slate-100 text-xs">
             {records.map((record) => {
               const isReceived = record.type === 'income'
               const isPending = record.status === 'needs_review'
@@ -90,12 +101,12 @@ export function FinancialRecordTable({
                 <tr
                   key={record.id}
                   onClick={() => setSelectedRecord(record)}
-                  className="hover:bg-[#f8faf9] transition-colors cursor-pointer"
+                  className="hover:bg-blue-50/40 transition-colors cursor-pointer"
                 >
-                  <td className="py-3.5 px-4 text-[#607168] whitespace-nowrap font-medium">
+                  <td className="py-3.5 px-4 text-slate-500 whitespace-nowrap font-medium">
                     {formatDate(record.recordDate)}
                   </td>
-                  <td className="py-3.5 px-4 font-medium text-[#213b31]">
+                  <td className="py-3.5 px-4 font-medium text-slate-900">
                     <div className="flex items-center gap-2.5">
                       <span
                         className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
@@ -108,20 +119,20 @@ export function FinancialRecordTable({
                           <ArrowUpRight className="w-3.5 h-3.5" />
                         )}
                       </span>
-                      <span>{record.description}</span>
+                      <span className="min-w-0">{record.description}{record.sessionRecordKind && <span className="ml-2 inline-flex rounded-full bg-indigo-50 px-2 py-0.5 align-middle text-[9px] font-bold uppercase tracking-wide text-indigo-700">{record.sessionRecordKind.replaceAll('_', ' ').toLowerCase()}</span>}</span>
                     </div>
                   </td>
-                  <td className="py-3.5 px-4 text-[#52665b]">
-                    <span className="px-2 py-0.5 rounded-md bg-[#f0f4f1] text-[11px] font-medium text-[#415b4f]">
+                  <td className="py-3.5 px-4 text-slate-600">
+                    <span className="px-2 py-0.5 rounded-md bg-slate-100 text-[11px] font-medium text-slate-600">
                       {record.categoryName}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 text-[#607168]">
+                  <td className="py-3.5 px-4 text-slate-500">
                     {record.memberName || record.recordedByName}
                   </td>
                   <td
                     className={`py-3.5 px-4 text-right font-semibold whitespace-nowrap ${
-                      isReceived ? 'text-[#367949]' : 'text-[#af644d]'
+                      isReceived ? 'text-emerald-700' : 'text-rose-700'
                     }`}
                   >
                     {isReceived ? '+' : '-'} {formatCurrency(record.amount)}
@@ -140,23 +151,25 @@ export function FinancialRecordTable({
                       <Badge variant="voided">Voided</Badge>
                     )}
                   </td>
-                  {userRole === 'LEADER' && (
+                  {canReview && (
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       {isPending ? (
                         <div className="inline-flex items-center gap-1.5">
                           <button
-                            onClick={() => handleReview(record.id, 'approve')}
+                            onClick={(event) => { event.stopPropagation(); void handleReview(record.id, 'approve') }}
                             disabled={isProcessing}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-semibold transition-colors"
+                            aria-busy={isProcessing && activeReviewId === record.id}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-semibold transition-colors disabled:cursor-wait disabled:opacity-60"
                           >
-                            Approve
+                            {isProcessing && activeReviewId === record.id && activeDecision === 'approve' ? <LoaderCircle className="inline h-3 w-3 animate-spin" /> : null} {isProcessing && activeReviewId === record.id && activeDecision === 'approve' ? 'Approving…' : 'Approve'}
                           </button>
                           <button
-                            onClick={() => handleReview(record.id, 'reject')}
+                            onClick={(event) => { event.stopPropagation(); void handleReview(record.id, 'reject') }}
                             disabled={isProcessing}
-                            className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-semibold transition-colors"
+                            aria-busy={isProcessing && activeReviewId === record.id}
+                            className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-semibold transition-colors disabled:cursor-wait disabled:opacity-60"
                           >
-                            Reject
+                            {isProcessing && activeReviewId === record.id && activeDecision === 'reject' ? <LoaderCircle className="inline h-3 w-3 animate-spin" /> : null} {isProcessing && activeReviewId === record.id && activeDecision === 'reject' ? 'Rejecting…' : 'Reject'}
                           </button>
                         </div>
                       ) : (
@@ -200,6 +213,7 @@ export function FinancialRecordTable({
                     <h5 className="font-bold text-xs sm:text-sm text-slate-900 leading-tight truncate">
                       {record.description}
                     </h5>
+                    {record.sessionRecordKind && <span className="mt-1 inline-flex rounded-full bg-indigo-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-indigo-700">{record.sessionRecordKind.replaceAll('_', ' ').toLowerCase()}</span>}
                     <span className="text-[11px] text-slate-500 truncate block mt-0.5">
                       {formatDate(record.recordDate)} • {record.categoryName}
                     </span>
@@ -236,7 +250,7 @@ export function FinancialRecordTable({
                 </div>
               </div>
 
-              {userRole === 'LEADER' && isPending && (
+              {canReview && isPending && (
                 <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
                   <button
                     onClick={(e) => {
@@ -244,9 +258,10 @@ export function FinancialRecordTable({
                       handleReview(record.id, 'approve')
                     }}
                     disabled={isProcessing}
-                    className="flex-1 min-h-[44px] rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-semibold flex items-center justify-center transition-all shadow-xs"
+                    aria-busy={isProcessing && activeReviewId === record.id}
+                    className="brand-button flex-1 min-h-[44px] rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 disabled:cursor-wait disabled:opacity-60"
                   >
-                    Approve
+                    {isProcessing && activeReviewId === record.id && activeDecision === 'approve' ? <><LoaderCircle className="h-3.5 w-3.5 animate-spin" /> Approving…</> : 'Approve'}
                   </button>
                   <button
                     onClick={(e) => {
@@ -254,9 +269,10 @@ export function FinancialRecordTable({
                       handleReview(record.id, 'reject')
                     }}
                     disabled={isProcessing}
-                    className="flex-1 min-h-[44px] rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center justify-center transition-colors"
+                    aria-busy={isProcessing && activeReviewId === record.id}
+                    className="flex-1 min-h-[44px] rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:cursor-wait disabled:opacity-60"
                   >
-                    Reject
+                    {isProcessing && activeReviewId === record.id && activeDecision === 'reject' ? <><LoaderCircle className="h-3.5 w-3.5 animate-spin" /> Rejecting…</> : 'Reject'}
                   </button>
                 </div>
               )}
@@ -276,4 +292,3 @@ export function FinancialRecordTable({
     </div>
   )
 }
-

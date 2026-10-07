@@ -6,6 +6,7 @@ import { canCreateRecord, canCreateExpense, canApproveRecord } from '@/lib/permi
 import { createFinancialRecord, getFinancialCategories, getMemberById, getMemberByUserId, updateRecordStatus } from '@/lib/db'
 import { parseCurrencyInput, formatCurrency } from '@/lib/utils/currency'
 import { getTodayISODate } from '@/lib/utils/date'
+import { deliverBrevoOutbox } from '@/lib/email/brevo'
 
 export async function createRecordAction(formData: FormData) {
   const session = await getSessionUser()
@@ -91,7 +92,6 @@ export async function createRecordAction(formData: FormData) {
     revalidatePath('/finances')
     revalidatePath('/activity')
     revalidatePath('/reports')
-
     return {
       success: true,
       record,
@@ -137,6 +137,9 @@ export async function reviewRecordAction(
     revalidatePath('/finances')
     revalidatePath('/activity')
     revalidatePath('/reports')
+    revalidatePath('/sessions', 'layout')
+    revalidatePath('/sessions/[id]', 'page')
+    try { await deliverBrevoOutbox(5) } catch { /* The durable outbox is retried by the scheduled Brevo worker. */ }
 
     return {
       success: true,

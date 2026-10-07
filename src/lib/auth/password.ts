@@ -1,6 +1,7 @@
 import 'server-only'
 
 import crypto from 'node:crypto'
+import { getPgPool } from '@/lib/db'
 const SCRYPT_COST = 32768
 const SCRYPT_BLOCK_SIZE = 8
 const SCRYPT_PARALLELISM = 1
@@ -47,6 +48,21 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 export async function verifyPassword(password: string, encodedHash: string): Promise<boolean> {
+  const bcryptHash = /^\$2[aby]\$(\d{2})\$[./A-Za-z0-9]{53}$/.exec(encodedHash)
+  if (bcryptHash) {
+    const cost = Number(bcryptHash[1])
+    if (cost < 4 || cost > 16) {
+      await derive(password, DUMMY_SALT)
+      return false
+    }
+
+    const result = await getPgPool().query(
+      'SELECT extensions.crypt($1, $2) = $2 AS matches',
+      [password, encodedHash]
+    )
+    return result.rows[0]?.matches === true
+  }
+
   const parts = encodedHash.split('$')
   if (parts.length !== 6 || parts[0] !== 'scrypt') {
     await derive(password, DUMMY_SALT)

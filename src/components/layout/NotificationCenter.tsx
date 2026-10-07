@@ -3,10 +3,11 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Bell, Check, Clock, Info, CheckCircle2, AlertTriangle, AlertCircle, ArrowRight } from 'lucide-react'
+import { Bell, Check, Clock, Info, CheckCircle2, AlertTriangle, AlertCircle, ArrowRight, LoaderCircle } from 'lucide-react'
 import { NotificationItem } from '@/types'
 import { markNotificationReadAction } from '@/features/notifications/actions'
 import { formatDateTime } from '@/lib/utils/date'
+import { useToast } from '@/components/ui/Toast'
 
 interface NotificationCenterProps {
   notifications: NotificationItem[]
@@ -16,6 +17,11 @@ export function NotificationCenter({ notifications: initialNotifications }: Noti
   const router = useRouter()
   const [isOpen, setIsOpen] = React.useState(false)
   const [notifications, setNotifications] = React.useState(initialNotifications)
+  const [pendingIds, setPendingIds] = React.useState<Set<string>>(() => new Set())
+  const [isMarkingAll, setIsMarkingAll] = React.useState(false)
+  const pendingIdsRef = React.useRef(new Set<string>())
+  const markingAllRef = React.useRef(false)
+  const { error: showToastError } = useToast()
   const dropdownRef = React.useRef<HTMLDivElement>(null)
 
   // Sync state if initialNotifications updates
@@ -41,23 +47,53 @@ export function NotificationCenter({ notifications: initialNotifications }: Noti
     }
   }, [isOpen])
 
-  const handleMarkAsRead = async (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-    )
-    await markNotificationReadAction(id)
+  const handleMarkAsRead = async (id: string): Promise<boolean> => {
+    if (pendingIdsRef.current.has(id) || markingAllRef.current) return false
+    const original = notifications.find((item) => item.id === id)
+    if (!original || original.isRead) return true
+    pendingIdsRef.current.add(id)
+    setPendingIds(new Set(pendingIdsRef.current))
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)))
+    try {
+      const result = await markNotificationReadAction(id)
+      if (!result.success) throw new Error(result.error || 'Could not mark this notification as read.')
+      return true
+    } catch (error) {
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: false } : n)))
+      showToastError('Could not update notification', error instanceof Error ? error.message : 'Please try again.')
+      return false
+    } finally {
+      pendingIdsRef.current.delete(id)
+      setPendingIds(new Set(pendingIdsRef.current))
+    }
   }
 
   const handleMarkAll = async () => {
+    if (markingAllRef.current || pendingIdsRef.current.size > 0) return
+    markingAllRef.current = true
+    setIsMarkingAll(true)
+    const unread = notifications.filter((item) => !item.isRead)
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
-    for (const n of notifications.filter((item) => !item.isRead)) {
-      await markNotificationReadAction(n.id)
+    try {
+      const results = await Promise.all(unread.map((item) => markNotificationReadAction(item.id)))
+      const failedIds = unread.filter((_, index) => !results[index].success).map((item) => item.id)
+      if (failedIds.length) {
+        setNotifications((prev) => prev.map((n) => failedIds.includes(n.id) ? { ...n, isRead: false } : n))
+        showToastError('Some notifications were not updated', 'Please try again for the remaining unread items.')
+      }
+    } catch {
+      setNotifications((prev) => prev.map((n) => unread.some((item) => item.id === n.id) ? { ...n, isRead: false } : n))
+      showToastError('Could not update notifications', 'Please try again.')
+    } finally {
+      markingAllRef.current = false
+      setIsMarkingAll(false)
     }
   }
 
   const handleNotificationClick = async (item: NotificationItem) => {
     if (!item.isRead) {
-      await handleMarkAsRead(item.id)
+      const marked = await handleMarkAsRead(item.id)
+      if (!marked) return
     }
     setIsOpen(false)
 
@@ -79,6 +115,7 @@ export function NotificationCenter({ notifications: initialNotifications }: Noti
         onClick={() => setIsOpen((prev) => !prev)}
         className="relative p-2 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
         aria-label="Open notifications"
+        aria-busy={isMarkingAll}
       >
         <Bell className="w-4 h-4" />
         {unreadCount > 0 && (
@@ -103,9 +140,12 @@ export function NotificationCenter({ notifications: initialNotifications }: Noti
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAll}
-                className="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold transition-colors"
+                disabled={isMarkingAll || pendingIds.size > 0}
+                aria-busy={isMarkingAll || pendingIds.size > 0}
+                className="inline-flex items-center gap-1.5 text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold transition-colors disabled:cursor-wait disabled:opacity-50"
               >
-                Mark all as read
+                {(isMarkingAll || pendingIds.size > 0) && <LoaderCircle className="h-3 w-3 animate-spin" />}
+                {isMarkingAll ? 'Marking…' : pendingIds.size > 0 ? 'Updating…' : 'Mark all as read'}
               </button>
             )}
           </div>
@@ -118,6 +158,7 @@ export function NotificationCenter({ notifications: initialNotifications }: Noti
               </div>
             ) : (
               notifications.map((item) => {
+                const isPending = pendingIds.has(item.id) || isMarkingAll
                 const isSuccess = item.type === 'success'
                 const isWarning = item.type === 'warning'
                 const isAlert = item.type === 'alert'
@@ -125,8 +166,9 @@ export function NotificationCenter({ notifications: initialNotifications }: Noti
                 return (
                   <div
                     key={item.id}
-                    onClick={() => handleNotificationClick(item)}
-                    className={`p-4 flex items-start gap-3.5 transition-colors cursor-pointer group ${
+                    onClick={() => { if (!isPending) void handleNotificationClick(item) }}
+                    aria-busy={isPending}
+                    className={`p-4 flex items-start gap-3.5 transition-colors cursor-pointer group ${isPending ? 'cursor-wait opacity-70' : ''} ${
                       item.isRead ? 'bg-white hover:bg-slate-50/80' : 'bg-indigo-50/30 hover:bg-indigo-50/60'
                     }`}
                   >
@@ -156,6 +198,7 @@ export function NotificationCenter({ notifications: initialNotifications }: Noti
                         {!item.isRead && (
                           <span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0" />
                         )}
+                        {isPending && <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-indigo-600"><LoaderCircle className="h-3 w-3 animate-spin" /> Opening…</span>}
                       </div>
                       <p className="text-[11px] sm:text-xs text-slate-500 leading-snug">
                         {item.message}

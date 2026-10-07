@@ -15,7 +15,8 @@ import {
   Clock,
   Sparkles,
   ArrowRight,
-  ShieldCheck
+  ShieldCheck,
+  LoaderCircle
 } from 'lucide-react'
 import { NotificationItem, UserRole } from '@/types'
 import { markNotificationReadAction } from '@/features/notifications/actions'
@@ -32,11 +33,14 @@ export function NotificationsView({
   userRole
 }: NotificationsViewProps) {
   const router = useRouter()
-  const { success: showToastSuccess } = useToast()
+  const { success: showToastSuccess, error: showToastError } = useToast()
   const [notifications, setNotifications] = React.useState(initialNotifications)
   const [filter, setFilter] = React.useState<'all' | 'unread' | 'warning' | 'success'>('all')
   const [search, setSearch] = React.useState('')
   const [isMarkingAll, setIsMarkingAll] = React.useState(false)
+  const [pendingIds, setPendingIds] = React.useState<Set<string>>(() => new Set())
+  const pendingIdsRef = React.useRef(new Set<string>())
+  const markingAllRef = React.useRef(false)
 
   React.useEffect(() => {
     setNotifications(initialNotifications)
@@ -63,26 +67,55 @@ export function NotificationsView({
     })
   }, [notifications, filter, search])
 
-  const handleMarkAsRead = async (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-    )
-    await markNotificationReadAction(id)
+  const handleMarkAsRead = async (id: string): Promise<boolean> => {
+    if (pendingIdsRef.current.has(id) || markingAllRef.current) return false
+    const original = notifications.find((item) => item.id === id)
+    if (!original || original.isRead) return true
+    pendingIdsRef.current.add(id)
+    setPendingIds(new Set(pendingIdsRef.current))
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)))
+    try {
+      const result = await markNotificationReadAction(id)
+      if (!result.success) throw new Error(result.error || 'Could not mark this notification as read.')
+      return true
+    } catch (error) {
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: false } : n)))
+      showToastError('Could not update notification', error instanceof Error ? error.message : 'Please try again.')
+      return false
+    } finally {
+      pendingIdsRef.current.delete(id)
+      setPendingIds(new Set(pendingIdsRef.current))
+    }
   }
 
   const handleMarkAllAsRead = async () => {
+    if (markingAllRef.current || pendingIdsRef.current.size > 0) return
+    markingAllRef.current = true
     setIsMarkingAll(true)
+    const unread = notifications.filter((item) => !item.isRead)
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
-    for (const n of notifications.filter((item) => !item.isRead)) {
-      await markNotificationReadAction(n.id)
+    try {
+      const results = await Promise.all(unread.map((item) => markNotificationReadAction(item.id)))
+      const failedIds = unread.filter((_, index) => !results[index].success).map((item) => item.id)
+      if (failedIds.length) {
+        setNotifications((prev) => prev.map((n) => failedIds.includes(n.id) ? { ...n, isRead: false } : n))
+        showToastError('Some notifications were not updated', 'Please try again for the remaining unread items.')
+      } else {
+        showToastSuccess('All Caught Up', 'All notifications marked as read.')
+      }
+    } catch {
+      setNotifications((prev) => prev.map((n) => unread.some((item) => item.id === n.id) ? { ...n, isRead: false } : n))
+      showToastError('Could not update notifications', 'Please try again.')
+    } finally {
+      markingAllRef.current = false
+      setIsMarkingAll(false)
     }
-    setIsMarkingAll(false)
-    showToastSuccess('All Caught Up', 'All notifications marked as read.')
   }
 
   const handleNavigate = async (item: NotificationItem) => {
     if (!item.isRead) {
-      await handleMarkAsRead(item.id)
+      const marked = await handleMarkAsRead(item.id)
+      if (!marked) return
     }
     if (item.link) {
       router.push(item.link)
@@ -110,11 +143,12 @@ export function NotificationsView({
         {unreadCount > 0 && (
           <button
             onClick={handleMarkAllAsRead}
-            disabled={isMarkingAll}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white hover:bg-slate-50 border border-slate-200/90 text-xs font-semibold text-slate-700 shadow-xs transition-all shrink-0 active:scale-[0.99]"
+            disabled={isMarkingAll || pendingIds.size > 0}
+            aria-busy={isMarkingAll || pendingIds.size > 0}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white hover:bg-slate-50 border border-slate-200/90 text-xs font-semibold text-slate-700 shadow-xs transition-all shrink-0 active:scale-[0.99] disabled:cursor-wait disabled:opacity-60"
           >
-            <Check className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
-            <span>Mark all as read</span>
+            {isMarkingAll || pendingIds.size > 0 ? <LoaderCircle className="w-4 h-4 animate-spin text-indigo-600" /> : <Check className="w-4 h-4 text-emerald-600 stroke-[2.5]" />}
+            <span>{isMarkingAll ? 'Marking as read…' : pendingIds.size > 0 ? 'Updating…' : 'Mark all as read'}</span>
           </button>
         )}
       </div>
@@ -238,6 +272,7 @@ export function NotificationsView({
         ) : (
           <div className="space-y-3 pt-1">
             {filteredNotifications.map((item) => {
+              const isPending = pendingIds.has(item.id) || isMarkingAll
               const isWarning = item.type === 'warning'
               const isSuccess = item.type === 'success'
               const isAlert = item.type === 'alert'
@@ -294,20 +329,24 @@ export function NotificationsView({
                   <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                     {!item.isRead && (
                       <button
-                        onClick={() => handleMarkAsRead(item.id)}
-                        className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                        onClick={() => void handleMarkAsRead(item.id)}
+                        disabled={isPending}
+                        aria-busy={isPending}
+                        className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors disabled:cursor-wait disabled:opacity-50"
                         title="Mark as read"
                       >
-                        <Check className="w-4 h-4 stroke-[2.2]" />
+                        {isPending ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4 stroke-[2.2]" />}
                       </button>
                     )}
 
                     <button
-                      onClick={() => handleNavigate(item)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-xs transition-all active:scale-[0.99]"
+                      onClick={() => void handleNavigate(item)}
+                      disabled={isPending}
+                      aria-busy={isPending}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-xs transition-all active:scale-[0.99] disabled:cursor-wait disabled:opacity-60"
                     >
-                      <span>{item.type === 'warning' ? 'Review Record' : 'View Record'}</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <span>{isPending ? 'Opening…' : item.type === 'warning' ? 'Review Record' : 'View Record'}</span>
+                      {isPending ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
                     </button>
                   </div>
                 </div>
@@ -319,4 +358,3 @@ export function NotificationsView({
     </div>
   )
 }
-

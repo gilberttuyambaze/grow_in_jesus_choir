@@ -12,7 +12,7 @@ interface FinancialPulseProps {
 
 export function FinancialPulse({ summary, onAddRecord }: FinancialPulseProps) {
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#274e41] via-[#2f5c4e] to-[#3c6f5f] text-white p-7 sm:p-8 shadow-[0_12px_40px_rgba(39,78,65,0.18)] border border-[#ffffff15]">
+    <div className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-[#173e66] via-[#245583] to-[#3473ad] text-white p-7 sm:p-8 shadow-[0_18px_48px_-18px_rgba(30,86,142,0.4)] border border-white/20">
       {/* Subtle Orbital Pulse rings */}
       <div 
         className="absolute -right-20 -top-20 w-80 h-80 rounded-full border border-white/10 pointer-events-none animate-[pulse_6s_ease-in-out_infinite]" 

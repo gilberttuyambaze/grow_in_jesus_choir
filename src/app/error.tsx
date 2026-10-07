@@ -2,7 +2,8 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { AlertCircle, RotateCcw, LayoutDashboard } from 'lucide-react'
+import { AlertCircle, RotateCcw, LayoutDashboard, LoaderCircle } from 'lucide-react'
+import { ChoirLogo } from '@/components/brand/ChoirLogo'
 
 export default function ErrorPage({
   error,
@@ -11,12 +12,20 @@ export default function ErrorPage({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const [isRetrying, startRetry] = React.useTransition()
   React.useEffect(() => {
     console.error('Unhandled platform error:', error)
   }, [error])
 
   return (
-    <div className="min-h-screen bg-[#f4f6fc] flex flex-col justify-center items-center p-6 text-center selection:bg-indigo-600 selection:text-white">
+    <div className="min-h-screen flex flex-col justify-center items-center p-6 text-center selection:bg-indigo-600 selection:text-white">
+      <div className="flex flex-col items-center mb-8">
+        <ChoirLogo className="w-16 h-16 object-contain rounded-2xl mb-3" />
+        <span className="text-sm font-bold tracking-tight text-slate-900">
+          Grow in Jesus Choir
+        </span>
+      </div>
+
       <div className="w-16 h-16 rounded-3xl bg-rose-50 text-rose-600 flex items-center justify-center mb-5 border border-rose-150 shadow-md shadow-rose-500/10">
         <AlertCircle className="w-8 h-8 stroke-[2]" />
       </div>
@@ -36,11 +45,13 @@ export default function ErrorPage({
 
       <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
         <button
-          onClick={() => reset()}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-semibold shadow-md shadow-indigo-500/20 transition-all"
+          onClick={() => startRetry(() => reset())}
+          disabled={isRetrying}
+          aria-busy={isRetrying}
+          className="brand-button w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-xs font-semibold disabled:cursor-wait disabled:opacity-60"
         >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Try Again</span>
+          {isRetrying ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+          <span>{isRetrying ? 'Retrying…' : 'Try Again'}</span>
         </button>
 
         <Link

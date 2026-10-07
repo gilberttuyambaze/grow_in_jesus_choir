@@ -9,6 +9,7 @@ import { CommandSearchModal } from './CommandSearchModal'
 import { WelcomeGuideModal } from './WelcomeGuideModal'
 import { FinancialCategory, FinancialRecord, Member, NotificationItem, UserRole } from '@/types'
 import { canCreateRecord } from '@/lib/permissions'
+import type { OnboardingProgress } from '@/lib/db'
 
 interface DashboardShellProps {
   userRole: UserRole
@@ -19,6 +20,7 @@ interface DashboardShellProps {
   members: Member[]
   records: FinancialRecord[]
   notifications: NotificationItem[]
+  onboardingProgress: OnboardingProgress
   children: React.ReactNode
 }
 
@@ -31,14 +33,19 @@ export function DashboardShell({
   members,
   records,
   notifications,
+  onboardingProgress,
   children
 }: DashboardShellProps) {
   const [isAddRecordOpen, setIsAddRecordOpen] = React.useState(false)
   const [isSearchOpen, setIsSearchOpen] = React.useState(false)
   const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false)
+  const [isTourOpen, setIsTourOpen] = React.useState(onboardingProgress.status === 'not_started')
+
+  const handleOpenTour = React.useCallback(() => setIsTourOpen(true), [])
+  const handleCloseTour = React.useCallback(() => setIsTourOpen(false), [])
 
   return (
-    <div className="h-dvh w-full flex bg-[#f4f6fc] overflow-hidden">
+    <div className="dashboard-shell h-dvh w-full flex overflow-hidden">
       {/* Desktop Persistent Sidebar */}
       <div className="hidden md:block h-full shrink-0">
         <Sidebar
@@ -79,6 +86,7 @@ export function DashboardShell({
           notifications={notifications}
           onOpenAddRecord={() => setIsAddRecordOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
+          onOpenTour={handleOpenTour}
           onToggleMobileNav={() => setIsMobileNavOpen((prev) => !prev)}
         />
 
@@ -115,8 +123,13 @@ export function DashboardShell({
         canAddRecords={canCreateRecord(userRole)}
       />
 
-      {/* First-time Onboarding Guide (Section 114) */}
-      <WelcomeGuideModal />
+      <WelcomeGuideModal
+        isOpen={isTourOpen}
+        onClose={handleCloseTour}
+        onOpenNewRecord={() => setIsAddRecordOpen(true)}
+        progress={onboardingProgress}
+        userRole={userRole}
+      />
     </div>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import {
   FileText,
   Calendar,
@@ -15,7 +16,8 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Trash2,
-  Ban
+  Ban,
+  LoaderCircle
 } from 'lucide-react'
 import { FinancialRecord, UserRole } from '@/types'
 import { formatCurrency } from '@/lib/utils/currency'
@@ -47,6 +49,8 @@ export function RecordDetailModal({
   const [showVoidConfirm, setShowVoidConfirm] = React.useState(false)
   const [voidReason, setVoidReason] = React.useState('')
   const [isProcessing, setIsProcessing] = React.useState(false)
+  const [activeAction, setActiveAction] = React.useState<'approve' | 'reject' | 'void' | null>(null)
+  const actionLock = React.useRef(false)
 
   if (!record) return null
 
@@ -57,21 +61,27 @@ export function RecordDetailModal({
   const isLeader = userRole === 'LEADER' || userRole === 'ADMIN'
 
   const handleReview = async (decision: 'approve' | 'reject') => {
+    if (actionLock.current) return
+    actionLock.current = true
     setIsProcessing(true)
-    const res = await reviewRecordAction(record.id, decision, rejectReason)
-    setIsProcessing(false)
-    setShowRejectInput(false)
-    setRejectReason('')
-
-    if (res.success) {
-      showToastSuccess(
-        decision === 'approve' ? 'Record Approved' : 'Record Rejected',
-        res.message
-      )
-      onClose()
-      if (onStatusUpdated) onStatusUpdated()
-    } else {
-      showToastError('Action Failed', res.error)
+    setActiveAction(decision)
+    try {
+      const res = await reviewRecordAction(record.id, decision, rejectReason)
+      if (res.success) {
+        showToastSuccess(decision === 'approve' ? 'Record Approved' : 'Record Rejected', res.message)
+        setShowRejectInput(false)
+        setRejectReason('')
+        onClose()
+        if (onStatusUpdated) onStatusUpdated()
+      } else {
+        showToastError('Action Failed', res.error)
+      }
+    } catch {
+      showToastError('Action Failed', 'Please try again.')
+    } finally {
+      actionLock.current = false
+      setIsProcessing(false)
+      setActiveAction(null)
     }
   }
 
@@ -81,25 +91,35 @@ export function RecordDetailModal({
       return
     }
 
+    if (actionLock.current) return
+    actionLock.current = true
     setIsProcessing(true)
-    const res = await voidRecordAction(record.id, voidReason)
-    setIsProcessing(false)
-    setShowVoidConfirm(false)
-    setVoidReason('')
-
-    if (res.success) {
-      showToastSuccess('Record Voided', res.message)
-      onClose()
-      if (onStatusUpdated) onStatusUpdated()
-    } else {
-      showToastError('Void Failed', res.error)
+    setActiveAction('void')
+    try {
+      const res = await voidRecordAction(record.id, voidReason)
+      if (res.success) {
+        setShowVoidConfirm(false)
+        setVoidReason('')
+        showToastSuccess('Record Voided', res.message)
+        onClose()
+        if (onStatusUpdated) onStatusUpdated()
+      } else {
+        showToastError('Void Failed', res.error)
+      }
+    } catch {
+      showToastError('Void Failed', 'Please try again.')
+    } finally {
+      actionLock.current = false
+      setIsProcessing(false)
+      setActiveAction(null)
     }
   }
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => { if (!isProcessing) onClose() }}
+      closeDisabled={isProcessing}
       maxWidth="md"
       title={`Record: ${record.referenceNumber || record.id}`}
       description={`Choir financial record entered on ${formatDate(record.recordDate)}`}
@@ -167,6 +187,12 @@ export function RecordDetailModal({
               {record.memberName || record.recordedByName}
             </span>
           </div>
+          {record.sessionId && <div className="sm:col-span-2">
+            <span className="text-[11px] text-slate-400 block font-medium">Session record</span>
+            <Link href={`/sessions/${record.sessionId}`} onClick={onClose} className="mt-0.5 inline-flex font-bold text-indigo-700 hover:text-indigo-900">
+              {record.sessionRecordKind?.replaceAll('_', ' ').toLowerCase() || 'Open session details'} →
+            </Link>
+          </div>}
         </div>
 
         {/* Rejection / Note Reason Banner (if exists) */}
@@ -218,7 +244,8 @@ export function RecordDetailModal({
                   <button
                     type="button"
                     onClick={() => setShowRejectInput(false)}
-                    className="px-4 py-2 rounded-full text-xs font-semibold text-slate-600 hover:bg-slate-100 min-h-[44px]"
+                    disabled={isProcessing}
+                    className="px-4 py-2 rounded-full text-xs font-semibold text-slate-600 hover:bg-slate-100 min-h-[44px] disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -226,9 +253,11 @@ export function RecordDetailModal({
                     type="button"
                     onClick={() => handleReview('reject')}
                     disabled={isProcessing}
-                    className="px-5 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold min-h-[44px]"
+                    aria-busy={activeAction === 'reject'}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold min-h-[44px] disabled:cursor-wait disabled:opacity-60"
                   >
-                    Confirm Rejection
+                    {activeAction === 'reject' && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}
+                    {activeAction === 'reject' ? 'Rejecting…' : 'Confirm Rejection'}
                   </button>
                 </div>
               </div>
@@ -237,7 +266,8 @@ export function RecordDetailModal({
                 <button
                   type="button"
                   onClick={() => setShowRejectInput(true)}
-                  className="px-4 py-2.5 rounded-full border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-colors min-h-[44px] flex items-center justify-center"
+                  disabled={isProcessing}
+                  className="px-4 py-2.5 rounded-full border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-colors min-h-[44px] flex items-center justify-center disabled:opacity-50"
                 >
                   Reject Record
                 </button>
@@ -245,10 +275,11 @@ export function RecordDetailModal({
                   type="button"
                   onClick={() => handleReview('approve')}
                   disabled={isProcessing}
-                  className="px-5 py-2.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-1.5 min-h-[44px]"
+                  aria-busy={activeAction === 'approve'}
+                  className="brand-button px-5 py-2.5 rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 min-h-[44px] disabled:cursor-wait disabled:opacity-60"
                 >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Approve & Verify Balance</span>
+                  {activeAction === 'approve' ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  <span>{activeAction === 'approve' ? 'Approving…' : 'Approve & Verify Balance'}</span>
                 </button>
               </div>
             )}
@@ -279,7 +310,8 @@ export function RecordDetailModal({
                   <button
                     type="button"
                     onClick={() => setShowVoidConfirm(false)}
-                    className="px-3 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:bg-white"
+                    disabled={isProcessing}
+                    className="px-3 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:bg-white disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -287,9 +319,11 @@ export function RecordDetailModal({
                     type="button"
                     onClick={handleVoid}
                     disabled={isProcessing}
-                    className="px-4 py-1.5 rounded-full bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold"
+                    aria-busy={activeAction === 'void'}
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold disabled:cursor-wait disabled:opacity-60"
                   >
-                    Confirm Void
+                    {activeAction === 'void' && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}
+                    {activeAction === 'void' ? 'Voiding…' : 'Confirm Void'}
                   </button>
                 </div>
               </div>
@@ -298,7 +332,8 @@ export function RecordDetailModal({
                 <button
                   type="button"
                   onClick={() => setShowVoidConfirm(true)}
-                  className="px-3.5 py-1.5 rounded-full border border-slate-200 hover:border-rose-200 text-slate-500 hover:text-rose-600 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                  disabled={isProcessing}
+                  className="px-3.5 py-1.5 rounded-full border border-slate-200 hover:border-rose-200 text-slate-500 hover:text-rose-600 text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
                 >
                   <Ban className="w-3.5 h-3.5" />
                   <span>Void Record</span>

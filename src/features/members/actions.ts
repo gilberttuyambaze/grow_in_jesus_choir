@@ -7,14 +7,15 @@ import {
   getMembersByIds,
   getPendingContributionMembers,
   updateMemberProfile,
-  createAuditLog,
-  createNotification
+  createAuditLog
 } from '@/lib/db'
+import { createMemberCommunication } from '@/lib/db/member-workflows'
+import { deliverBrevoOutbox } from '@/lib/email/brevo'
 
 export async function sendRemindersAction(memberIds?: string[]) {
   const session = await getSessionUser()
   if (!session || !canManageMembers(session.role)) {
-    return { success: false, error: 'Unauthorized: Only leaders may send contribution reminders.' }
+    return { success: false, error: 'Unauthorized: Only leaders and admins may send contribution reminders.' }
   }
 
   try {
@@ -28,47 +29,48 @@ export async function sendRemindersAction(memberIds?: string[]) {
     } else {
       targetMembers = await getPendingContributionMembers()
     }
+    const foundTargets = targetMembers.length
+    targetMembers = targetMembers.filter((member) => member.userId)
 
     if (targetMembers.length === 0) {
-      return { success: true, count: 0, message: 'All members have already recorded their contributions.' }
-    }
-
-    // Queue notification records
-    for (const member of targetMembers) {
-      if (member.userId) {
-        await createNotification({
-          userId: member.userId,
-          title: 'Monthly Contribution Reminder',
-          message: 'A friendly reminder to submit your choir contribution for the current month.',
-          type: 'info',
-          link: '/dashboard'
-        })
+      return {
+        success: true, count: 0,
+        message: foundTargets === 0 ? 'All eligible members have already recorded their contributions.' : 'No selected member has a linked account for email communication.'
       }
     }
 
-    await createAuditLog({
-      actorId: session.userId,
-      actorName: session.fullName,
-      action: 'MEMBER_REMINDERS_DISPATCHED',
-      targetType: 'members',
-      targetId: 'batch',
-      details: {
-        count: targetMembers.length,
-        recipients: targetMembers.map((m) => m.fullName)
-      }
-    })
+    const communication = await createMemberCommunication({
+      mode: targetMembers.length === 1 ? 'SINGLE_MEMBER' : 'SELECTED_MEMBERS',
+      memberIds: targetMembers.map((member) => member.id),
+      manualEmail: '',
+      manualName: '',
+      subject: 'Monthly Choir Contribution Reminder',
+      body: 'A friendly reminder to submit your choir contribution for the current month. If you have already contributed, please disregard this message.',
+      important: false,
+      inAppNotification: true
+    }, { id: session.userId, name: session.fullName })
+    let configured = true
+    try {
+      const delivery = await deliverBrevoOutbox(5)
+      configured = delivery.configured
+    } catch {
+      // The queued message remains available to the scheduled delivery worker.
+    }
 
+    revalidatePath('/communications')
+    revalidatePath('/notifications')
     revalidatePath('/members')
     revalidatePath('/dashboard')
-    revalidatePath('/activity')
 
     return {
       success: true,
-      count: targetMembers.length,
-      message: `Gentle reminders sent to ${targetMembers.length} choir members.`
+      count: communication.recipientCount,
+      message: configured
+        ? `Contribution reminder queued for ${communication.recipientCount} member(s).`
+        : `Reminder saved for ${communication.recipientCount} member(s); email remains queued until Brevo is configured.`
     }
   } catch (error: any) {
-    return { success: false, error: 'Failed to dispatch reminders.' }
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to queue reminders.' }
   }
 }
 
@@ -78,9 +80,18 @@ export async function updateMemberProfileAction(formData: FormData) {
     return { success: false, error: 'Unauthorized: Session expired.' }
   }
 
-  const phone = typeof formData.get('phone') === 'string' ? (formData.get('phone') as string).trim() : ''
-  const fullName = typeof formData.get('fullName') === 'string' ? (formData.get('fullName') as string).trim() : ''
-  if (!fullName || fullName.length > 120 || phone.length > 40) {
+  const fullNameValue = formData.get('fullName')
+  const phoneValue = formData.get('phone')
+  if ((fullNameValue !== null && typeof fullNameValue !== 'string') || (phoneValue !== null && typeof phoneValue !== 'string')) {
+    return { success: false, error: 'The submitted profile details are invalid.' }
+  }
+  const fullName = typeof fullNameValue === 'string' ? fullNameValue.trim() : ''
+  const phone = typeof phoneValue === 'string' ? phoneValue.trim() : ''
+  const phoneDigits = phone.replace(/\D/g, '')
+  if (
+    !fullName || fullName.length > 120 || /[\u0000-\u001f\u007f]/.test(fullName) ||
+    phone.length > 40 || (phone && (!/^[+\d().\s-]+$/.test(phone) || phoneDigits.length < 7 || phoneDigits.length > 15))
+  ) {
     return { success: false, error: 'Enter a name and a valid phone number.' }
   }
 
@@ -93,9 +104,10 @@ export async function updateMemberProfileAction(formData: FormData) {
       action: 'PROFILE_UPDATED',
       targetType: 'users',
       targetId: session.userId,
-      details: { phone, fullName }
+      details: { updatedFields: ['fullName', 'phone'] }
     })
 
+    revalidatePath('/profile')
     revalidatePath('/settings')
     revalidatePath('/dashboard')
     revalidatePath('/members')

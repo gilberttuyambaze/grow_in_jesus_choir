@@ -24,6 +24,52 @@ export interface Member {
   createdAt: string
 }
 
+export type MemberInvitationStatus = 'PENDING' | 'SENT' | 'ACCEPTED' | 'EXPIRED' | 'CANCELLED' | 'FAILED'
+export interface MemberInvitation {
+  id: string
+  email: string
+  fullName: string
+  phone: string | null
+  voicePart: Member['voicePart']
+  status: MemberInvitationStatus
+  invitedByName: string
+  message: string
+  expiresAt: string
+  createdAt: string
+  lastSentAt: string | null
+  resendCount: number
+}
+
+export type MemberCommunicationMode = 'SINGLE_MEMBER' | 'SELECTED_MEMBERS' | 'ALL_MEMBERS' | 'MANUAL_EMAIL'
+export type MemberCommunicationStatus = 'QUEUED' | 'SENDING' | 'SENT' | 'PARTIAL' | 'FAILED'
+export type MemberCommunicationRecipientStatus = 'QUEUED' | 'SENDING' | 'SENT' | 'FAILED'
+export interface MemberCommunicationRecipient {
+  id: string
+  memberId: string | null
+  recipientEmail: string
+  recipientName: string
+  status: MemberCommunicationRecipientStatus
+  sentAt: string | null
+  lastError: string | null
+}
+export interface MemberCommunication {
+  id: string
+  senderName: string
+  recipientsMode: MemberCommunicationMode
+  subject: string
+  body: string
+  status: MemberCommunicationStatus
+  important: boolean
+  inAppNotification: boolean
+  recipientCount: number
+  invalidCount: number
+  sentCount: number
+  failedCount: number
+  createdAt: string
+  completedAt: string | null
+  recipients: MemberCommunicationRecipient[]
+}
+
 export type FinancialRecordType = 'income' | 'expense'
 export type FinancialRecordStatus = 'recorded' | 'needs_review' | 'rejected' | 'voided'
 
@@ -52,8 +98,87 @@ export interface FinancialRecord {
   rejectionReason?: string | null
   receiptFilename?: string | null
   referenceNumber?: string | null
+  sessionId?: string | null
+  sessionRecordKind?: 'CONTRIBUTION' | 'LATE_PENALTY' | 'ABSENT_PENALTY' | null
   createdAt: string
   updatedAt: string
+}
+
+export type ChoirSessionType = 'ATTENDANCE' | 'CONTRIBUTION'
+export type ChoirSessionVisibility = 'PUBLIC' | 'PRIVATE'
+export type ChoirSessionStatus = 'DRAFT' | 'SCHEDULED' | 'OPEN' | 'CLOSED' | 'COMPLETED'
+export type AttendanceStatus = 'NOT_CHECKED_IN' | 'PRESENT' | 'LATE' | 'ABSENT'
+export type ContributionMemberStatus = 'COMPLETED' | 'PARTIAL' | 'CONTRIBUTED' | 'PENDING' | 'REJECTED' | 'NOT_YET'
+
+export interface ChoirSession {
+  id: string
+  title: string
+  description: string
+  type: ChoirSessionType
+  location: string | null
+  startsAt: string
+  endsAt: string
+  deadlineAt: string
+  visibility: ChoirSessionVisibility
+  status: ChoirSessionStatus
+  attendanceGraceMinutes: number
+  lateFee: number
+  absentFee: number
+  targetAmount: number | null
+  memberTargetAmount: number | null
+  financialCategoryId: string | null
+  createdById: string
+  createdByName: string
+  createdAt: string
+  updatedAt: string
+  closedAt: string | null
+}
+
+export interface SessionRosterEntry {
+  memberId: string
+  memberName: string
+  voicePart: Member['voicePart']
+  attendanceStatus: AttendanceStatus | null
+  checkedInAt: string | null
+  approvedAmount: number
+  pendingAmount: number
+  rejectedCount: number
+  contributionStatus: ContributionMemberStatus | null
+  penaltyAmount: number
+  penaltyStatus: FinancialRecordStatus | null
+}
+
+export interface SessionOverview {
+  session: ChoirSession
+  roster: SessionRosterEntry[]
+  totalMembers: number
+  presentCount: number
+  lateCount: number
+  absentCount: number
+  notCheckedInCount: number
+  approvedAmount: number
+  pendingAmount: number
+  rejectedAmount: number
+  contributorCount: number
+  partialCount: number
+  completedCount: number
+  pendingContributorCount: number
+  rejectedSubmissionCount: number
+  notYetCount: number
+}
+
+export interface MemberSessionHistoryItem {
+  sessionId: string
+  title: string
+  type: ChoirSessionType
+  startsAt: string
+  status: ChoirSessionStatus
+  attendanceStatus: AttendanceStatus | null
+  approvedAmount: number
+  pendingAmount: number
+  contributionStatus: ContributionMemberStatus | null
+  penaltyAmount: number
+  penaltyStatus: FinancialRecordStatus | null
 }
 
 export interface FinancialSummary {

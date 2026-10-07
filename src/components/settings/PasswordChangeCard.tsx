@@ -1,16 +1,19 @@
 'use client'
 
 import * as React from 'react'
-import { KeyRound } from 'lucide-react'
+import { KeyRound, LoaderCircle } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { changePasswordAction } from '@/features/auth/actions'
 
 export function PasswordChangeCard() {
   const { success, error } = useToast()
   const [isSaving, setIsSaving] = React.useState(false)
+  const saveLock = React.useRef(false)
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (saveLock.current) return
+    saveLock.current = true
     setIsSaving(true)
     const form = event.currentTarget
     try {
@@ -24,6 +27,7 @@ export function PasswordChangeCard() {
     } catch {
       error('Password not changed', 'Please try again.')
     } finally {
+      saveLock.current = false
       setIsSaving(false)
     }
   }
@@ -67,8 +71,10 @@ export function PasswordChangeCard() {
         <button
           type="submit"
           disabled={isSaving}
-          className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-slate-900 text-white text-xs font-semibold disabled:opacity-50"
+          aria-busy={isSaving}
+          className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 rounded-full bg-slate-900 text-white text-xs font-semibold disabled:cursor-wait disabled:opacity-50"
         >
+          {isSaving && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}
           {isSaving ? 'Updating…' : 'Update password'}
         </button>
       </form>

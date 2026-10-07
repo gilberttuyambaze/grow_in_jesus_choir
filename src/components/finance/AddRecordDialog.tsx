@@ -10,7 +10,8 @@ import {
   Paperclip,
   FileText,
   UploadCloud,
-  RotateCcw
+  RotateCcw,
+  LoaderCircle
 } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { RecordTypeSelectionCard, RecordTypeModal } from './RecordTypeSelectionCard'
@@ -46,6 +47,7 @@ export function AddRecordDialog({
   const [description, setDescription] = React.useState('')
   const [recordDate, setRecordDate] = React.useState(getTodayISODate())
   const [receiptFile, setReceiptFile] = React.useState<File | null>(null)
+  const submitLock = React.useRef(false)
 
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -79,6 +81,7 @@ export function AddRecordDialog({
   }
 
   const handleClose = () => {
+    if (submitLock.current) return
     handleReset()
     onClose()
   }
@@ -97,7 +100,7 @@ export function AddRecordDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!recordType) return
+    if (submitLock.current || !recordType) return
 
     const parsedAmount = parseInt(amount.replace(/[^0-9]/g, ''), 10)
     if (!parsedAmount || parsedAmount <= 0) {
@@ -116,6 +119,7 @@ export function AddRecordDialog({
     }
 
     setError(null)
+    submitLock.current = true
     setIsSubmitting(true)
 
     const formData = new FormData()
@@ -126,16 +130,13 @@ export function AddRecordDialog({
     formData.append('description', description.trim())
     if (memberId) formData.append('memberId', memberId)
 
-    let result: Awaited<ReturnType<typeof createRecordAction>>
     try {
-      result = await createRecordAction(formData)
-    } catch {
-      setIsSubmitting(false)
-      setError('Financial records are temporarily unavailable. Please try again.')
-      return
-    }
-
-    if (result.success) {
+      const result = await createRecordAction(formData)
+      if (!result.success) {
+        setError(result.error || 'Failed to save record.')
+        showToastError('Could not save record', result.error)
+        return
+      }
       let msg = result.message || 'Record successfully saved'
       if (receiptFile && result.record) {
         try {
@@ -150,7 +151,6 @@ export function AddRecordDialog({
         }
       }
 
-      setIsSubmitting(false)
       showToastSuccess('Record saved successfully', msg)
 
       setSuccessInfo({
@@ -160,10 +160,12 @@ export function AddRecordDialog({
       })
 
       if (onSuccess) onSuccess()
-    } else {
+    } catch {
+      setError('Financial records are temporarily unavailable. Please try again.')
+      showToastError('Could not save record', 'Financial records are temporarily unavailable. Please try again.')
+    } finally {
+      submitLock.current = false
       setIsSubmitting(false)
-      setError(result.error || 'Failed to save record.')
-      showToastError('Could not save record', result.error)
     }
   }
 
@@ -186,6 +188,7 @@ export function AddRecordDialog({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
+      closeDisabled={isSubmitting}
       maxWidth="md"
       title={
         successInfo
@@ -223,17 +226,18 @@ export function AddRecordDialog({
 
           <button
             onClick={handleClose}
-            className="w-full py-3 px-5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold text-sm transition-all shadow-md shadow-indigo-500/20"
+            className="brand-button w-full py-3 px-5 rounded-full font-semibold text-sm"
           >
             Done
           </button>
         </div>
       ) : (
         /* STEP 2: FILL PROGRESSIVELY REVEALED FORM */
-        <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+        <form onSubmit={handleSubmit} aria-busy={isSubmitting} className="space-y-4 pt-1">
           <div className="flex items-center justify-between">
             <button
               type="button"
+              disabled={isSubmitting}
               onClick={() => {
                 setRecordType(null)
                 setError(null)
@@ -352,6 +356,7 @@ export function AddRecordDialog({
             <div className="relative border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-2xl p-4 text-center transition-all bg-slate-50/50 hover:bg-indigo-50/20">
               <input
                 type="file"
+                disabled={isSubmitting}
                 accept=".pdf,image/png,image/jpeg,image/webp"
                 onChange={handleFileChange}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -367,6 +372,7 @@ export function AddRecordDialog({
                   </div>
                   <button
                     type="button"
+                    disabled={isSubmitting}
                     onClick={(e) => {
                       e.stopPropagation()
                       setReceiptFile(null)
@@ -395,17 +401,19 @@ export function AddRecordDialog({
             <button
               type="button"
               onClick={handleClose}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 text-xs font-semibold transition-all min-h-[44px] flex items-center justify-center"
+              disabled={isSubmitting}
+              className="w-full sm:w-auto px-5 py-2.5 rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 text-xs font-semibold transition-all min-h-[44px] flex items-center justify-center disabled:cursor-wait disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-semibold transition-all shadow-md shadow-indigo-500/25 disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
+              aria-busy={isSubmitting}
+              className="brand-button w-full sm:w-auto px-6 py-2.5 rounded-full text-xs font-semibold flex items-center justify-center gap-2 min-h-[44px]"
             >
               {isSubmitting ? (
-                <span>Saving...</span>
+                <><LoaderCircle className="h-4 w-4 animate-spin" /><span>{receiptFile ? 'Saving record and receipt…' : 'Saving record…'}</span></>
               ) : (
                 <>
                   <Check className="w-4 h-4" />

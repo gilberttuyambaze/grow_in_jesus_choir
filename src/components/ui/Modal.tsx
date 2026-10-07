@@ -11,6 +11,7 @@ export interface ModalProps {
   description?: string
   children: React.ReactNode
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl'
+  closeDisabled?: boolean
 }
 
 export function Modal({
@@ -19,7 +20,8 @@ export function Modal({
   title,
   description,
   children,
-  maxWidth = 'md'
+  maxWidth = 'md',
+  closeDisabled = false
 }: ModalProps) {
   React.useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -76,7 +78,9 @@ export function Modal({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors shrink-0"
+            disabled={closeDisabled}
+            aria-disabled={closeDisabled}
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors shrink-0 disabled:cursor-wait disabled:opacity-50"
             aria-label="Close dialog"
           >
             <X className="w-4 h-4 stroke-[2.2]" />

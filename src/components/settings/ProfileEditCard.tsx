@@ -1,9 +1,10 @@
 'use client'
 
 import * as React from 'react'
-import { UserCheck, Phone, User, Check, Sparkles } from 'lucide-react'
+import { UserCheck, Phone, User, Check, LoaderCircle, CalendarDays, ShieldCheck } from 'lucide-react'
 import { updateMemberProfileAction } from '@/features/members/actions'
 import { useToast } from '@/components/ui/Toast'
+import { useRouter } from 'next/navigation'
 
 interface ProfileEditCardProps {
   initialFullName: string
@@ -11,6 +12,8 @@ interface ProfileEditCardProps {
   email: string
   role: string
   voicePart?: string
+  memberStatus?: string
+  joinedDate?: string
 }
 
 export function ProfileEditCard({
@@ -18,28 +21,40 @@ export function ProfileEditCard({
   initialPhone,
   email,
   role,
-  voicePart
+  voicePart,
+  memberStatus,
+  joinedDate
 }: ProfileEditCardProps) {
+  const router = useRouter()
   const { success: showToastSuccess, error: showToastError } = useToast()
   const [fullName, setFullName] = React.useState(initialFullName)
   const [phone, setPhone] = React.useState(initialPhone || '')
   const [isSaving, setIsSaving] = React.useState(false)
+  const saveLock = React.useRef(false)
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (saveLock.current) return
+    saveLock.current = true
     setIsSaving(true)
 
     const formData = new FormData()
     formData.append('fullName', fullName)
     formData.append('phone', phone)
 
-    const res = await updateMemberProfileAction(formData)
-    setIsSaving(false)
-
-    if (res.success) {
-      showToastSuccess('Profile Saved', 'Your member details have been updated.')
-    } else {
-      showToastError('Update Failed', res.error)
+    try {
+      const res = await updateMemberProfileAction(formData)
+      if (res.success) {
+        showToastSuccess('Profile Saved', 'Your member details have been updated.')
+        router.refresh()
+      } else {
+        showToastError('Update Failed', res.error)
+      }
+    } catch {
+      showToastError('Update Failed', 'Please try again.')
+    } finally {
+      saveLock.current = false
+      setIsSaving(false)
     }
   }
 
@@ -51,10 +66,10 @@ export function ProfileEditCard({
         </div>
         <div>
           <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-            Your Account & Member Profile
+            Your Profile
           </h3>
           <p className="text-[11px] text-slate-400">
-            Update personal contact information and ministry record
+            Update your name and phone number. Email, role, and voice part are managed separately.
           </p>
         </div>
       </div>
@@ -115,14 +130,39 @@ export function ProfileEditCard({
           </div>
         </div>
 
+        {(memberStatus || joinedDate) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 text-xs border-t border-slate-100">
+            {memberStatus && (
+              <div className="flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 text-slate-400 mt-0.5" />
+                <div>
+                  <span className="text-slate-400 block text-[11px] font-medium">Member Status</span>
+                  <span className="text-slate-900 font-semibold capitalize block mt-0.5">{memberStatus}</span>
+                </div>
+              </div>
+            )}
+            {joinedDate && (
+              <div className="flex items-start gap-2">
+                <CalendarDays className="w-4 h-4 text-slate-400 mt-0.5" />
+                <div>
+                  <span className="text-slate-400 block text-[11px] font-medium">Joined Choir</span>
+                  <span className="text-slate-900 font-semibold block mt-0.5">{joinedDate}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="flex justify-end pt-2">
           <button
             type="submit"
             disabled={isSaving}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-semibold shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+            aria-busy={isSaving}
+            className="brand-button w-full sm:w-auto px-6 py-2.5 rounded-full text-xs font-semibold flex items-center justify-center gap-1.5"
           >
             <Check className="w-3.5 h-3.5" />
-            <span>{isSaving ? 'Saving...' : 'Save Profile Changes'}</span>
+            {isSaving && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}
+            <span>{isSaving ? 'Saving…' : 'Save Profile Changes'}</span>
           </button>
         </div>
       </form>

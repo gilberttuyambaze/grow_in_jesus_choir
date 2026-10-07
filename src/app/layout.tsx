@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import { AppBackground } from '@/components/layout/AppBackground'
 
 export const metadata: Metadata = {
   title: 'Grow in Jesus Choir | Financial workspace',
@@ -39,9 +40,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <ToastProvider>
-          {children}
-        </ToastProvider>
+        <AppBackground>
+          <ToastProvider>{children}</ToastProvider>
+        </AppBackground>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
