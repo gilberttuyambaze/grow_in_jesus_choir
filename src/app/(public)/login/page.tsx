@@ -77,9 +77,9 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-[440px] sm:max-w-[460px] mx-auto min-w-0">
         {/* Floating Brand Squircle & Titles */}
         <div className="text-center mb-6">
-          <Link href="/" className="inline-block group mb-3">
-            <div className="w-14 h-14 rounded-2xl bg-white/70 backdrop-blur-md border border-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.04)] flex items-center justify-center mx-auto group-hover:scale-105 transition-transform">
-              <ChoirLogo className="w-8 h-8 rounded-lg object-contain" />
+          <Link href="/" className="inline-block group mb-3 sm:mb-4">
+            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-[22px] sm:rounded-[30px] bg-white/80 backdrop-blur-md border border-white/90 shadow-[0_10px_28px_rgba(0,0,0,0.06),0_0_0_1px_rgba(255,255,255,0.9)_inset] overflow-hidden flex items-center justify-center mx-auto group-hover:scale-105 transition-transform duration-300">
+              <ChoirLogo className="w-full h-full object-cover" />
             </div>
           </Link>
           <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight font-sans leading-tight">
