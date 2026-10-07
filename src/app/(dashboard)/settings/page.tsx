@@ -13,6 +13,8 @@ import {
 import { getSessionUser } from '@/lib/auth/session'
 import { getFinancialCategories, getMemberByUserId, getMembers } from '@/lib/db'
 import { ProfileEditCard } from '@/components/settings/ProfileEditCard'
+import { PasswordChangeCard } from '@/components/settings/PasswordChangeCard'
+import { canManageMembers } from '@/lib/permissions'
 
 export default async function SettingsPage() {
   const session = await getSessionUser()
@@ -24,7 +26,7 @@ export default async function SettingsPage() {
     getMemberByUserId(session.userId),
     getFinancialCategories('income'),
     getFinancialCategories('expense'),
-    getMembers()
+    canManageMembers(session.role) ? getMembers() : Promise.resolve([])
   ])
   const activeCount = members.filter((m) => m.status === 'active').length
 
@@ -67,18 +69,14 @@ export default async function SettingsPage() {
                 Rwandan Franc (RWF)
               </strong>
             </div>
-            <div>
-              <span className="text-slate-400 block text-[11px] font-medium">Active Choir Members</span>
-              <strong className="text-slate-900 text-xs font-bold block mt-0.5">
-                {activeCount} Members
-              </strong>
-            </div>
-            <div>
-              <span className="text-slate-400 block text-[11px] font-medium">Monthly Dues Target</span>
-              <strong className="text-slate-900 text-xs font-bold block mt-0.5">
-                50,000 RWF / Member
-              </strong>
-            </div>
+            {canManageMembers(session.role) && (
+              <div>
+                <span className="text-slate-400 block text-[11px] font-medium">Active Choir Members</span>
+                <strong className="text-slate-900 text-xs font-bold block mt-0.5">
+                  {activeCount} Members
+                </strong>
+              </div>
+            )}
           </div>
         </div>
 
@@ -90,6 +88,10 @@ export default async function SettingsPage() {
           role={session.role}
           voicePart={member?.voicePart}
         />
+      </div>
+
+      <div className="max-w-2xl">
+        <PasswordChangeCard />
       </div>
 
       {/* Financial Categories Management Overview (Section 16 & 127) */}

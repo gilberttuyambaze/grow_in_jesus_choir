@@ -1,108 +1,51 @@
-/**
- * Supabase Storage Client for Financial Documents & Receipts
- * Interacts with private Supabase Storage bucket 'grow-in-jesus-choir'
- * with local disk fallback for offline resilience.
- */
+import 'server-only'
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import fs from 'node:fs'
-import path from 'node:path'
-
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://aqakudlnbjfglffimjbt.supabase.co'
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-const BUCKET_NAME = process.env.SUPABASE_STORAGE_BUCKET || 'grow-in-jesus-choir'
 
 let supabaseInstance: SupabaseClient | null = null
 
-export function getSupabaseClient(): SupabaseClient | null {
-  if (supabaseInstance) return supabaseInstance
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return null
-
-  try {
-    supabaseInstance = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { persistSession: false }
-    })
-    return supabaseInstance
-  } catch (err) {
-    console.error('[Storage] Error initializing Supabase client:', err)
-    return null
+function getStorageConfig() {
+  const url = process.env.SUPABASE_URL?.trim()
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET?.trim()
+  if (!url || !serviceRoleKey || !bucket) {
+    throw new Error('Private document storage is not configured.')
   }
+  return { url, serviceRoleKey, bucket }
 }
 
-/**
- * Uploads a document/receipt to Supabase Storage.
- */
+function getSupabaseClient(): SupabaseClient {
+  if (supabaseInstance) return supabaseInstance
+  const { url, serviceRoleKey } = getStorageConfig()
+  supabaseInstance = createClient(url, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  })
+  return supabaseInstance
+}
+
 export async function uploadToStorage(
   filename: string,
   buffer: Buffer,
   mimeType: string
-): Promise<{ success: boolean; path: string; error?: string }> {
-  const supabase = getSupabaseClient()
-
-  if (supabase) {
-    try {
-      const { data, error } = await supabase.storage
-        .from(BUCKET_NAME)
-        .upload(filename, buffer, {
-          contentType: mimeType,
-          upsert: true
-        })
-
-      if (!error && data) {
-        return { success: true, path: data.path }
-      }
-      console.warn('[Storage] Supabase upload error:', error?.message)
-    } catch (err: any) {
-      console.warn('[Storage] Supabase upload failed, falling back to local storage:', err.message)
-    }
-  }
-
-  // Resilient fallback to secure local storage path
-  try {
-    const uploadDir = path.join(process.cwd(), 'data', 'uploads')
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true })
-    }
-    const targetPath = path.join(uploadDir, filename)
-    fs.writeFileSync(targetPath, buffer)
-    return { success: true, path: targetPath }
-  } catch (err: any) {
-    return { success: false, path: '', error: err.message }
-  }
+): Promise<{ success: true; path: string }> {
+  const { bucket } = getStorageConfig()
+  const { data, error } = await getSupabaseClient().storage.from(bucket).upload(filename, buffer, {
+    contentType: mimeType,
+    upsert: false
+  })
+  if (error || !data) throw new Error('Document upload failed.')
+  return { success: true, path: data.path }
 }
 
-/**
- * Downloads a document/receipt from Supabase Storage.
- */
 export async function downloadFromStorage(filename: string): Promise<Buffer | null> {
-  const supabase = getSupabaseClient()
-
-  if (supabase) {
-    try {
-      const { data, error } = await supabase.storage
-        .from(BUCKET_NAME)
-        .download(filename)
-
-      if (!error && data) {
-        const arrayBuffer = await data.arrayBuffer()
-        return Buffer.from(arrayBuffer)
-      }
-    } catch (err: any) {
-      console.warn('[Storage] Supabase download failed, checking local storage:', err.message)
-    }
-  }
-
-  // Fallback to local storage if available
-  try {
-    const uploadDir = path.join(process.cwd(), 'data', 'uploads')
-    const localPath = path.join(uploadDir, filename)
-    if (fs.existsSync(localPath)) {
-      return fs.readFileSync(localPath)
-    }
-  } catch (err) {
-    // ignore
-  }
-
-  return null
+  const { bucket } = getStorageConfig()
+  const { data, error } = await getSupabaseClient().storage.from(bucket).download(filename)
+  if (error || !data) return null
+  return Buffer.from(await data.arrayBuffer())
 }
 
+export async function removeFromStorage(filename: string): Promise<void> {
+  const { bucket } = getStorageConfig()
+  const { error } = await getSupabaseClient().storage.from(bucket).remove([filename])
+  if (error) throw new Error('Uploaded document cleanup failed.')
+}

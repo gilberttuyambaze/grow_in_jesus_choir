@@ -11,8 +11,6 @@ interface FinancialPulseProps {
 }
 
 export function FinancialPulse({ summary, onAddRecord }: FinancialPulseProps) {
-  const isHealthy = summary.currentBalance >= 500000
-
   return (
     <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#274e41] via-[#2f5c4e] to-[#3c6f5f] text-white p-7 sm:p-8 shadow-[0_12px_40px_rgba(39,78,65,0.18)] border border-[#ffffff15]">
       {/* Subtle Orbital Pulse rings */}
@@ -88,4 +86,3 @@ export function FinancialPulse({ summary, onAddRecord }: FinancialPulseProps) {
     </div>
   )
 }
-

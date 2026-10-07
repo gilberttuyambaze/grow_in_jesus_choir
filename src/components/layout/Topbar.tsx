@@ -5,6 +5,7 @@ import Link from 'next/link'
 import gsap from 'gsap'
 import { Search, Plus, Menu, FolderLock } from 'lucide-react'
 import { UserRole, NotificationItem } from '@/types'
+import { canCreateRecord } from '@/lib/permissions'
 import { NotificationCenter } from './NotificationCenter'
 
 interface TopbarProps {
@@ -155,15 +156,17 @@ export function Topbar({
         </Link>
 
         {/* Primary CTA Button (Responsive) */}
-        <button
-          onClick={onOpenAddRecord}
-          className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-semibold shadow-md shadow-indigo-500/25 transition-all active:scale-[0.98] shrink-0"
-        >
-          <Plus className="w-3.5 sm:w-4 h-3.5 sm:h-4 stroke-[2.5]" />
-          <span className="hidden xs:inline sm:inline">
-            {userRole === 'MEMBER' ? 'Record' : 'New Record'}
-          </span>
-        </button>
+        {canCreateRecord(userRole) && (
+          <button
+            onClick={onOpenAddRecord}
+            className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-semibold shadow-md shadow-indigo-500/25 transition-all active:scale-[0.98] shrink-0"
+          >
+            <Plus className="w-3.5 sm:w-4 h-3.5 sm:h-4 stroke-[2.5]" />
+            <span className="hidden xs:inline sm:inline">
+              {userRole === 'MEMBER' ? 'Record' : 'New Record'}
+            </span>
+          </button>
+        )}
       </div>
     </header>
   )

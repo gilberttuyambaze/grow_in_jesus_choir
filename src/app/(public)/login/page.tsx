@@ -2,12 +2,12 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { UserCheck, Lock, Mail } from 'lucide-react'
-import { loginAction, switchRoleAction } from '@/features/auth/actions'
+import { Lock, Mail } from 'lucide-react'
+import { loginAction } from '@/features/auth/actions'
 import { ChoirLogo } from '@/components/brand/ChoirLogo'
 
 export default function LoginPage() {
-  const [email, setEmail] = React.useState('sarah@growinjesus.rw')
+  const [email, setEmail] = React.useState('')
   const [error, setError] = React.useState<string | null>(null)
   const [isLoading, setIsLoading] = React.useState(false)
 
@@ -59,6 +59,7 @@ export default function LoginPage() {
                   type="email"
                   name="email"
                   required
+                  autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@growinjesus.rw"
@@ -76,7 +77,8 @@ export default function LoginPage() {
                 <input
                   type="password"
                   name="password"
-                  defaultValue="••••••••"
+                  required
+                  autoComplete="current-password"
                   placeholder="Password"
                   className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50/60 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                 />
@@ -92,51 +94,9 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Quick 1-Click Demo Profiles Section */}
-          <div className="mt-8 pt-6 border-t border-slate-100">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 text-center">
-              Quick 1-Click Demo Access
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => switchRoleAction('LEADER')}
-                className="p-3.5 rounded-2xl border border-indigo-150 bg-indigo-50/40 hover:bg-indigo-50/80 text-left transition-all active:scale-[0.99]"
-              >
-                <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900 mb-0.5">
-                  <UserCheck className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Sarah (Leader)</span>
-                </div>
-                <span className="text-[10px] text-indigo-700/70 block">
-                  Full financials & approvals
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => switchRoleAction('MEMBER')}
-                className="p-3.5 rounded-2xl border border-purple-150 bg-purple-50/40 hover:bg-purple-50/80 text-left transition-all active:scale-[0.99]"
-              >
-                <div className="flex items-center gap-1.5 text-xs font-bold text-purple-900 mb-0.5">
-                  <UserCheck className="w-3.5 h-3.5 text-purple-600" />
-                  <span>John (Member)</span>
-                </div>
-                <span className="text-[10px] text-purple-700/70 block">
-                  Personal contributions
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Back to home link */}
-        <div className="text-center mt-6">
-          <Link
-            href="/"
-            className="text-xs text-slate-500 hover:text-slate-900 transition-colors inline-flex items-center gap-1"
-          >
-            <span>← Back to public homepage</span>
-          </Link>
+          <p className="mt-6 text-center text-[11px] text-slate-500">
+            Need an account? Ask your choir administrator to create one.
+          </p>
         </div>
       </div>
     </div>

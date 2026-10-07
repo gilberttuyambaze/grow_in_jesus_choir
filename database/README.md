@@ -1,22 +1,19 @@
-# Database Architecture & Migration Guide
+# PostgreSQL schema and migrations
 
-## Directory Structure
+The application reads and writes only to the configured PostgreSQL database. There is no SQLite adapter, local fallback database, or automatic demo-data seed.
 
-```text
-database/
-├── migrations/         # Sequential, immutable SQL migrations (e.g., 001_initial_schema.sql)
-├── seeds/              # Development and staging seed scripts
-├── functions/          # Database helper routines
-├── triggers/           # Triggers for audit logging and timestamp updates
-├── views/              # Reporting and aggregate views
-└── README.md           # This document
-```
+## Migrations
 
-## Migration Rules
+Run `pnpm db:migrate` after setting `POSTGRES_DATABASE_URL` or `POSTGRES_DIRECT_URL`. The runner applies ordered SQL files in `migrations/` and records completed migrations in `app_schema_migrations`. Migrations run inside transactions.
 
-1. **Sequential Naming**: Every migration is numbered in order (e.g. `001_initial_schema.sql`, `002_roles_and_users.sql`, `003_financial_categories.sql`).
-2. **Immutability**: Never modify a migration that has already been executed in an environment. Create a new sequential migration instead.
-3. **Idempotence**: Migrations must safely handle `CREATE TABLE IF NOT EXISTS` and `CREATE INDEX IF NOT EXISTS`.
-4. **Exact Monetary Values**: All financial amounts are stored as integers representing minor currency units (e.g. RWF whole units without floating-point inaccuracies).
-5. **Audit Trails**: Critical changes to financial records must generate an entry in the `audit_logs` table recording the actor, action, timestamp, and delta.
+The initial migration creates the application tables and role definitions. Later migrations add private document metadata and custom PostgreSQL authentication tables. The schema migration does not insert users, members, categories, financial transactions, audit rows, or notifications.
 
+For later schema changes, add the next numbered migration rather than changing a migration already recorded in an environment. Keep financial amounts as whole-number RWF values and keep critical record changes in the audit log.
+
+## Account provisioning
+
+Use `pnpm auth:provision -- --email address@example.org --name "Full Name" --role MEMBER --voice-part Alto` to create or reset an account. Passwords are entered interactively without echo and stored as scrypt hashes. The command requires a trusted PostgreSQL administrator connection and invalidates the account's existing sessions.
+
+## Storage
+
+Document bytes belong in a private Supabase Storage bucket. Configure its URL, service role key, and bucket name in server-only environment variables. Supabase Auth is not used. If storage is unavailable, uploads/downloads fail instead of falling back to a local directory or mock receipt.

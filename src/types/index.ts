@@ -61,6 +61,7 @@ export interface FinancialSummary {
   totalExpenses: number
   currentBalance: number
   pendingCount: number
+  totalTransactions: number
   totalMembers: number
   membersContributed: number
   contributionPercentage: number
@@ -103,4 +104,3 @@ export interface FinancialDocument {
   notes?: string | null
   createdAt: string
 }
-

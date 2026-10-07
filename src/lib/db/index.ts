@@ -1,216 +1,292 @@
-/**
- * Supabase PostgreSQL Database Client & Resilient Data Access Layer
- * Uses 'pg' connection pooling with Supabase PostgreSQL as primary source of truth,
- * with local SQLite fallback cache for offline resilience.
- */
+import 'server-only'
 
+import crypto from 'node:crypto'
 import pg from 'pg'
-import { DatabaseSync } from 'node:sqlite'
-import path from 'node:path'
-import fs from 'node:fs'
 import {
-  FinancialRecord,
+  AuditLogEntry,
   FinancialCategory,
+  FinancialDocument,
+  FinancialRecord,
   FinancialSummary,
   Member,
-  User,
-  AuditLogEntry,
   NotificationItem,
-  FinancialDocument
+  User,
+  UserRole
 } from '@/types'
 
-let pgPoolInstance: pg.Pool | null = null
-let sqliteInstance: DatabaseSync | null = null
+type AuthUser = User & { passwordHash: string }
+type SessionUser = User & { expiresAt: number }
 
-function toPlainRows<T extends object>(rows: T[]): T[] {
-  return rows.map((row) => ({ ...row }))
-}
+let pool: pg.Pool | null = null
 
-export function getPgPool(): pg.Pool | null {
-  if (pgPoolInstance) return pgPoolInstance
+export function getPgPool(): pg.Pool {
+  if (pool) return pool
 
   const connectionString =
     process.env.POSTGRES_DATABASE_URL ||
-    process.env.DATABASE_URL ||
-    process.env.POSTGRES_DIRECT_URL
+    process.env.POSTGRES_DIRECT_URL ||
+    process.env.DATABASE_URL
 
   if (!connectionString) {
-    return null
+    throw new Error('PostgreSQL is not configured. Set POSTGRES_DATABASE_URL.')
+  }
+  if (!/^postgres(?:ql)?:\/\//i.test(connectionString)) {
+    throw new Error('DATABASE_URL must be a PostgreSQL connection string.')
   }
 
-  try {
-    pgPoolInstance = new pg.Pool({
-      connectionString,
-      ssl: { rejectUnauthorized: false },
-      max: 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000
-    })
+  pool = new pg.Pool({
+    connectionString,
+    ssl: { rejectUnauthorized: true },
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000
+  })
+  pool.on('error', (error: any) => {
+    console.error('[PostgreSQL pool error]', error?.code || error?.message || 'unknown')
+  })
 
-    pgPoolInstance.on('error', (err) => {
-      console.warn('[PostgreSQL Pool Notice]:', err.message)
-    })
+  return pool
+}
 
-    return pgPoolInstance
-  } catch (err) {
-    console.error('[PostgreSQL Pool Init Error]:', err)
-    return null
+function makeId(): string {
+  return crypto.randomUUID()
+}
+
+function boundedLimit(value: number | undefined, fallback: number, maximum = 500): number {
+  if (!Number.isFinite(value)) return fallback
+  return Math.min(maximum, Math.max(1, Math.floor(value as number)))
+}
+
+function toUser(row: any): User {
+  return {
+    id: row.id,
+    email: row.email,
+    role: row.role as UserRole,
+    fullName: row.fullName,
+    avatarInitials: row.avatarInitials,
+    createdAt: row.createdAt
   }
 }
 
-export function getDatabase(): DatabaseSync {
-  if (sqliteInstance) return sqliteInstance
+const USER_SELECT = `
+  SELECT u.id, u.email, r.name AS role, u.full_name AS "fullName",
+         u.avatar_initials AS "avatarInitials", u.created_at::text AS "createdAt"
+  FROM users u
+  JOIN roles r ON r.id = u.role_id
+`
 
-  const dbDir = path.resolve(process.cwd(), 'data')
-  if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true })
-  }
+// -----------------------------------------------------------------------------
+// Custom PostgreSQL authentication
+// -----------------------------------------------------------------------------
 
-  const dbPath = path.join(dbDir, 'choir_finance.db')
-  sqliteInstance = new DatabaseSync(dbPath)
-  sqliteInstance.exec('PRAGMA foreign_keys = ON;')
-  sqliteInstance.exec('PRAGMA journal_mode = WAL;')
-
-  return sqliteInstance
+export async function getUserByEmail(email: string): Promise<AuthUser | null> {
+  const result = await getPgPool().query(
+    `SELECT u.id, u.email, u.password_hash AS "passwordHash", r.name AS role,
+            u.full_name AS "fullName", u.avatar_initials AS "avatarInitials",
+            u.created_at::text AS "createdAt"
+     FROM users u
+     JOIN roles r ON r.id = u.role_id
+     WHERE LOWER(u.email) = LOWER($1) AND u.is_active = TRUE
+     LIMIT 1`,
+    [email.trim()]
+  )
+  return result.rows[0] ? { ...result.rows[0], role: result.rows[0].role as UserRole } : null
 }
 
-/**
- * Universal query runner: executes against Supabase PostgreSQL pooler first,
- * with resilient fallback to local SQLite cache if network/pooler is unreachable.
- */
-async function queryPgOrSqlite<T>(
-  pgSql: string,
-  pgParams: any[],
-  sqliteFallback: () => T
-): Promise<T> {
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      const res = await pool.query(pgSql, pgParams)
-      return res.rows as unknown as T
-    } catch (err: any) {
-      // If network unreachable or query error, fall back to SQLite
-      return sqliteFallback()
-    }
-  }
-  return sqliteFallback()
-}
-
-// -------------------------------------------------------------
-// USER & AUTH QUERIES
-// -------------------------------------------------------------
-
-export async function getUserByEmail(
-  email: string
-): Promise<(User & { passwordHash: string }) | null> {
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      const res = await pool.query(
-        `SELECT u.id, u.email, u.password_hash as "passwordHash", r.name as role, 
-                u.full_name as "fullName", u.avatar_initials as "avatarInitials", u.created_at::text as "createdAt"
-         FROM users u
-         JOIN roles r ON u.role_id = r.id
-         WHERE LOWER(u.email) = LOWER($1)`,
-        [email.trim()]
-      )
-      if (res.rows.length > 0) return { ...res.rows[0] }
-    } catch {
-      // fallback
-    }
-  }
-
-  const db = getDatabase()
-  const row = db
-    .prepare(
-      `SELECT u.id, u.email, u.password_hash as passwordHash, r.name as role, 
-              u.full_name as fullName, u.avatar_initials as avatarInitials, u.created_at as createdAt
-       FROM users u
-       JOIN roles r ON u.role_id = r.id
-       WHERE LOWER(u.email) = LOWER(?)`
-    )
-    .get(email.trim()) as any
-  return row ? { ...row } : null
+export async function getUserForPasswordChange(userId: string): Promise<AuthUser | null> {
+  const result = await getPgPool().query(
+    `SELECT u.id, u.email, u.password_hash AS "passwordHash", r.name AS role,
+            u.full_name AS "fullName", u.avatar_initials AS "avatarInitials",
+            u.created_at::text AS "createdAt"
+     FROM users u
+     JOIN roles r ON r.id = u.role_id
+     WHERE u.id = $1 AND u.is_active = TRUE`,
+    [userId]
+  )
+  return result.rows[0] ? { ...result.rows[0], role: result.rows[0].role as UserRole } : null
 }
 
 export async function getUserById(id: string): Promise<User | null> {
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      const res = await pool.query(
-        `SELECT u.id, u.email, r.name as role, u.full_name as "fullName", 
-                u.avatar_initials as "avatarInitials", u.created_at::text as "createdAt"
-         FROM users u
-         JOIN roles r ON u.role_id = r.id
-         WHERE u.id = $1`,
-        [id]
-      )
-      if (res.rows.length > 0) return { ...res.rows[0] }
-    } catch {
-      // fallback
-    }
-  }
-
-  const db = getDatabase()
-  const row = db
-    .prepare(
-      `SELECT u.id, u.email, r.name as role, u.full_name as fullName, 
-              u.avatar_initials as avatarInitials, u.created_at as createdAt
-       FROM users u
-       JOIN roles r ON u.role_id = r.id
-       WHERE u.id = ?`
-    )
-    .get(id) as any
-  return row ? { ...row } : null
+  const result = await getPgPool().query(`${USER_SELECT} WHERE u.id = $1 AND u.is_active = TRUE`, [id])
+  return result.rows[0] ? toUser(result.rows[0]) : null
 }
 
-// -------------------------------------------------------------
-// FINANCIAL RECORD QUERIES
-// -------------------------------------------------------------
+export async function createAuthSession(userId: string, tokenHash: string, expiresAt: Date): Promise<void> {
+  const db = getPgPool()
+  await db.query('DELETE FROM auth_sessions WHERE expires_at <= NOW() OR revoked_at < NOW() - INTERVAL \'30 days\'')
+  const result = await db.query(
+    `INSERT INTO auth_sessions (token_hash, user_id, expires_at)
+     SELECT $1, id, $3 FROM users WHERE id = $2 AND is_active = TRUE`,
+    [tokenHash, userId, expiresAt]
+  )
+  if (result.rowCount !== 1) throw new Error('Account is unavailable.')
+}
 
-export async function getFinancialSummary(): Promise<FinancialSummary> {
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      const res = await pool.query(`
-        SELECT
-          COALESCE(SUM(CASE WHEN type = 'income' AND status = 'recorded' THEN amount ELSE 0 END), 0) as "totalIncome",
-          COALESCE(SUM(CASE WHEN type = 'expense' AND status = 'recorded' THEN amount ELSE 0 END), 0) as "totalExpenses",
-          COUNT(CASE WHEN status = 'needs_review' THEN 1 END) as "pendingCount",
-          COUNT(*) as "totalTransactions"
-        FROM financial_records;
-      `)
+export async function getAuthSession(tokenHash: string): Promise<SessionUser | null> {
+  const result = await getPgPool().query(
+    `SELECT u.id, u.email, r.name AS role, u.full_name AS "fullName",
+            u.avatar_initials AS "avatarInitials", u.created_at::text AS "createdAt",
+            EXTRACT(EPOCH FROM s.expires_at) * 1000 AS "expiresAt"
+     FROM auth_sessions s
+     JOIN users u ON u.id = s.user_id
+     JOIN roles r ON r.id = u.role_id
+     WHERE s.token_hash = $1 AND s.revoked_at IS NULL
+       AND s.expires_at > NOW() AND u.is_active = TRUE
+     LIMIT 1`,
+    [tokenHash]
+  )
+  if (!result.rows[0]) return null
 
-      if (res.rows.length > 0) {
-        const row = res.rows[0]
-        const totalIncome = Number(row.totalIncome)
-        const totalExpenses = Number(row.totalExpenses)
-        return {
-          totalIncome,
-          totalExpenses,
-          currentBalance: totalIncome - totalExpenses,
-          pendingCount: Number(row.pendingCount),
-          totalTransactions: Number(row.totalTransactions)
-        }
-      }
-    } catch {
-      // fallback
-    }
+  const activeSession = await getPgPool().query(
+    'UPDATE auth_sessions SET last_seen_at = NOW() WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > NOW()',
+    [tokenHash]
+  )
+  if (activeSession.rowCount !== 1) return null
+  const user = toUser(result.rows[0])
+  return { ...user, expiresAt: Number(result.rows[0].expiresAt) }
+}
+
+export async function revokeAuthSession(tokenHash: string): Promise<void> {
+  await getPgPool().query(
+    'UPDATE auth_sessions SET revoked_at = COALESCE(revoked_at, NOW()) WHERE token_hash = $1',
+    [tokenHash]
+  )
+}
+
+export async function isLoginBlocked(email: string): Promise<boolean> {
+  const result = await getPgPool().query(
+    'SELECT locked_until > NOW() AS blocked FROM auth_login_attempts WHERE email = LOWER($1)',
+    [email]
+  )
+  return result.rows[0]?.blocked === true
+}
+
+export async function recordLoginFailure(email: string): Promise<void> {
+  const db = getPgPool()
+  await db.query("DELETE FROM auth_login_attempts WHERE updated_at < NOW() - INTERVAL '1 day'")
+  await db.query(
+    `INSERT INTO auth_login_attempts (email, failed_attempts, window_started_at, locked_until, updated_at)
+     VALUES (LOWER($1), 1, NOW(), NULL, NOW())
+     ON CONFLICT (email) DO UPDATE SET
+       failed_attempts = CASE
+         WHEN auth_login_attempts.locked_until > NOW() THEN auth_login_attempts.failed_attempts
+         WHEN auth_login_attempts.window_started_at < NOW() - INTERVAL '15 minutes' THEN 1
+         ELSE auth_login_attempts.failed_attempts + 1
+       END,
+       window_started_at = CASE
+         WHEN auth_login_attempts.window_started_at < NOW() - INTERVAL '15 minutes' THEN NOW()
+         ELSE auth_login_attempts.window_started_at
+       END,
+       locked_until = CASE
+         WHEN auth_login_attempts.locked_until > NOW() THEN auth_login_attempts.locked_until
+         WHEN auth_login_attempts.window_started_at < NOW() - INTERVAL '15 minutes' THEN NULL
+         WHEN auth_login_attempts.failed_attempts + 1 >= 8 THEN NOW() + INTERVAL '15 minutes'
+         ELSE NULL
+       END,
+       updated_at = NOW()`,
+    [email]
+  )
+}
+
+export async function clearLoginFailures(email: string): Promise<void> {
+  await getPgPool().query('DELETE FROM auth_login_attempts WHERE email = LOWER($1)', [email])
+}
+
+export async function updateUserPassword(userId: string, passwordHash: string): Promise<void> {
+  const client = await getPgPool().connect()
+  try {
+    await client.query('BEGIN')
+    const updated = await client.query(
+      `UPDATE users SET password_hash = $2, password_changed_at = NOW(), updated_at = NOW()
+       WHERE id = $1 AND is_active = TRUE RETURNING full_name`,
+      [userId, passwordHash]
+    )
+    if (updated.rowCount !== 1) throw new Error('Account is unavailable.')
+    await client.query(
+      `INSERT INTO audit_logs (id, actor_id, actor_name, action, target_type, target_id, details)
+       VALUES ($1, $2, $3, 'PASSWORD_CHANGED', 'user', $2, '{}'::jsonb)`,
+      [makeId(), userId, updated.rows[0].full_name]
+    )
+    await client.query('UPDATE auth_sessions SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL', [userId])
+    await client.query('COMMIT')
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
   }
+}
 
-  const db = getDatabase()
-  const inc = (db.prepare("SELECT COALESCE(SUM(amount), 0) as total FROM financial_records WHERE type = 'income' AND status = 'recorded'").get() as any).total
-  const exp = (db.prepare("SELECT COALESCE(SUM(amount), 0) as total FROM financial_records WHERE type = 'expense' AND status = 'recorded'").get() as any).total
-  const pending = (db.prepare("SELECT COUNT(*) as count FROM financial_records WHERE status = 'needs_review'").get() as any).count
-  const totalCount = (db.prepare("SELECT COUNT(*) as count FROM financial_records").get() as any).count
+// -----------------------------------------------------------------------------
+// Financial records and reporting
+// -----------------------------------------------------------------------------
+
+export async function getFinancialSummary(options?: { memberId?: string }): Promise<FinancialSummary> {
+  const result = await getPgPool().query(
+    `WITH scoped_records AS (
+       SELECT member_id, type, status, amount
+       FROM financial_records
+       WHERE ($1::text IS NULL OR member_id = $1)
+     ), totals AS (
+       SELECT
+         COALESCE(SUM(amount) FILTER (WHERE type = 'income' AND status = 'recorded'), 0)::text AS income,
+         COALESCE(SUM(amount) FILTER (WHERE type = 'expense' AND status = 'recorded'), 0)::text AS expenses,
+         COUNT(*) FILTER (WHERE status = 'needs_review')::int AS pending,
+         COUNT(*)::int AS record_count,
+         COUNT(DISTINCT member_id) FILTER (
+           WHERE type = 'income' AND status IN ('recorded', 'needs_review')
+             AND member_id IS NOT NULL
+             AND EXISTS (SELECT 1 FROM members active_member
+                         WHERE active_member.id = scoped_records.member_id AND active_member.status = 'active')
+         )::int AS contributed
+       FROM scoped_records
+     )
+     SELECT totals.*,
+       CASE WHEN $1::text IS NULL
+         THEN (SELECT COUNT(*)::int FROM members WHERE status = 'active')
+         ELSE (SELECT COUNT(*)::int FROM members WHERE id = $1 AND status = 'active')
+       END AS total_members
+     FROM totals`,
+    [options?.memberId || null]
+  )
+
+  const row = result.rows[0]
+  const totalIncome = Number(row.income)
+  const totalExpenses = Number(row.expenses)
+  const totalMembers = Number(row.total_members)
+  const membersContributed = Number(row.contributed)
+  const currentBalance = totalIncome - totalExpenses
 
   return {
-    totalIncome: inc,
-    totalExpenses: exp,
-    currentBalance: inc - exp,
-    pendingCount: pending,
-    totalTransactions: totalCount
+    totalIncome,
+    totalExpenses,
+    currentBalance,
+    pendingCount: Number(row.pending),
+    totalTransactions: Number(row.record_count),
+    totalMembers,
+    membersContributed,
+    contributionPercentage: totalMembers > 0 ? Math.round((membersContributed / totalMembers) * 100) : 0,
+    healthStatus: currentBalance < 0 ? 'Needs Attention' : Number(row.pending) > 0 ? 'Moderate' : 'Healthy'
   }
+}
+
+function financialRecordSelect(where = ''): string {
+  return `SELECT r.id, r.type, r.category_id AS "categoryId", c.name AS "categoryName",
+                 r.amount::text AS amount, r.currency, r.record_date::text AS "recordDate", r.description,
+                 r.member_id AS "memberId", m.full_name AS "memberName",
+                 r.recorded_by_id AS "recordedById", u.full_name AS "recordedByName",
+                 r.status, r.rejection_reason AS "rejectionReason", r.receipt_filename AS "receiptFilename",
+                 r.reference_number AS "referenceNumber", r.created_at::text AS "createdAt",
+                 r.updated_at::text AS "updatedAt"
+          FROM financial_records r
+          JOIN financial_categories c ON c.id = r.category_id
+          LEFT JOIN members m ON m.id = r.member_id
+          JOIN users u ON u.id = r.recorded_by_id
+          ${where}`
+}
+
+function mapFinancialRecord(row: any): FinancialRecord {
+  return { ...row, amount: Number(row.amount) }
 }
 
 export async function getFinancialRecords(options?: {
@@ -220,102 +296,41 @@ export async function getFinancialRecords(options?: {
   limit?: number
   offset?: number
 }): Promise<FinancialRecord[]> {
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      const conditions: string[] = []
-      const values: any[] = []
-
-      if (options?.type) {
-        values.push(options.type)
-        conditions.push(`r.type = $${values.length}`)
-      }
-      if (options?.memberId) {
-        values.push(options.memberId)
-        conditions.push(`r.member_id = $${values.length}`)
-      }
-      if (options?.status) {
-        values.push(options.status)
-        conditions.push(`r.status = $${values.length}`)
-      }
-
-      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
-      const limitClause = options?.limit ? `LIMIT ${Number(options.limit)}` : ''
-      const offsetClause = options?.offset ? `OFFSET ${Number(options.offset)}` : ''
-
-      const res = await pool.query(
-        `SELECT r.id, r.type, r.category_id as "categoryId", c.name as "categoryName",
-                r.amount::bigint as amount, r.currency, r.record_date::text as "recordDate", r.description,
-                r.member_id as "memberId", m.full_name as "memberName",
-                r.recorded_by_id as "recordedById", u.full_name as "recordedByName",
-                r.status, r.rejection_reason as "rejectionReason",
-                r.receipt_filename as "receiptFilename", r.reference_number as "referenceNumber",
-                r.created_at::text as "createdAt", r.updated_at::text as "updatedAt"
-         FROM financial_records r
-         JOIN financial_categories c ON r.category_id = c.id
-         LEFT JOIN members m ON r.member_id = m.id
-         JOIN users u ON r.recorded_by_id = u.id
-         ${whereClause}
-         ORDER BY r.record_date DESC, r.created_at DESC
-         ${limitClause} ${offsetClause}`,
-        values
-      )
-
-      return res.rows.map((row) => ({
-        ...row,
-        amount: Number(row.amount)
-      }))
-    } catch {
-      // fallback
-    }
-  }
-
-  const db = getDatabase()
-  let sql = `
-    SELECT r.id, r.type, r.category_id as categoryId, c.name as categoryName,
-           r.amount, r.currency, r.record_date as recordDate, r.description,
-           r.member_id as memberId, m.full_name as memberName,
-           r.recorded_by_id as recordedById, u.full_name as recordedByName,
-           r.status, r.rejection_reason as rejectionReason,
-           r.receipt_filename as receiptFilename, r.reference_number as referenceNumber,
-           r.created_at as createdAt, r.updated_at as updatedAt
-    FROM financial_records r
-    JOIN financial_categories c ON r.category_id = c.id
-    LEFT JOIN members m ON r.member_id = m.id
-    JOIN users u ON r.recorded_by_id = u.id
-  `
   const conditions: string[] = []
-  const params: any[] = []
-
+  const values: unknown[] = []
   if (options?.type) {
-    conditions.push('r.type = ?')
-    params.push(options.type)
+    values.push(options.type)
+    conditions.push(`r.type = $${values.length}`)
   }
   if (options?.memberId) {
-    conditions.push('r.member_id = ?')
-    params.push(options.memberId)
+    values.push(options.memberId)
+    conditions.push(`r.member_id = $${values.length}`)
   }
   if (options?.status) {
-    conditions.push('r.status = ?')
-    params.push(options.status)
+    values.push(options.status)
+    conditions.push(`r.status = $${values.length}`)
   }
 
-  if (conditions.length > 0) {
-    sql += ` WHERE ${conditions.join(' AND ')}`
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+  let sql = `${financialRecordSelect(where)} ORDER BY r.record_date DESC, r.created_at DESC`
+  if (options?.limit !== undefined) {
+    values.push(boundedLimit(options.limit, 500, 5000))
+    sql += ` LIMIT $${values.length}`
   }
-  sql += ' ORDER BY r.record_date DESC, r.created_at DESC'
-  if (options?.limit) {
-    sql += ` LIMIT ${Number(options.limit)}`
+  if (options?.offset && options.offset > 0) {
+    values.push(Math.min(1000000, Math.floor(options.offset)))
+    sql += ` OFFSET $${values.length}`
   }
-  if (options?.offset) {
-    sql += ` OFFSET ${Number(options.offset)}`
-  }
+  const result = await getPgPool().query(sql, values)
+  return result.rows.map(mapFinancialRecord)
+}
 
-  return toPlainRows(db.prepare(sql).all(...params) as any[])
+export async function getFinancialRecordById(id: string): Promise<FinancialRecord | null> {
+  const result = await getPgPool().query(`${financialRecordSelect('WHERE r.id = $1')} LIMIT 1`, [id])
+  return result.rows[0] ? mapFinancialRecord(result.rows[0]) : null
 }
 
 export async function createFinancialRecord(record: {
-  id?: string
   type: 'income' | 'expense'
   categoryId: string
   amount: number
@@ -327,60 +342,49 @@ export async function createFinancialRecord(record: {
   receiptFilename?: string | null
   referenceNumber?: string
 }): Promise<FinancialRecord> {
-  const id = record.id || `rec_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+  if (!Number.isSafeInteger(record.amount) || record.amount <= 0) throw new Error('Amount must be a positive whole number.')
+  const id = makeId()
   const status = record.status || 'recorded'
-  const ref = record.referenceNumber || `REF-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`
-
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      await pool.query(
-        `INSERT INTO financial_records 
-          (id, type, category_id, amount, currency, record_date, description, member_id, recorded_by_id, status, receipt_filename, reference_number)
-         VALUES ($1, $2, $3, $4, 'RWF', $5, $6, $7, $8, $9, $10, $11)`,
-        [
-          id,
-          record.type,
-          record.categoryId,
-          record.amount,
-          record.recordDate,
-          record.description,
-          record.memberId || null,
-          record.recordedById,
-          status,
-          record.receiptFilename || null,
-          ref
-        ]
-      )
-    } catch (err: any) {
-      console.warn('[Postgres Insert Warning]:', err.message)
-    }
-  }
-
-  // Also sync to SQLite cache
-  const db = getDatabase()
+  const referenceNumber = record.referenceNumber || `REF-${new Date().getUTCFullYear()}-${crypto.randomBytes(5).toString('hex').toUpperCase()}`
+  const client = await getPgPool().connect()
+  let row: any
   try {
-    db.prepare(`
-      INSERT INTO financial_records 
-        (id, type, category_id, amount, currency, record_date, description, member_id, recorded_by_id, status, receipt_filename, reference_number)
-      VALUES (?, ?, ?, ?, 'RWF', ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      record.type,
-      record.categoryId,
-      record.amount,
-      record.recordDate,
-      record.description,
-      record.memberId || null,
-      record.recordedById,
-      status,
-      record.receiptFilename || null,
-      ref
+    await client.query('BEGIN')
+    const result = await client.query(
+      `INSERT INTO financial_records
+         (id, type, category_id, amount, currency, record_date, description, member_id, recorded_by_id,
+          status, receipt_filename, reference_number)
+       VALUES ($1, $2, $3, $4, 'RWF', $5, $6, $7, $8, $9, $10, $11)
+       RETURNING created_at::text AS "createdAt", updated_at::text AS "updatedAt"`,
+      [
+        id,
+        record.type,
+        record.categoryId,
+        record.amount,
+        record.recordDate,
+        record.description.trim(),
+        record.memberId || null,
+        record.recordedById,
+        status,
+        record.receiptFilename || null,
+        referenceNumber
+      ]
     )
-  } catch {
-    // ignore duplicate
+    row = result.rows[0]
+    const audit = await client.query(
+      `INSERT INTO audit_logs (id, actor_id, actor_name, action, target_type, target_id, details)
+       SELECT $1, u.id, u.full_name, 'RECORD_CREATED', 'financial_record', $2, $3::jsonb
+       FROM users u WHERE u.id = $4`,
+      [makeId(), id, JSON.stringify({ amount: record.amount, type: record.type, categoryId: record.categoryId, status }), record.recordedById]
+    )
+    if (audit.rowCount !== 1) throw new Error('Could not write the record audit entry.')
+    await client.query('COMMIT')
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
   }
-
   return {
     id,
     type: record.type,
@@ -388,14 +392,14 @@ export async function createFinancialRecord(record: {
     amount: record.amount,
     currency: 'RWF',
     recordDate: record.recordDate,
-    description: record.description,
+    description: record.description.trim(),
     memberId: record.memberId || undefined,
     recordedById: record.recordedById,
     status,
     receiptFilename: record.receiptFilename || undefined,
-    referenceNumber: ref,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    referenceNumber,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt
   }
 }
 
@@ -412,280 +416,168 @@ export async function updateRecordStatus(
   statusArg?: 'recorded' | 'needs_review' | 'rejected' | 'voided',
   rejectionReasonArg?: string
 ): Promise<FinancialRecord | null> {
-  const id = typeof input === 'string' ? input : input.recordId
-  const status = typeof input === 'string' ? statusArg! : input.status
+  const recordId = typeof input === 'string' ? input : input.recordId
+  const status = typeof input === 'string' ? statusArg : input.status
   const reason = typeof input === 'string' ? rejectionReasonArg : input.reason
+  if (!status) throw new Error('A record status is required.')
 
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      await pool.query(
-        `UPDATE financial_records 
-         SET status = $2, rejection_reason = $3, updated_at = NOW()
-         WHERE id = $1`,
-        [id, status, reason || null]
-      )
-    } catch {
-      // fallback
+  const client = await getPgPool().connect()
+  try {
+    await client.query('BEGIN')
+    const updated = await client.query(
+      `UPDATE financial_records
+       SET status = $2, rejection_reason = $3, updated_at = NOW()
+       WHERE id = $1
+         AND ((status = 'needs_review' AND $2 IN ('recorded', 'rejected'))
+           OR (status = 'recorded' AND $2 = 'voided'))`,
+      [recordId, status, reason?.trim() || null]
+    )
+    if (updated.rowCount !== 1) {
+      await client.query('ROLLBACK')
+      return null
     }
+
+    if (typeof input !== 'string' && input.actorId && input.actorName) {
+      const action = status === 'recorded'
+        ? 'RECORD_APPROVED'
+        : status === 'rejected'
+        ? 'RECORD_REJECTED'
+        : status === 'voided'
+        ? 'RECORD_VOIDED'
+        : 'RECORD_STATUS_CHANGED'
+      await client.query(
+        `INSERT INTO audit_logs (id, actor_id, actor_name, action, target_type, target_id, details)
+         VALUES ($1, $2, $3, $4, 'financial_record', $5, $6::jsonb)`,
+        [makeId(), input.actorId, input.actorName, action, recordId, JSON.stringify({ status, reason: reason || null })]
+      )
+    }
+    await client.query('COMMIT')
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
   }
-
-  const db = getDatabase()
-  db.prepare(`
-    UPDATE financial_records 
-    SET status = ?, rejection_reason = ?, updated_at = datetime('now')
-    WHERE id = ?
-  `).run(status, reason || null, id)
-
-  if (typeof input !== 'string' && input.actorId && input.actorName) {
-    await createAuditLog({
-      actorId: input.actorId,
-      actorName: input.actorName,
-      action: status === 'recorded' ? 'RECORD_APPROVED' : status === 'rejected' ? 'RECORD_REJECTED' : 'RECORD_VOIDED',
-      targetType: 'financial_record',
-      targetId: id,
-      details: { status, reason }
-    })
-  }
-
-  const records = await getFinancialRecords()
-  return records.find((r) => r.id === id) || null
+  return getFinancialRecordById(recordId)
 }
 
-// -------------------------------------------------------------
-// CATEGORIES & MEMBERS
-// -------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Categories and members
+// -----------------------------------------------------------------------------
 
-export async function getFinancialCategories(
-  type?: 'income' | 'expense'
-): Promise<FinancialCategory[]> {
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      const sql = type
-        ? `SELECT id, name, type, description, is_active as "isActive", created_at::text as "createdAt"
-           FROM financial_categories WHERE is_active = true AND type = $1 ORDER BY name ASC`
-        : `SELECT id, name, type, description, is_active as "isActive", created_at::text as "createdAt"
-           FROM financial_categories WHERE is_active = true ORDER BY name ASC`
-      const params = type ? [type] : []
-      const res = await pool.query(sql, params)
-      return toPlainRows(res.rows)
-    } catch {
-      // fallback
-    }
-  }
-
-  const db = getDatabase()
-  let sql = 'SELECT id, name, type, description, is_active as isActive, created_at as createdAt FROM financial_categories WHERE is_active = 1'
-  if (type) {
-    sql += ' AND type = ?'
-    return toPlainRows(db.prepare(sql).all(type) as any[])
-  }
-  return toPlainRows(db.prepare(sql).all() as any[])
+export async function getFinancialCategories(type?: 'income' | 'expense'): Promise<FinancialCategory[]> {
+  const result = await getPgPool().query(
+    `SELECT id, name, type, description, is_active AS "isActive", created_at::text AS "createdAt"
+     FROM financial_categories
+     WHERE is_active = TRUE AND ($1::text IS NULL OR type = $1)
+     ORDER BY name ASC`,
+    [type || null]
+  )
+  return result.rows
 }
 
 export async function getMembers(): Promise<Member[]> {
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      const res = await pool.query(`
-        SELECT id, user_id as "userId", full_name as "fullName", phone, voice_part as "voicePart", 
-               status, joined_date::text as "joinedDate", created_at::text as "createdAt", updated_at::text as "updatedAt"
-        FROM members
-        ORDER BY full_name ASC
-      `)
-      return toPlainRows(res.rows)
-    } catch {
-      // fallback
-    }
-  }
-
-  const db = getDatabase()
-  return db
-    .prepare(`
-      SELECT id, user_id as userId, full_name as fullName, phone, voice_part as voicePart, 
-             status, joined_date as joinedDate, created_at as createdAt, updated_at as updatedAt
-      FROM members
-      ORDER BY full_name ASC
-    `)
-    .all()
-    .map((row) => ({ ...row })) as any[]
+  const result = await getPgPool().query(
+    `SELECT id, user_id AS "userId", full_name AS "fullName", phone, voice_part AS "voicePart",
+            status, joined_date::text AS "joinedDate", created_at::text AS "createdAt",
+            updated_at::text AS "updatedAt"
+     FROM members ORDER BY full_name ASC`
+  )
+  return result.rows
 }
 
 export async function getMemberById(id: string): Promise<Member | null> {
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      const res = await pool.query(
-        `SELECT id, user_id as "userId", full_name as "fullName", phone, voice_part as "voicePart", 
-                status, joined_date::text as "joinedDate", created_at::text as "createdAt", updated_at::text as "updatedAt"
-         FROM members WHERE id = $1`,
-        [id]
-      )
-      if (res.rows.length > 0) return { ...res.rows[0] }
-    } catch {
-      // fallback
-    }
-  }
-
-  const db = getDatabase()
-  const row = db.prepare('SELECT id, user_id as userId, full_name as fullName, phone, voice_part as voicePart, status, joined_date as joinedDate, created_at as createdAt, updated_at as updatedAt FROM members WHERE id = ?').get(id) as any
-  return row ? { ...row } : null
+  const result = await getPgPool().query(
+    `SELECT id, user_id AS "userId", full_name AS "fullName", phone, voice_part AS "voicePart",
+            status, joined_date::text AS "joinedDate", created_at::text AS "createdAt",
+            updated_at::text AS "updatedAt"
+     FROM members WHERE id = $1`,
+    [id]
+  )
+  return result.rows[0] || null
 }
 
 export async function getMemberByUserId(userId: string): Promise<Member | null> {
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      const res = await pool.query(
-        `SELECT id, user_id as "userId", full_name as "fullName", phone, voice_part as "voicePart", 
-                status, joined_date::text as "joinedDate", created_at::text as "createdAt", updated_at::text as "updatedAt"
-         FROM members WHERE user_id = $1`,
-        [userId]
-      )
-      if (res.rows.length > 0) return { ...res.rows[0] }
-    } catch {
-      // fallback
-    }
-  }
-
-  const db = getDatabase()
-  const row = db.prepare('SELECT id, user_id as userId, full_name as fullName, phone, voice_part as voicePart, status, joined_date as joinedDate, created_at as createdAt, updated_at as updatedAt FROM members WHERE user_id = ?').get(userId) as any
-  return row ? { ...row } : null
+  const result = await getPgPool().query(
+    `SELECT id, user_id AS "userId", full_name AS "fullName", phone, voice_part AS "voicePart",
+            status, joined_date::text AS "joinedDate", created_at::text AS "createdAt",
+            updated_at::text AS "updatedAt"
+     FROM members WHERE user_id = $1`,
+    [userId]
+  )
+  return result.rows[0] || null
 }
 
 export async function updateMemberProfile(
   userId: string,
   data: { fullName?: string; phone?: string }
 ): Promise<Member | null> {
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      await pool.query(
-        `UPDATE members 
-         SET full_name = COALESCE($2, full_name), phone = COALESCE($3, phone), updated_at = NOW()
-         WHERE user_id = $1`,
-        [userId, data.fullName || null, data.phone || null]
+  const client = await getPgPool().connect()
+  try {
+    await client.query('BEGIN')
+    if (data.fullName) {
+      const initials = data.fullName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
+      await client.query(
+        `UPDATE users SET full_name = $2, avatar_initials = $3, updated_at = NOW() WHERE id = $1`,
+        [userId, data.fullName.trim(), initials]
       )
-      if (data.fullName) {
-        await pool.query(
-          `UPDATE users SET full_name = $2, updated_at = NOW() WHERE id = $1`,
-          [userId, data.fullName]
-        )
-      }
-    } catch {
-      // fallback
     }
+    await client.query(
+      `UPDATE members
+       SET full_name = COALESCE($2, full_name), phone = COALESCE($3, phone), updated_at = NOW()
+       WHERE user_id = $1`,
+      [userId, data.fullName?.trim() || null, data.phone?.trim() || null]
+    )
+    await client.query('COMMIT')
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
   }
-
-  const db = getDatabase()
-  db.prepare(`
-    UPDATE members 
-    SET full_name = COALESCE(?, full_name), phone = COALESCE(?, phone), updated_at = datetime('now')
-    WHERE user_id = ?
-  `).run(data.fullName || null, data.phone || null, userId)
-
-  if (data.fullName) {
-    db.prepare(`
-      UPDATE users SET full_name = ?, updated_at = datetime('now') WHERE id = ?
-    `).run(data.fullName, userId)
-  }
-
   return getMemberByUserId(userId)
 }
 
-export async function getMembersByIds(
-  ids: string[]
-): Promise<{ id: string; fullName: string; userId: string | null }[]> {
+export async function getMembersByIds(ids: string[]): Promise<{ id: string; fullName: string; userId: string | null }[]> {
   if (ids.length === 0) return []
-
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      const res = await pool.query(
-        `SELECT id, full_name as "fullName", user_id as "userId" FROM members WHERE id = ANY($1)`,
-        [ids]
-      )
-      return toPlainRows(res.rows)
-    } catch {
-      // fallback
-    }
-  }
-
-  const db = getDatabase()
-  const placeholders = ids.map(() => '?').join(',')
-  return db
-    .prepare(`SELECT id, full_name as fullName, user_id as userId FROM members WHERE id IN (${placeholders})`)
-    .all(...ids)
-    .map((row) => ({ ...row })) as any[]
+  const result = await getPgPool().query(
+    `SELECT id, full_name AS "fullName", user_id AS "userId" FROM members WHERE id = ANY($1::text[])`,
+    [ids]
+  )
+  return result.rows
 }
 
-export async function getPendingContributionMembers(): Promise<
-  { id: string; fullName: string; userId: string | null }[]
-> {
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      const res = await pool.query(`
-        SELECT m.id, m.full_name as "fullName", m.user_id as "userId"
-        FROM members m
-        WHERE m.id NOT IN (
-          SELECT DISTINCT member_id FROM financial_records 
-          WHERE member_id IS NOT NULL 
-          AND record_date >= '2026-10-01' 
-          AND status IN ('recorded', 'needs_review')
-        )
-      `)
-      return toPlainRows(res.rows)
-    } catch {
-      // fallback
-    }
-  }
-
-  const db = getDatabase()
-  return db
-    .prepare(`
-      SELECT m.id, m.full_name as fullName, m.user_id as userId
-      FROM members m
-      WHERE m.id NOT IN (
-        SELECT DISTINCT member_id FROM financial_records 
-        WHERE member_id IS NOT NULL 
-        AND record_date >= '2026-10-01' 
-        AND status IN ('recorded', 'needs_review')
+export async function getPendingContributionMembers(): Promise<{ id: string; fullName: string; userId: string | null }[]> {
+  const result = await getPgPool().query(`
+    SELECT m.id, m.full_name AS "fullName", m.user_id AS "userId"
+    FROM members m
+    WHERE m.status = 'active'
+      AND NOT EXISTS (
+        SELECT 1 FROM financial_records r
+        WHERE r.member_id = m.id
+          AND r.type = 'income'
+          AND r.status IN ('recorded', 'needs_review')
+          AND r.record_date >= DATE_TRUNC('month', CURRENT_DATE)::date
+          AND r.record_date < (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month')::date
       )
-    `)
-    .all()
-    .map((row) => ({ ...row })) as any[]
+    ORDER BY m.full_name ASC
+  `)
+  return result.rows
 }
 
-// -------------------------------------------------------------
-// AUDIT LOGS & NOTIFICATIONS
-// -------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Audit logs and notifications
+// -----------------------------------------------------------------------------
 
 export async function getAuditLogs(limit = 50): Promise<AuditLogEntry[]> {
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      const res = await pool.query(
-        `SELECT id, actor_id as "actorId", actor_name as "actorName", action, 
-                target_type as "targetType", target_id as "targetId", details, created_at::text as "createdAt"
-         FROM audit_logs
-         ORDER BY created_at DESC
-         LIMIT $1`,
-        [limit]
-      )
-      return toPlainRows(res.rows)
-    } catch {
-      // fallback
-    }
-  }
-
-  const db = getDatabase()
-  const rows = toPlainRows(db.prepare('SELECT id, actor_id as actorId, actor_name as actorName, action, target_type as targetType, target_id as targetId, details, created_at as createdAt FROM audit_logs ORDER BY created_at DESC LIMIT ?').all(limit) as any[])
-  return rows.map((r) => ({
-    ...r,
-    details: typeof r.details === 'string' ? JSON.parse(r.details) : r.details
-  }))
+  const result = await getPgPool().query(
+    `SELECT id, actor_id AS "actorId", actor_name AS "actorName", action,
+            target_type AS "targetType", target_id AS "targetId", details,
+            created_at::text AS "createdAt"
+     FROM audit_logs ORDER BY created_at DESC LIMIT $1`,
+    [boundedLimit(limit, 50)]
+  )
+  return result.rows
 }
 
 export async function createAuditLog(log: {
@@ -694,33 +586,15 @@ export async function createAuditLog(log: {
   action: string
   targetType: string
   targetId: string
-  details?: Record<string, any>
+  details?: Record<string, unknown>
 }): Promise<AuditLogEntry> {
-  const id = `aud_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
-
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      await pool.query(
-        `INSERT INTO audit_logs (id, actor_id, actor_name, action, target_type, target_id, details)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [id, log.actorId, log.actorName, log.action, log.targetType, log.targetId, JSON.stringify(log.details || {})]
-      )
-    } catch {
-      // fallback
-    }
-  }
-
-  const db = getDatabase()
-  try {
-    db.prepare(`
-      INSERT INTO audit_logs (id, actor_id, actor_name, action, target_type, target_id, details)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(id, log.actorId, log.actorName, log.action, log.targetType, log.targetId, JSON.stringify(log.details || {}))
-  } catch {
-    // ignore
-  }
-
+  const id = makeId()
+  const result = await getPgPool().query(
+    `INSERT INTO audit_logs (id, actor_id, actor_name, action, target_type, target_id, details)
+     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
+     RETURNING created_at::text AS "createdAt"`,
+    [id, log.actorId, log.actorName, log.action, log.targetType, log.targetId, JSON.stringify(log.details || {})]
+  )
   return {
     id,
     actorId: log.actorId,
@@ -729,34 +603,19 @@ export async function createAuditLog(log: {
     targetType: log.targetType,
     targetId: log.targetId,
     details: log.details,
-    createdAt: new Date().toISOString()
+    createdAt: result.rows[0].createdAt
   }
 }
 
 export async function getNotifications(userId: string, limit = 20): Promise<NotificationItem[]> {
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      const res = await pool.query(
-        `SELECT id, user_id as "userId", title, message, type, is_read as "isRead", link, created_at::text as "createdAt"
-         FROM notifications
-         WHERE user_id = $1
-         ORDER BY created_at DESC
-         LIMIT $2`,
-        [userId, limit]
-      )
-      return toPlainRows(res.rows)
-    } catch {
-      // fallback
-    }
-  }
-
-  const db = getDatabase()
-  const rows = toPlainRows(db.prepare('SELECT id, user_id as userId, title, message, type, is_read as isRead, link, created_at as createdAt FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT ?').all(userId, limit) as any[])
-  return rows.map((r) => ({
-    ...r,
-    isRead: Boolean(r.isRead)
-  }))
+  const result = await getPgPool().query(
+    `SELECT id, user_id AS "userId", title, message, type, is_read AS "isRead", link,
+            created_at::text AS "createdAt"
+     FROM notifications WHERE user_id = $1
+     ORDER BY created_at DESC LIMIT $2`,
+    [userId, boundedLimit(limit, 20)]
+  )
+  return result.rows
 }
 
 export async function createNotification(notif: {
@@ -766,157 +625,86 @@ export async function createNotification(notif: {
   type?: 'info' | 'success' | 'warning' | 'alert'
   link?: string
 }): Promise<NotificationItem> {
-  const id = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
-  const type = notif.type || 'info'
-
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      await pool.query(
-        `INSERT INTO notifications (id, user_id, title, message, type, is_read, link)
-         VALUES ($1, $2, $3, $4, $5, false, $6)`,
-        [id, notif.userId, notif.title, notif.message, type, notif.link || null]
-      )
-    } catch {
-      // fallback
-    }
-  }
-
-  const db = getDatabase()
-  try {
-    db.prepare(`
-      INSERT INTO notifications (id, user_id, title, message, type, is_read, link)
-      VALUES (?, ?, ?, ?, ?, 0, ?)
-    `).run(id, notif.userId, notif.title, notif.message, type, notif.link || null)
-  } catch {
-    // ignore
-  }
-
+  const id = makeId()
+  const result = await getPgPool().query(
+    `INSERT INTO notifications (id, user_id, title, message, type, is_read, link)
+     VALUES ($1, $2, $3, $4, $5, FALSE, $6)
+     RETURNING created_at::text AS "createdAt"`,
+    [id, notif.userId, notif.title, notif.message, notif.type || 'info', notif.link || null]
+  )
   return {
     id,
     userId: notif.userId,
     title: notif.title,
     message: notif.message,
-    type,
+    type: notif.type || 'info',
     isRead: false,
     link: notif.link,
-    createdAt: new Date().toISOString()
+    createdAt: result.rows[0].createdAt
   }
 }
 
-export async function markNotificationAsRead(id: string): Promise<boolean> {
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      await pool.query(`UPDATE notifications SET is_read = true WHERE id = $1`, [id])
-    } catch {
-      // fallback
-    }
-  }
-
-  const db = getDatabase()
-  db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(id)
-  return true
+export async function markNotificationAsRead(id: string, userId: string): Promise<boolean> {
+  const result = await getPgPool().query(
+    'UPDATE notifications SET is_read = TRUE WHERE id = $1 AND user_id = $2',
+    [id, userId]
+  )
+  return (result.rowCount || 0) > 0
 }
 
-// -------------------------------------------------------------
-// DOCUMENTS QUERIES
-// -------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Document metadata (contents are stored in the configured private object store)
+// -----------------------------------------------------------------------------
 
-export async function getDocuments(recordId?: string): Promise<FinancialDocument[]> {
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      const sql = recordId
-        ? `SELECT d.id, d.filename, d.original_name as "originalName", d.mime_type as "mimeType", 
-                  d.size_bytes::bigint as "sizeBytes", d.record_id as "recordId", d.uploaded_by_id as "uploadedById", 
-                  u.full_name as "uploadedByName", d.notes, d.created_at::text as "createdAt",
-                  r.description as "recordDescription", r.amount::bigint as "recordAmount"
-           FROM documents d
-           JOIN users u ON d.uploaded_by_id = u.id
-           LEFT JOIN financial_records r ON d.record_id = r.id
-           WHERE d.record_id = $1
-           ORDER BY d.created_at DESC`
-        : `SELECT d.id, d.filename, d.original_name as "originalName", d.mime_type as "mimeType", 
-                  d.size_bytes::bigint as "sizeBytes", d.record_id as "recordId", d.uploaded_by_id as "uploadedById", 
-                  u.full_name as "uploadedByName", d.notes, d.created_at::text as "createdAt",
-                  r.description as "recordDescription", r.amount::bigint as "recordAmount"
-           FROM documents d
-           JOIN users u ON d.uploaded_by_id = u.id
-           LEFT JOIN financial_records r ON d.record_id = r.id
-           ORDER BY d.created_at DESC`
-      const params = recordId ? [recordId] : []
-      const res = await pool.query(sql, params)
-      return res.rows.map((r) => ({
-        ...r,
-        sizeBytes: Number(r.sizeBytes),
-        recordAmount: r.recordAmount ? Number(r.recordAmount) : undefined
-      }))
-    } catch {
-      // fallback
-    }
+const DOCUMENT_SELECT = `
+  SELECT d.id, d.filename, d.original_name AS "originalName", d.mime_type AS "mimeType",
+         d.size_bytes::text AS "sizeBytes", d.record_id AS "recordId", d.uploaded_by_id AS "uploadedById",
+         u.full_name AS "uploadedByName", d.notes, d.created_at::text AS "createdAt",
+         r.description AS "recordDescription", r.amount::text AS "recordAmount"
+  FROM documents d
+  JOIN users u ON u.id = d.uploaded_by_id
+  LEFT JOIN financial_records r ON r.id = d.record_id
+`
+
+function mapDocument(row: any): FinancialDocument {
+  return {
+    ...row,
+    sizeBytes: Number(row.sizeBytes),
+    recordAmount: row.recordAmount == null ? undefined : Number(row.recordAmount)
   }
+}
 
-  const db = getDatabase()
-  let sql = `
-    SELECT d.id, d.filename, d.original_name as originalName, d.mime_type as mimeType, 
-           d.size_bytes as sizeBytes, d.record_id as recordId, d.uploaded_by_id as uploadedById, 
-           u.full_name as uploadedByName, d.notes, d.created_at as createdAt,
-           r.description as recordDescription, r.amount as recordAmount
-    FROM documents d
-    JOIN users u ON d.uploaded_by_id = u.id
-    LEFT JOIN financial_records r ON d.record_id = r.id
-  `
+function documentAccessPredicate(parameterIndex: number): string {
+  return `(d.uploaded_by_id = $${parameterIndex} OR r.member_id IN (
+    SELECT id FROM members WHERE user_id = $${parameterIndex}
+  ))`
+}
+
+export async function getDocuments(recordId?: string, memberUserId?: string): Promise<FinancialDocument[]> {
+  const conditions: string[] = []
+  const values: string[] = []
   if (recordId) {
-    sql += ' WHERE d.record_id = ?'
-    return toPlainRows(db.prepare(sql).all(recordId) as any[])
+    values.push(recordId)
+    conditions.push(`d.record_id = $${values.length}`)
   }
-  sql += ' ORDER BY d.created_at DESC'
-  return toPlainRows(db.prepare(sql).all() as any[])
+  if (memberUserId) {
+    values.push(memberUserId)
+    conditions.push(documentAccessPredicate(values.length))
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+  const result = await getPgPool().query(`${DOCUMENT_SELECT} ${where} ORDER BY d.created_at DESC`, values)
+  return result.rows.map(mapDocument)
 }
 
-export async function getDocumentById(id: string): Promise<FinancialDocument | null> {
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      const res = await pool.query(
-        `SELECT d.id, d.filename, d.original_name as "originalName", d.mime_type as "mimeType", 
-                d.size_bytes::bigint as "sizeBytes", d.record_id as "recordId", d.uploaded_by_id as "uploadedById", 
-                u.full_name as "uploadedByName", d.notes, d.created_at::text as "createdAt",
-                r.description as "recordDescription", r.amount::bigint as "recordAmount"
-         FROM documents d
-         JOIN users u ON d.uploaded_by_id = u.id
-         LEFT JOIN financial_records r ON d.record_id = r.id
-         WHERE d.id = $1`,
-        [id]
-      )
-      if (res.rows.length > 0) {
-        const row = res.rows[0]
-        return {
-          ...row,
-          sizeBytes: Number(row.sizeBytes),
-          recordAmount: row.recordAmount ? Number(row.recordAmount) : undefined
-        }
-      }
-    } catch {
-      // fallback
-    }
+export async function getDocumentById(id: string, memberUserId?: string): Promise<FinancialDocument | null> {
+  const conditions = ['d.id = $1']
+  const values = [id]
+  if (memberUserId) {
+    values.push(memberUserId)
+    conditions.push(documentAccessPredicate(values.length))
   }
-
-  const db = getDatabase()
-  const row = db
-    .prepare(`
-      SELECT d.id, d.filename, d.original_name as originalName, d.mime_type as mimeType, 
-             d.size_bytes as sizeBytes, d.record_id as recordId, d.uploaded_by_id as uploadedById, 
-             u.full_name as uploadedByName, d.notes, d.created_at as createdAt,
-             r.description as recordDescription, r.amount as recordAmount
-      FROM documents d
-      JOIN users u ON d.uploaded_by_id = u.id
-      LEFT JOIN financial_records r ON d.record_id = r.id
-      WHERE d.id = ?
-    `)
-    .get(id) as any
-  return row ? { ...row } : null
+  const result = await getPgPool().query(`${DOCUMENT_SELECT} WHERE ${conditions.join(' AND ')} LIMIT 1`, values)
+  return result.rows[0] ? mapDocument(result.rows[0]) : null
 }
 
 export async function createDocument(doc: {
@@ -926,43 +714,45 @@ export async function createDocument(doc: {
   sizeBytes: number
   recordId?: string | null
   uploadedById: string
+  uploadedByName: string
   notes?: string | null
 }): Promise<FinancialDocument> {
-  const id = `doc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
-
-  const pool = getPgPool()
-  if (pool) {
-    try {
-      await pool.query(
-        `INSERT INTO documents (id, filename, original_name, mime_type, size_bytes, record_id, uploaded_by_id, notes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [id, doc.filename, doc.originalName, doc.mimeType, doc.sizeBytes, doc.recordId || null, doc.uploadedById, doc.notes || null]
-      )
-    } catch {
-      // fallback
-    }
-  }
-
-  const db = getDatabase()
+  const id = makeId()
+  const client = await getPgPool().connect()
+  let row: any
   try {
-    db.prepare(`
-      INSERT INTO documents (id, filename, original_name, mime_type, size_bytes, record_id, uploaded_by_id, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, doc.filename, doc.originalName, doc.mimeType, doc.sizeBytes, doc.recordId || null, doc.uploadedById, doc.notes || null)
-  } catch {
-    // ignore
+    await client.query('BEGIN')
+    const result = await client.query(
+      `INSERT INTO documents
+         (id, filename, original_name, mime_type, size_bytes, record_id, uploaded_by_id, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, filename, original_name AS "originalName", mime_type AS "mimeType",
+                 size_bytes::text AS "sizeBytes", record_id AS "recordId", uploaded_by_id AS "uploadedById",
+                 notes, created_at::text AS "createdAt"`,
+      [id, doc.filename, doc.originalName, doc.mimeType, doc.sizeBytes, doc.recordId || null, doc.uploadedById, doc.notes || null]
+    )
+    row = result.rows[0]
+    if (doc.recordId) {
+      await client.query(
+        'UPDATE financial_records SET receipt_filename = $2, updated_at = NOW() WHERE id = $1',
+        [doc.recordId, doc.filename]
+      )
+    }
+    await client.query(
+      `INSERT INTO audit_logs (id, actor_id, actor_name, action, target_type, target_id, details)
+       VALUES ($1, $2, $3, 'DOCUMENT_UPLOADED', 'document', $4, $5::jsonb)`,
+      [makeId(), doc.uploadedById, doc.uploadedByName, id, JSON.stringify({ filename: doc.originalName, sizeBytes: doc.sizeBytes, recordId: doc.recordId || null })]
+    )
+    await client.query('COMMIT')
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
   }
-
   return {
-    id,
-    filename: doc.filename,
-    originalName: doc.originalName,
-    mimeType: doc.mimeType,
-    sizeBytes: doc.sizeBytes,
-    recordId: doc.recordId || undefined,
-    uploadedById: doc.uploadedById,
-    uploadedByName: 'Sarah Uwase',
-    notes: doc.notes || undefined,
-    createdAt: new Date().toISOString()
+    ...mapDocument({ ...row, uploadedByName: doc.uploadedByName }),
+    recordAmount: undefined,
+    recordDescription: undefined
   }
 }

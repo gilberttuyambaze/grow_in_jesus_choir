@@ -30,6 +30,7 @@ interface DocumentsViewProps {
 }
 
 export function DocumentsView({ documents, records, userRole }: DocumentsViewProps) {
+  const canUpload = userRole !== 'AUDITOR'
   const { success: showToastSuccess, error: showToastError } = useToast()
 
   const [filterType, setFilterType] = React.useState<'all' | 'image' | 'pdf'>('all')
@@ -108,13 +109,15 @@ export function DocumentsView({ documents, records, userRole }: DocumentsViewPro
           </p>
         </div>
 
-        <button
-          onClick={() => setIsUploadOpen(true)}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-semibold shadow-md shadow-indigo-500/20 transition-all"
-        >
-          <Upload className="w-4 h-4 stroke-[2.5]" />
-          <span>+ Upload Receipt</span>
-        </button>
+        {canUpload && (
+          <button
+            onClick={() => setIsUploadOpen(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-semibold shadow-md shadow-indigo-500/20 transition-all"
+          >
+            <Upload className="w-4 h-4 stroke-[2.5]" />
+            <span>+ Upload Receipt</span>
+          </button>
+        )}
       </div>
 
       {/* Metric Cards matching Reference */}
@@ -358,7 +361,7 @@ export function DocumentsView({ documents, records, userRole }: DocumentsViewPro
       )}
 
       {/* UPLOAD RECEIPT MODAL */}
-      {isUploadOpen && (
+      {canUpload && isUploadOpen && (
         <Modal
           isOpen={isUploadOpen}
           onClose={() => setIsUploadOpen(false)}

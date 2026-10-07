@@ -1,7 +1,15 @@
 import { redirect } from 'next/navigation'
 import { getSessionUser } from '@/lib/auth/session'
-import { getFinancialCategories, getMembers, getFinancialSummary, getFinancialRecords, getNotifications } from '@/lib/db'
+import {
+  getFinancialCategories,
+  getMembers,
+  getFinancialSummary,
+  getFinancialRecords,
+  getNotifications,
+  getMemberByUserId
+} from '@/lib/db'
 import { DashboardShell } from '@/components/layout/DashboardShell'
+import { canViewAllFinances } from '@/lib/permissions'
 
 export default async function DashboardLayout({
   children
@@ -13,11 +21,29 @@ export default async function DashboardLayout({
     redirect('/login')
   }
 
+  const canSeeAllFinances = canViewAllFinances(session.role)
+  const member = canSeeAllFinances ? null : await getMemberByUserId(session.userId)
+  const noSummary = {
+    totalIncome: 0,
+    totalExpenses: 0,
+    currentBalance: 0,
+    pendingCount: 0,
+    totalTransactions: 0,
+    totalMembers: 0,
+    membersContributed: 0,
+    contributionPercentage: 0,
+    healthStatus: 'Healthy' as const
+  }
+
   const [categories, members, summary, records, notifications] = await Promise.all([
     getFinancialCategories(),
-    getMembers(),
-    getFinancialSummary(),
-    getFinancialRecords({ limit: 100 }),
+    canSeeAllFinances ? getMembers() : member ? Promise.resolve([member]) : Promise.resolve([]),
+    canSeeAllFinances ? getFinancialSummary() : member ? getFinancialSummary({ memberId: member.id }) : Promise.resolve(noSummary),
+    canSeeAllFinances
+      ? getFinancialRecords({ limit: 100 })
+      : member
+      ? getFinancialRecords({ memberId: member.id, limit: 100 })
+      : Promise.resolve([]),
     getNotifications(session.userId)
   ])
 
@@ -36,4 +62,3 @@ export default async function DashboardLayout({
     </DashboardShell>
   )
 }
-

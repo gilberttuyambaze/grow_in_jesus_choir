@@ -1,101 +1,71 @@
-/**
- * Secure Session Management & Authentication Infrastructure
- * Uses HMAC-SHA256 signed session tokens stored in HttpOnly cookies.
- */
+import 'server-only'
 
 import crypto from 'node:crypto'
 import { cookies } from 'next/headers'
-import { User, UserRole } from '@/types'
-import { getUserByEmail, getUserById } from '@/lib/db'
+import { User } from '@/types'
+import { createAuthSession, getAuthSession, revokeAuthSession } from '@/lib/db'
 
-const COOKIE_NAME = process.env.AUTH_SESSION_COOKIE_NAME || 'gijc_session'
-const AUTH_SECRET = process.env.AUTH_SECRET || 'gijc-choir-financial-secure-secret-key-2026'
+const SESSION_DURATION_SECONDS = 7 * 24 * 60 * 60
+const COOKIE_NAME = process.env.AUTH_SESSION_COOKIE_NAME?.trim() ||
+  (process.env.NODE_ENV === 'production' ? '__Host-gijc_session' : 'gijc_session')
 
 export interface SessionPayload {
   userId: string
+  id: string
   email: string
-  role: UserRole
+  role: User['role']
   fullName: string
   avatarInitials: string
   expiresAt: number
 }
 
-function sign(payload: string): string {
-  const hmac = crypto.createHmac('sha256', AUTH_SECRET)
-  hmac.update(payload)
-  return hmac.digest('base64url')
-}
-
-export function createToken(payload: SessionPayload): string {
-  const data = Buffer.from(JSON.stringify(payload)).toString('base64url')
-  const signature = sign(data)
-  return `${data}.${signature}`
-}
-
-export function verifyToken(token: string): SessionPayload | null {
-  try {
-    const [data, signature] = token.split('.')
-    if (!data || !signature) return null
-
-    const expectedSignature = sign(data)
-    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
-      return null
-    }
-
-    const payload: SessionPayload = JSON.parse(Buffer.from(data, 'base64url').toString('utf8'))
-    if (payload.expiresAt < Date.now()) {
-      return null
-    }
-
-    return payload
-  } catch {
-    return null
-  }
+function hashToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex')
 }
 
 export async function getSessionUser(): Promise<SessionPayload | null> {
   const cookieStore = await cookies()
   const token = cookieStore.get(COOKIE_NAME)?.value
-  if (!token) {
-    // Default fallback to leader demo account for seamless local inspection if no cookie is set yet
-    const leader = await getUserByEmail('sarah@growinjesus.rw')
-    if (leader) {
-      return {
-        userId: leader.id,
-        email: leader.email,
-        role: leader.role,
-        fullName: leader.fullName,
-        avatarInitials: leader.avatarInitials,
-        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000
-      }
-    }
-    return null
-  }
-  return verifyToken(token)
-}
+  if (!token || !/^[A-Za-z0-9_-]{43}$/.test(token)) return null
 
-export async function setSession(user: User): Promise<void> {
-  const cookieStore = await cookies()
-  const payload: SessionPayload = {
+  const user = await getAuthSession(hashToken(token))
+  if (!user) return null
+  return {
     userId: user.id,
+    id: user.id,
     email: user.email,
     role: user.role,
     fullName: user.fullName,
     avatarInitials: user.avatarInitials,
-    expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
+    expiresAt: user.expiresAt
   }
-  const token = createToken(payload)
+}
+
+export async function setSession(user: User): Promise<void> {
+  const token = crypto.randomBytes(32).toString('base64url')
+  const expiresAt = new Date(Date.now() + SESSION_DURATION_SECONDS * 1000)
+  await createAuthSession(user.id, hashToken(token), expiresAt)
+
+  const cookieStore = await cookies()
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'strict',
     path: '/',
-    maxAge: 7 * 24 * 60 * 60
+    expires: expiresAt,
+    maxAge: SESSION_DURATION_SECONDS
   })
 }
 
 export async function clearSession(): Promise<void> {
   const cookieStore = await cookies()
+  const token = cookieStore.get(COOKIE_NAME)?.value
   cookieStore.delete(COOKIE_NAME)
+  if (token && /^[A-Za-z0-9_-]{43}$/.test(token)) {
+    try {
+      await revokeAuthSession(hashToken(token))
+    } catch {
+      // The browser cookie is cleared even if PostgreSQL is temporarily unavailable.
+    }
+  }
 }
-

@@ -1,67 +1,36 @@
-# Grow in Jesus Choir — Financial Monitoring & Records Management Platform
+# Grow in Jesus Choir
 
-> **"Futuristic technology underneath. Simple human experience on top."**
+A financial records and member contribution platform built with Next.js, PostgreSQL, and private document storage.
 
-A modern, secure, accessible web platform built specifically for **Grow in Jesus Choir** to manage, organize, monitor, and understand its financial records with human simplicity and transparent accountability.
+## Data and authentication
 
----
+- Supabase PostgreSQL is the only source of application records. The app uses a PostgreSQL connection directly; it does not use SQLite or Supabase Auth.
+- Password hashes, login throttling, and revocable user sessions are stored in PostgreSQL and checked by the application server.
+- Receipts are stored in a private Supabase Storage bucket. Storage credentials are used only by server routes and never exposed to the browser.
+- The repository contains no production or demo account/financial seed data. Lists, reports, and dashboards read the connected database.
 
-## Architecture Overview
+## Setup
 
-The codebase is organized into three primary roots:
+1. Install dependencies and copy `.env.example` to `.env`.
+2. Set `POSTGRES_DATABASE_URL` to the Supabase PostgreSQL pooler URI. Set `POSTGRES_DIRECT_URL` when your deployment requires a direct URI for migrations. The database user needs permission to create and alter the application's tables.
+3. Set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_STORAGE_BUCKET` for the private document bucket. Do not add the service role key to any `NEXT_PUBLIC_*` variable.
+4. Apply the PostgreSQL schema with `pnpm db:migrate`.
+5. Provision the first account with `pnpm auth:provision -- --email admin@example.org --name "Choir Administrator" --role ADMIN` and follow the hidden password prompts. Use `--role MEMBER --voice-part Soprano` when creating a choir member account.
+6. Start the app with `pnpm dev`.
 
-```text
-/
-├── public/          # Publicly accessible static assets, icons, brand assets
-├── src/             # Application source code (App Router, components, features, services, lib)
-└── database/        # Database migrations, seeds, views, and documentation
-```
+The provisioning command creates or updates an account and revokes its existing sessions. Run it only from a trusted administrator machine. Existing legacy accounts need a new password provisioned before they can use the current scrypt password format.
 
-### Key Technologies
-- **Framework**: Next.js 16 (App Router, Turbopack, React 19)
-- **Styling**: Tailwind CSS v4, tw-animate-css, custom light-mode design tokens
-- **Database**: Relational SQLite storage with sequential SQL migrations and strict integer financial units
-- **Authentication & RBAC**: Session-based authentication with `MEMBER` and `LEADER` role guards (extensible to `ADMIN`, `AUDITOR`)
-- **Typography & Icons**: Lucide icons, readable humanist typography, high-contrast light mode
+## Roles
 
----
+- **Member**: sees and submits their own contribution records and documents.
+- **Leader**: manages choir members, records, approvals, reports, and audit history.
+- **Admin**: has the leader permissions used by the application.
+- **Auditor**: has read-only access to organization financial records, reports, documents, and audit history.
 
-## Getting Started
+## Security notes
 
-### Prerequisites
-- Node.js >= 20.x / 22.x
-- pnpm >= 10.x / 12.x
-
-### Installation
-```bash
-# Install dependencies
-pnpm install
-
-# Copy environment variables
-cp .env.example .env
-
-# Run database migrations and seed data
-pnpm db:migrate
-
-# Start the development server
-pnpm dev
-```
-
-Visit [http://localhost:3000](http://localhost:3000) in your browser.
-
----
-
-## User Roles & Capabilities
-
-- **Member**: Simplified personal dashboard, contribution records, submit contributions, view receipt confirmations.
-- **Leader**: Comprehensive financial command center, income/expense management, member progress tracking (e.g., 42/50 contributed), approval workflow, reports, audit logs.
-
----
-
-## Security & Financial Principles
-
-1. **Exact Currency Representation**: No floating-point math for money. Stored as integer units in Rwandan Francs (`RWF`).
-2. **Server-Enforced Authorization**: Role checks execute strictly server-side.
-3. **Auditability**: Destructive or critical financial state changes generate audit log records.
-4. **Document Privacy**: Uploaded receipts are stored securely outside the public web root.
-
+- Financial values are stored as integer Rwandan Francs.
+- Application sessions are opaque random tokens. Only SHA-256 token digests are stored in PostgreSQL; session role and user details are loaded from the database on each request.
+- Production cookies are `HttpOnly`, `Secure`, `SameSite=Strict`, and use the `__Host-` prefix by default.
+- Passwords are hashed with Node's scrypt implementation. Failed logins are throttled in PostgreSQL; password changes revoke all existing sessions.
+- Database outages fail closed. The app does not read stale local data or write to a second database.

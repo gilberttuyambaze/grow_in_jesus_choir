@@ -23,6 +23,7 @@ interface CommandSearchModalProps {
   records: FinancialRecord[]
   members: Member[]
   onOpenAddRecord: () => void
+  canAddRecords?: boolean
 }
 
 export function CommandSearchModal({
@@ -30,7 +31,8 @@ export function CommandSearchModal({
   onClose,
   records,
   members,
-  onOpenAddRecord
+  onOpenAddRecord,
+  canAddRecords = true
 }: CommandSearchModalProps) {
   const [query, setQuery] = React.useState('')
   const router = useRouter()
@@ -94,7 +96,7 @@ export function CommandSearchModal({
         {/* Results List */}
         <div className="max-h-96 overflow-y-auto p-2 divide-y divide-slate-100 text-xs">
           {/* Quick Actions */}
-          <div className="p-2">
+          {canAddRecords && <div className="p-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 block mb-1">
               Quick Actions
             </span>
@@ -113,7 +115,7 @@ export function CommandSearchModal({
               </div>
               <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
             </button>
-          </div>
+          </div>}
 
           {/* Records Section */}
           {filteredRecords.length > 0 && (
@@ -220,4 +222,3 @@ export function CommandSearchModal({
     </div>
   )
 }
-

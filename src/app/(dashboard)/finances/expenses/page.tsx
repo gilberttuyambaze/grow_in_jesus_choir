@@ -10,6 +10,9 @@ export default async function ExpensesPage() {
   if (!session) {
     redirect('/login')
   }
+  if (session.role === 'MEMBER') {
+    redirect('/dashboard')
+  }
 
   const isLeader = session.role === 'LEADER' || session.role === 'ADMIN'
   const records = isLeader ? await getFinancialRecords({ type: 'expense' }) : []
@@ -33,4 +36,3 @@ export default async function ExpensesPage() {
     </div>
   )
 }
-

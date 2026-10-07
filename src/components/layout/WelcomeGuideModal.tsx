@@ -8,20 +8,11 @@ export function WelcomeGuideModal() {
   const [isOpen, setIsOpen] = React.useState(false)
 
   React.useEffect(() => {
-    try {
-      const seen = localStorage.getItem('gijc_onboarding_v1')
-      if (!seen) {
-        // Show once gently after 1 second
-        const timer = setTimeout(() => setIsOpen(true), 1200)
-        return () => clearTimeout(timer)
-      }
-    } catch {}
+    const timer = setTimeout(() => setIsOpen(true), 1200)
+    return () => clearTimeout(timer)
   }, [])
 
   const handleDismiss = () => {
-    try {
-      localStorage.setItem('gijc_onboarding_v1', 'true')
-    } catch {}
     setIsOpen(false)
   }
 
@@ -96,4 +87,3 @@ export function WelcomeGuideModal() {
     </Modal>
   )
 }
-

@@ -173,7 +173,7 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
               : 'text-slate-500 hover:text-slate-900'
           }`}
         >
-          This Month (October)
+          This Month ({new Date().toLocaleString('en-US', { month: 'long' })})
         </button>
         <button
           onClick={() => setTimeframe('quarter')}

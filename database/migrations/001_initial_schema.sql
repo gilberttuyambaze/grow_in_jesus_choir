@@ -1,12 +1,11 @@
--- Migration: 001_initial_schema.sql
--- Description: Core schema for Grow in Jesus Choir Financial Monitoring Platform
--- Tables: roles, users, members, financial_categories, financial_records, audit_logs, notifications
+-- PostgreSQL schema for the application data. User and financial rows are
+-- provisioned from the production database; this migration contains no demo data.
 
 CREATE TABLE IF NOT EXISTS roles (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
   description TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -16,8 +15,8 @@ CREATE TABLE IF NOT EXISTS users (
   role_id TEXT NOT NULL REFERENCES roles(id),
   full_name TEXT NOT NULL,
   avatar_initials TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS members (
@@ -27,9 +26,9 @@ CREATE TABLE IF NOT EXISTS members (
   phone TEXT,
   voice_part TEXT NOT NULL CHECK (voice_part IN ('Soprano', 'Alto', 'Tenor', 'Bass')),
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
-  joined_date TEXT NOT NULL DEFAULT (date('now')),
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  joined_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS financial_categories (
@@ -37,17 +36,17 @@ CREATE TABLE IF NOT EXISTS financial_categories (
   name TEXT NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
   description TEXT,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS financial_records (
   id TEXT PRIMARY KEY,
   type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
   category_id TEXT NOT NULL REFERENCES financial_categories(id),
-  amount INTEGER NOT NULL CHECK (amount > 0), -- Amount in Rwandan Francs (integer minor units)
+  amount BIGINT NOT NULL CHECK (amount > 0),
   currency TEXT NOT NULL DEFAULT 'RWF',
-  record_date TEXT NOT NULL, -- Format: YYYY-MM-DD
+  record_date DATE NOT NULL,
   description TEXT NOT NULL,
   member_id TEXT REFERENCES members(id) ON DELETE SET NULL,
   recorded_by_id TEXT NOT NULL REFERENCES users(id),
@@ -55,33 +54,32 @@ CREATE TABLE IF NOT EXISTS financial_records (
   rejection_reason TEXT,
   receipt_filename TEXT,
   reference_number TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS audit_logs (
   id TEXT PRIMARY KEY,
   actor_id TEXT REFERENCES users(id) ON DELETE SET NULL,
   actor_name TEXT NOT NULL,
-  action TEXT NOT NULL, -- e.g. RECORD_CREATED, RECORD_APPROVED, RECORD_REJECTED
-  target_type TEXT NOT NULL, -- e.g. financial_record, member, settings
+  action TEXT NOT NULL,
+  target_type TEXT NOT NULL,
   target_id TEXT NOT NULL,
-  details TEXT, -- JSON summary of changes
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  details JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS notifications (
   id TEXT PRIMARY KEY,
-  user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   message TEXT NOT NULL,
   type TEXT NOT NULL DEFAULT 'info' CHECK (type IN ('info', 'success', 'warning', 'alert')),
-  is_read INTEGER NOT NULL DEFAULT 0,
+  is_read BOOLEAN NOT NULL DEFAULT FALSE,
   link TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Indexes for performant financial querying and auditing
 CREATE INDEX IF NOT EXISTS idx_records_date ON financial_records(record_date DESC);
 CREATE INDEX IF NOT EXISTS idx_records_type ON financial_records(type);
 CREATE INDEX IF NOT EXISTS idx_records_status ON financial_records(status);
@@ -90,3 +88,9 @@ CREATE INDEX IF NOT EXISTS idx_records_member ON financial_records(member_id);
 CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read);
 
+INSERT INTO roles (id, name, description) VALUES
+  ('role_member', 'MEMBER', 'Choir member'),
+  ('role_leader', 'LEADER', 'Choir leader'),
+  ('role_admin', 'ADMIN', 'System administrator'),
+  ('role_auditor', 'AUDITOR', 'Read-only financial auditor')
+ON CONFLICT (name) DO NOTHING;

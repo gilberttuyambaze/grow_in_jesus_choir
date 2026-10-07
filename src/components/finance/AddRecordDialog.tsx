@@ -7,14 +7,13 @@ import {
   Check,
   X,
   ShieldAlert,
-  Sparkles,
   Paperclip,
   FileText,
   UploadCloud,
   RotateCcw
 } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
-import { RecordTypeSelectionCard } from './RecordTypeSelectionCard'
+import { RecordTypeSelectionCard, RecordTypeModal } from './RecordTypeSelectionCard'
 import { FinancialCategory, Member, UserRole } from '@/types'
 import { createRecordAction } from '@/features/finances/actions'
 import { formatCurrency } from '@/lib/utils/currency'
@@ -29,8 +28,6 @@ interface AddRecordDialogProps {
   userRole: UserRole
   onSuccess?: () => void
 }
-
-const DRAFT_STORAGE_KEY = 'gijc_draft_financial_record'
 
 export function AddRecordDialog({
   isOpen,
@@ -49,7 +46,6 @@ export function AddRecordDialog({
   const [description, setDescription] = React.useState('')
   const [recordDate, setRecordDate] = React.useState(getTodayISODate())
   const [receiptFile, setReceiptFile] = React.useState<File | null>(null)
-  const [hasDraftRestored, setHasDraftRestored] = React.useState(false)
 
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -59,50 +55,6 @@ export function AddRecordDialog({
     message: string
   } | null>(null)
 
-  // Restore draft on open (Section 122)
-  React.useEffect(() => {
-    if (isOpen) {
-      try {
-        const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY)
-        if (savedDraft) {
-          const parsed = JSON.parse(savedDraft)
-          if (parsed.amount || parsed.description || parsed.categoryId) {
-            setRecordType(parsed.recordType || null)
-            setAmount(parsed.amount || '')
-            setCategoryId(parsed.categoryId || '')
-            setMemberId(parsed.memberId || '')
-            setDescription(parsed.description || '')
-            if (parsed.recordDate) setRecordDate(parsed.recordDate)
-            setHasDraftRestored(true)
-          }
-        }
-      } catch {
-        // Ignore local storage parse errors
-      }
-    }
-  }, [isOpen])
-
-  // Save draft locally on input change (Section 122)
-  React.useEffect(() => {
-    if (isOpen && (amount || description || categoryId)) {
-      try {
-        localStorage.setItem(
-          DRAFT_STORAGE_KEY,
-          JSON.stringify({
-            recordType,
-            amount,
-            categoryId,
-            memberId,
-            description,
-            recordDate
-          })
-        )
-      } catch {
-        // Ignore storage write issues
-      }
-    }
-  }, [isOpen, recordType, amount, categoryId, memberId, description, recordDate])
-
   // Filter categories by selected type
   const availableCategories = React.useMemo(() => {
     if (!recordType) return []
@@ -110,9 +62,6 @@ export function AddRecordDialog({
   }, [categories, recordType])
 
   const clearDraft = () => {
-    try {
-      localStorage.removeItem(DRAFT_STORAGE_KEY)
-    } catch {}
     setRecordType(null)
     setAmount('')
     setCategoryId('')
@@ -120,7 +69,6 @@ export function AddRecordDialog({
     setDescription('')
     setRecordDate(getTodayISODate())
     setReceiptFile(null)
-    setHasDraftRestored(false)
     setError(null)
   }
 
@@ -170,28 +118,6 @@ export function AddRecordDialog({
     setError(null)
     setIsSubmitting(true)
 
-    let uploadedFilename: string | undefined = undefined
-
-    // Upload receipt document if attached (Section 42 & 143)
-    if (receiptFile) {
-      try {
-        const uploadData = new FormData()
-        uploadData.append('file', receiptFile)
-        uploadData.append('notes', `Attached to: ${description.trim()}`)
-
-        const uploadRes = await fetch('/api/documents/upload', {
-          method: 'POST',
-          body: uploadData
-        })
-        const uploadJson = await uploadRes.json()
-        if (uploadRes.ok && uploadJson.document) {
-          uploadedFilename = uploadJson.document.filename
-        }
-      } catch (uploadErr) {
-        console.warn('Document upload warning:', uploadErr)
-      }
-    }
-
     const formData = new FormData()
     formData.append('type', recordType)
     formData.append('amount', parsedAmount.toString())
@@ -199,19 +125,32 @@ export function AddRecordDialog({
     formData.append('recordDate', recordDate)
     formData.append('description', description.trim())
     if (memberId) formData.append('memberId', memberId)
-    if (uploadedFilename) formData.append('receiptFilename', uploadedFilename)
 
-    const result = await createRecordAction(formData)
-
-    setIsSubmitting(false)
+    let result: Awaited<ReturnType<typeof createRecordAction>>
+    try {
+      result = await createRecordAction(formData)
+    } catch {
+      setIsSubmitting(false)
+      setError('Financial records are temporarily unavailable. Please try again.')
+      return
+    }
 
     if (result.success) {
-      // Clear autosave draft
-      try {
-        localStorage.removeItem(DRAFT_STORAGE_KEY)
-      } catch {}
+      let msg = result.message || 'Record successfully saved'
+      if (receiptFile && result.record) {
+        try {
+          const uploadData = new FormData()
+          uploadData.append('file', receiptFile)
+          uploadData.append('recordId', result.record.id)
+          uploadData.append('notes', `Attached to: ${description.trim()}`)
+          const uploadRes = await fetch('/api/documents/upload', { method: 'POST', body: uploadData })
+          if (!uploadRes.ok) msg += ' The record was saved, but its document could not be uploaded.'
+        } catch {
+          msg += ' The record was saved, but its document could not be uploaded.'
+        }
+      }
 
-      const msg = result.message || 'Record successfully saved'
+      setIsSubmitting(false)
       showToastSuccess('Record saved successfully', msg)
 
       setSuccessInfo({
@@ -222,9 +161,25 @@ export function AddRecordDialog({
 
       if (onSuccess) onSuccess()
     } else {
+      setIsSubmitting(false)
       setError(result.error || 'Failed to save record.')
       showToastError('Could not save record', result.error)
     }
+  }
+
+  // STEP 1: If no type selected and not showing success, show reference popup card
+  if (isOpen && !recordType && !successInfo) {
+    return (
+      <RecordTypeModal
+        isOpen={isOpen}
+        onClose={handleClose}
+        onSelect={(type) => {
+          setRecordType(type)
+          setError(null)
+        }}
+        userRole={userRole}
+      />
+    )
   }
 
   return (
@@ -235,8 +190,6 @@ export function AddRecordDialog({
       title={
         successInfo
           ? 'Confirmation'
-          : !recordType
-          ? 'What would you like to record?'
           : recordType === 'income'
           ? 'Record Money Received'
           : 'Record Money Spent'
@@ -244,8 +197,6 @@ export function AddRecordDialog({
       description={
         successInfo
           ? 'Your entry has been registered in the choir ledger.'
-          : !recordType
-          ? 'Choose whether choir funds were received or spent.'
           : recordType === 'income'
           ? 'Contributions, gifts, and choir income.'
           : 'Transport, equipment, logistics, and choir expenses.'
@@ -277,33 +228,6 @@ export function AddRecordDialog({
             Done
           </button>
         </div>
-      ) : !recordType ? (
-        /* STEP 1: CHOOSE TYPE */
-        <div className="space-y-4 py-3">
-          {hasDraftRestored && (
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-indigo-50/80 border border-indigo-100 text-indigo-800 text-xs">
-              <span className="flex items-center gap-1.5 font-medium">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                Unsaved draft recovered from local storage
-              </span>
-              <button
-                type="button"
-                onClick={clearDraft}
-                className="text-[11px] underline hover:text-indigo-950"
-              >
-                Clear draft
-              </button>
-            </div>
-          )}
-
-          <RecordTypeSelectionCard
-            userRole={userRole}
-            onSelect={(type) => {
-              setRecordType(type)
-              setError(null)
-            }}
-          />
-        </div>
       ) : (
         /* STEP 2: FILL PROGRESSIVELY REVEALED FORM */
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
@@ -319,11 +243,6 @@ export function AddRecordDialog({
               ← Choose different record type
             </button>
 
-            {hasDraftRestored && (
-              <span className="text-[10px] text-slate-400 font-medium">
-                Draft auto-saved
-              </span>
-            )}
           </div>
 
           {error && (
@@ -344,7 +263,7 @@ export function AddRecordDialog({
                 min="100"
                 step="100"
                 required
-                placeholder="e.g. 50,000"
+                placeholder="Enter amount"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50/60 text-slate-900 font-semibold text-base focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all pr-16"
@@ -418,7 +337,7 @@ export function AddRecordDialog({
             <input
               type="text"
               required
-              placeholder="e.g. October monthly contribution or Sunday offering"
+              placeholder="Describe this financial record"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50/60 text-slate-900 text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"

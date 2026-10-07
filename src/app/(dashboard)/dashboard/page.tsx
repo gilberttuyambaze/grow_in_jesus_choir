@@ -29,6 +29,7 @@ import { ReviewQueueCard } from '@/components/dashboard/ReviewQueueCard'
 import { DonutStatusCard } from '@/components/dashboard/DonutStatusCard'
 import { FinancialRecordTable } from '@/components/finance/FinancialRecordTable'
 import { Badge } from '@/components/ui/Badge'
+import { canViewAllFinances } from '@/lib/permissions'
 
 export default async function DashboardPage() {
   const session = await getSessionUser()
@@ -36,16 +37,32 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  const isLeader = session.role === 'LEADER' || session.role === 'ADMIN'
+  const canViewOrganizationData = canViewAllFinances(session.role)
+  const member = canViewOrganizationData ? null : await getMemberByUserId(session.userId)
+  const noSummary = {
+    totalIncome: 0,
+    totalExpenses: 0,
+    currentBalance: 0,
+    pendingCount: 0,
+    totalTransactions: 0,
+    totalMembers: 0,
+    membersContributed: 0,
+    contributionPercentage: 0,
+    healthStatus: 'Healthy' as const
+  }
   const [summary, allRecords, members, auditLogs] = await Promise.all([
-    getFinancialSummary(),
-    getFinancialRecords(),
-    getMembers(),
-    getAuditLogs(10)
+    canViewOrganizationData ? getFinancialSummary() : member ? getFinancialSummary({ memberId: member.id }) : Promise.resolve(noSummary),
+    canViewOrganizationData
+      ? getFinancialRecords()
+      : member
+      ? getFinancialRecords({ memberId: member.id, limit: 12 })
+      : Promise.resolve([]),
+    canViewOrganizationData ? getMembers() : Promise.resolve([]),
+    canViewOrganizationData ? getAuditLogs(10) : Promise.resolve([])
   ])
 
-  const member = !isLeader ? await getMemberByUserId(session.userId) : null
-  const memberRecords = member ? await getFinancialRecords({ memberId: member.id, limit: 12 }) : []
+  const isLeader = canViewOrganizationData
+  const memberRecords = isLeader ? [] : allRecords
   const memberTotal = memberRecords
     .filter((r) => r.type === 'income' && r.status === 'recorded')
     .reduce((sum, r) => sum + r.amount, 0)
@@ -190,10 +207,10 @@ export default async function DashboardPage() {
               icon={<WalletCards className="w-4 h-4" />}
             />
             <MetricWaveCard
-              label="Active Choir Members"
-              value={`${activeMembersCount}`}
-              subValue="Members"
-              trend={`${recordedContribCount} recorded this month`}
+              label="Your Membership"
+              value={member?.status === 'active' ? 'Active' : 'Inactive'}
+              subValue="Status"
+              trend={member ? member.voicePart : 'No member profile linked'}
               color="cyan"
               icon={<Users className="w-4 h-4" />}
             />

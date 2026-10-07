@@ -12,6 +12,7 @@ import {
   FileText
 } from 'lucide-react'
 import { UserRole } from '@/types'
+import { canCreateRecord } from '@/lib/permissions'
 
 interface MobileBottomNavProps {
   userRole: UserRole
@@ -56,16 +57,17 @@ export function MobileBottomNav({
         <span>Finances</span>
       </Link>
 
-      {/* Floating Center Primary Action Button */}
-      <div className="-mt-5">
-        <button
-          onClick={onOpenAddRecord}
-          className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white flex items-center justify-center shadow-lg shadow-indigo-500/35 active:scale-95 transition-all"
-          aria-label="Add financial record"
-        >
-          <Plus className="w-6 h-6 stroke-[2.5]" />
-        </button>
-      </div>
+      {canCreateRecord(userRole) && (
+        <div className="-mt-5">
+          <button
+            onClick={onOpenAddRecord}
+            className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white flex items-center justify-center shadow-lg shadow-indigo-500/35 active:scale-95 transition-all"
+            aria-label="Add financial record"
+          >
+            <Plus className="w-6 h-6 stroke-[2.5]" />
+          </button>
+        </div>
+      )}
 
       {/* Members / Documents */}
       {isLeader ? (
@@ -106,4 +108,3 @@ export function MobileBottomNav({
     </nav>
   )
 }
-

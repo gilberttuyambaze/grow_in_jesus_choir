@@ -1,81 +1,102 @@
+import crypto from 'node:crypto'
 import { NextResponse } from 'next/server'
-import path from 'node:path'
-import fs from 'node:fs'
+import { canViewAllFinances } from '@/lib/permissions'
 import { getSessionUser } from '@/lib/auth/session'
-import { createDocument, createAuditLog } from '@/lib/db'
-import { uploadToStorage } from '@/lib/storage'
+import { createDocument, getFinancialRecordById, getMemberByUserId } from '@/lib/db'
+import { removeFromStorage, uploadToStorage } from '@/lib/storage'
 
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 const MAX_FILE_SIZE = 50 * 1024 * 1024
+const MIME_EXTENSIONS: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'application/pdf': '.pdf'
+}
+
+function matchesFileSignature(mimeType: string, bytes: Buffer): boolean {
+  if (mimeType === 'image/jpeg') return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
+  if (mimeType === 'image/png') return bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+  if (mimeType === 'image/webp') return bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP'
+  if (mimeType === 'application/pdf') return bytes.toString('ascii', 0, 5) === '%PDF-'
+  return false
+}
 
 export async function POST(request: Request) {
   const session = await getSessionUser()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (session.role === 'AUDITOR') return NextResponse.json({ error: 'This account has read-only access.' }, { status: 403 })
+
+  const origin = request.headers.get('origin')
+  if (!origin || origin !== new URL(request.url).origin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+  const contentLength = Number(request.headers.get('content-length'))
+  if (Number.isFinite(contentLength) && contentLength > MAX_FILE_SIZE + 1024 * 1024) {
+    return NextResponse.json({ error: 'Document exceeds the 50 MB upload limit.' }, { status: 413 })
   }
 
+  let storedFilename: string | null = null
   try {
     const formData = await request.formData()
-    const file = formData.get('file') as File | null
-    const recordId = (formData.get('recordId') as string) || null
-    const notes = (formData.get('notes') as string) || null
+    const entry = formData.get('file')
+    const file = entry instanceof File ? entry : null
+    const recordId = typeof formData.get('recordId') === 'string'
+      ? (formData.get('recordId') as string).trim() || null
+      : null
+    const notes = typeof formData.get('notes') === 'string'
+      ? (formData.get('notes') as string).trim().slice(0, 2000) || null
+      : null
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+    if (!file || file.size <= 0) {
+      return NextResponse.json({ error: 'Choose a document to upload.' }, { status: 400 })
     }
-
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        { error: 'Invalid file format. Only JPEG, PNG, WEBP, and PDF files are permitted.' },
-        { status: 400 }
-      )
+    if (!MIME_EXTENSIONS[file.type]) {
+      return NextResponse.json({ error: 'Only JPEG, PNG, WEBP, and PDF documents are accepted.' }, { status: 400 })
     }
-
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: 'File exceeds the maximum permitted size of 50 MB.' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Document exceeds the 50 MB upload limit.' }, { status: 413 })
     }
 
-    const ext = path.extname(file.name) || (file.type === 'application/pdf' ? '.pdf' : '.jpg')
-    const sanitizedFilename = `doc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}${ext}`
-
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    
-    // Upload to Supabase Storage (grow-in-jesus-choir bucket)
-    const uploadResult = await uploadToStorage(sanitizedFilename, buffer, file.type)
-    if (!uploadResult.success) {
-      return NextResponse.json({ error: uploadResult.error || 'Failed to upload document to storage' }, { status: 500 })
+    if (recordId) {
+      const record = await getFinancialRecordById(recordId)
+      if (!record) return NextResponse.json({ error: 'Financial record not found.' }, { status: 404 })
+      if (!canViewAllFinances(session.role)) {
+        const member = await getMemberByUserId(session.userId)
+        if (!member || record.memberId !== member.id) {
+          return NextResponse.json({ error: 'You cannot attach a document to this record.' }, { status: 403 })
+        }
+      }
     }
+
+    const bytes = Buffer.from(await file.arrayBuffer())
+    if (!matchesFileSignature(file.type, bytes)) {
+      return NextResponse.json({ error: 'The file contents do not match the selected file type.' }, { status: 400 })
+    }
+
+    const filename = `${crypto.randomUUID()}${MIME_EXTENSIONS[file.type]}`
+    await uploadToStorage(filename, bytes, file.type)
+    storedFilename = filename
 
     const doc = await createDocument({
-      filename: sanitizedFilename,
-      originalName: file.name,
+      filename,
+      originalName: file.name.slice(0, 255),
       mimeType: file.type,
       sizeBytes: file.size,
       recordId,
       uploadedById: session.userId,
+      uploadedByName: session.fullName,
       notes
     })
 
-    await createAuditLog({
-      actorId: session.userId,
-      actorName: session.fullName,
-      action: 'DOCUMENT_UPLOADED',
-      targetType: 'document',
-      targetId: doc.id,
-      details: {
-        filename: file.name,
-        sizeBytes: file.size,
-        recordId,
-        storagePath: uploadResult.path
+    return NextResponse.json({ success: true, document: doc }, { status: 201 })
+  } catch {
+    if (storedFilename) {
+      try {
+        await removeFromStorage(storedFilename)
+      } catch {
+        // The upload request still fails closed if remote cleanup is unavailable.
       }
-    })
-
-    return NextResponse.json({ success: true, document: doc })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'File upload failed' }, { status: 500 })
+    }
+    return NextResponse.json({ error: 'Document upload failed.' }, { status: 500 })
   }
 }

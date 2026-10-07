@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getSessionUser } from '@/lib/auth/session'
-import { getDocuments, getFinancialRecords } from '@/lib/db'
+import { getDocuments, getFinancialRecords, getMemberByUserId } from '@/lib/db'
+import { canViewAllFinances } from '@/lib/permissions'
 import { DocumentsView } from '@/features/documents/DocumentsView'
 
 export default async function DocumentsPage() {
@@ -9,9 +10,15 @@ export default async function DocumentsPage() {
     redirect('/login')
   }
 
+  const canViewAll = canViewAllFinances(session.role)
+  const member = canViewAll ? null : await getMemberByUserId(session.userId)
   const [documents, records] = await Promise.all([
-    getDocuments(),
-    getFinancialRecords()
+    getDocuments(undefined, canViewAll ? undefined : session.userId),
+    canViewAll
+      ? getFinancialRecords()
+      : member
+      ? getFinancialRecords({ memberId: member.id })
+      : Promise.resolve([])
   ])
 
   return (
@@ -22,4 +29,3 @@ export default async function DocumentsPage() {
     />
   )
 }
-

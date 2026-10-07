@@ -18,10 +18,13 @@ export async function sendRemindersAction(memberIds?: string[]) {
   }
 
   try {
+    if (memberIds && (memberIds.length > 500 || memberIds.some((id) => typeof id !== 'string' || id.length > 100))) {
+      return { success: false, error: 'The selected member list is invalid.' }
+    }
     let targetMembers: { id: string; fullName: string; userId: string | null }[] = []
 
     if (memberIds && memberIds.length > 0) {
-      targetMembers = await getMembersByIds(memberIds)
+      targetMembers = await getMembersByIds([...new Set(memberIds)])
     } else {
       targetMembers = await getPendingContributionMembers()
     }
@@ -36,7 +39,7 @@ export async function sendRemindersAction(memberIds?: string[]) {
         await createNotification({
           userId: member.userId,
           title: 'Monthly Contribution Reminder',
-          message: 'Gentle reminder: Please submit your October 2026 choir contribution (50,000 RWF).',
+          message: 'A friendly reminder to submit your choir contribution for the current month.',
           type: 'info',
           link: '/dashboard'
         })
@@ -65,7 +68,7 @@ export async function sendRemindersAction(memberIds?: string[]) {
       message: `Gentle reminders sent to ${targetMembers.length} choir members.`
     }
   } catch (error: any) {
-    return { success: false, error: error.message || 'Failed to dispatch reminders.' }
+    return { success: false, error: 'Failed to dispatch reminders.' }
   }
 }
 
@@ -75,15 +78,18 @@ export async function updateMemberProfileAction(formData: FormData) {
     return { success: false, error: 'Unauthorized: Session expired.' }
   }
 
-  const phone = (formData.get('phone') as string)?.trim()
-  const fullName = (formData.get('fullName') as string)?.trim()
+  const phone = typeof formData.get('phone') === 'string' ? (formData.get('phone') as string).trim() : ''
+  const fullName = typeof formData.get('fullName') === 'string' ? (formData.get('fullName') as string).trim() : ''
+  if (!fullName || fullName.length > 120 || phone.length > 40) {
+    return { success: false, error: 'Enter a name and a valid phone number.' }
+  }
 
   try {
     await updateMemberProfile(session.userId, { fullName, phone })
 
     await createAuditLog({
       actorId: session.userId,
-      actorName: fullName || session.fullName,
+      actorName: session.fullName,
       action: 'PROFILE_UPDATED',
       targetType: 'users',
       targetId: session.userId,
@@ -96,7 +102,6 @@ export async function updateMemberProfileAction(formData: FormData) {
 
     return { success: true, message: 'Profile updated successfully.' }
   } catch (error: any) {
-    return { success: false, error: error.message || 'Failed to update profile.' }
+    return { success: false, error: 'Failed to update profile.' }
   }
 }
-

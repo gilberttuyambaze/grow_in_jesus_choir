@@ -8,6 +8,7 @@ import { AddRecordDialog } from '@/components/finance/AddRecordDialog'
 import { CommandSearchModal } from './CommandSearchModal'
 import { WelcomeGuideModal } from './WelcomeGuideModal'
 import { FinancialCategory, FinancialRecord, Member, NotificationItem, UserRole } from '@/types'
+import { canCreateRecord } from '@/lib/permissions'
 
 interface DashboardShellProps {
   userRole: UserRole
@@ -94,13 +95,15 @@ export function DashboardShell({
       />
 
       {/* Global Add Record Dialog */}
-      <AddRecordDialog
-        isOpen={isAddRecordOpen}
-        onClose={() => setIsAddRecordOpen(false)}
-        categories={categories}
-        members={members}
-        userRole={userRole}
-      />
+      {canCreateRecord(userRole) && (
+        <AddRecordDialog
+          isOpen={isAddRecordOpen}
+          onClose={() => setIsAddRecordOpen(false)}
+          categories={categories}
+          members={members}
+          userRole={userRole}
+        />
+      )}
 
       {/* Global Command Search Modal */}
       <CommandSearchModal
@@ -109,6 +112,7 @@ export function DashboardShell({
         records={records}
         members={members}
         onOpenAddRecord={() => setIsAddRecordOpen(true)}
+        canAddRecords={canCreateRecord(userRole)}
       />
 
       {/* First-time Onboarding Guide (Section 114) */}

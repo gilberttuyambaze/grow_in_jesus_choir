@@ -14,13 +14,12 @@ import {
   ArrowRight,
   LogOut,
   ChevronDown,
-  UserCheck,
   ShieldCheck,
   FolderLock,
   X
 } from 'lucide-react'
 import { UserRole } from '@/types'
-import { switchRoleAction, logoutAction } from '@/features/auth/actions'
+import { logoutAction } from '@/features/auth/actions'
 import { ChoirLogo } from '@/components/brand/ChoirLogo'
 
 interface SidebarProps {
@@ -173,16 +172,6 @@ export function Sidebar({
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={() => {
-                switchRoleAction(userRole === 'LEADER' ? 'MEMBER' : 'LEADER')
-                handleLinkClick()
-              }}
-              title="Toggle role demo"
-              className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-white transition-colors"
-            >
-              <UserCheck className="w-4 h-4" />
-            </button>
             <button
               onClick={() => logoutAction()}
               title="Sign out"

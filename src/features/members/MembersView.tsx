@@ -118,7 +118,7 @@ export function MembersView({ members, records = [], userRole }: MembersViewProp
           <div className="px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200/80 flex items-center gap-2.5 text-xs shrink-0">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span className="text-emerald-900 font-semibold">
-              October: <strong>{recordedCount} / {members.length}</strong> ({percentage}%)
+              {new Date().toLocaleString('en-US', { month: 'long' })}: <strong>{recordedCount} / {members.length}</strong> ({percentage}%)
             </span>
           </div>
 
