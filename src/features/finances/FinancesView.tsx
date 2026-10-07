@@ -12,6 +12,7 @@ import {
   ChevronDown,
   Sparkles
 } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
 import { FinancialRecord, FinancialCategory, UserRole } from '@/types'
 import { FinancialRecordTable } from '@/components/finance/FinancialRecordTable'
 import { formatCurrency } from '@/lib/utils/currency'
@@ -23,9 +24,21 @@ interface FinancesViewProps {
 }
 
 export function FinancesView({ records, categories, userRole }: FinancesViewProps) {
-  const [activeTab, setActiveTab] = React.useState<'all' | 'income' | 'expense' | 'needs_review'>('all')
+  const searchParams = useSearchParams()
+  const initialRecordId = searchParams.get('recordId')
+  const initialStatus = searchParams.get('status')
+
+  const [activeTab, setActiveTab] = React.useState<'all' | 'income' | 'expense' | 'needs_review'>(
+    initialStatus === 'needs_review' ? 'needs_review' : 'all'
+  )
   const [selectedCategory, setSelectedCategory] = React.useState<string>('all')
   const [search, setSearch] = React.useState('')
+
+  React.useEffect(() => {
+    if (initialStatus === 'needs_review') {
+      setActiveTab('needs_review')
+    }
+  }, [initialStatus])
 
   const filteredRecords = React.useMemo(() => {
     return records.filter((r) => {
@@ -170,7 +183,11 @@ export function FinancesView({ records, categories, userRole }: FinancesViewProp
 
         {/* Financial Record Table & Mobile Cards */}
         <div className="pt-2">
-          <FinancialRecordTable records={filteredRecords} userRole={userRole} />
+          <FinancialRecordTable
+            records={filteredRecords}
+            userRole={userRole}
+            initialSelectedRecordId={initialRecordId}
+          />
         </div>
       </div>
     </div>

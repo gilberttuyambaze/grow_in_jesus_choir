@@ -14,6 +14,7 @@ import {
   RotateCcw
 } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
+import { RecordTypeSelectionCard } from './RecordTypeSelectionCard'
 import { FinancialCategory, Member, UserRole } from '@/types'
 import { createRecordAction } from '@/features/finances/actions'
 import { formatCurrency } from '@/lib/utils/currency'
@@ -295,51 +296,13 @@ export function AddRecordDialog({
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <button
-              type="button"
-              onClick={() => {
-                setRecordType('income')
-                setError(null)
-              }}
-              className="group p-5 rounded-3xl border border-slate-200/80 hover:border-indigo-400 bg-white hover:bg-indigo-50/20 text-left transition-all shadow-xs flex flex-col justify-between"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform shadow-xs">
-                <ArrowDownLeft className="w-6 h-6 stroke-[2.5]" />
-              </div>
-              <div>
-                <strong className="block text-base text-slate-900 font-bold mb-1">
-                  Money Received
-                </strong>
-                <span className="text-xs text-slate-500 leading-relaxed block">
-                  Member contributions, Sunday offerings, gifts, and donations.
-                </span>
-              </div>
-            </button>
-
-            {userRole !== 'MEMBER' && (
-              <button
-                type="button"
-                onClick={() => {
-                  setRecordType('expense')
-                  setError(null)
-                }}
-                className="group p-5 rounded-3xl border border-slate-200/80 hover:border-amber-400 bg-white hover:bg-amber-50/20 text-left transition-all shadow-xs flex flex-col justify-between"
-              >
-                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform shadow-xs">
-                  <ArrowUpRight className="w-6 h-6 stroke-[2.5]" />
-                </div>
-                <div>
-                  <strong className="block text-base text-slate-900 font-bold mb-1">
-                    Money Spent
-                  </strong>
-                  <span className="text-xs text-slate-500 leading-relaxed block">
-                    Transport, uniforms/robes, rehearsal venue, sound & equipment.
-                  </span>
-                </div>
-              </button>
-            )}
-          </div>
+          <RecordTypeSelectionCard
+            userRole={userRole}
+            onSelect={(type) => {
+              setRecordType(type)
+              setError(null)
+            }}
+          />
         </div>
       ) : (
         /* STEP 2: FILL PROGRESSIVELY REVEALED FORM */

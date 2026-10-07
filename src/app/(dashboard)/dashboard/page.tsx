@@ -166,7 +166,7 @@ export default async function DashboardPage() {
               </Link>
             </div>
 
-            <FinancialRecordTable records={records} userRole={session.role} />
+            <FinancialRecordTable records={allRecords.slice(0, 12)} userRole={session.role} />
           </div>
         </>
       ) : (

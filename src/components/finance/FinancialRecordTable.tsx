@@ -14,17 +14,28 @@ interface FinancialRecordTableProps {
   records: FinancialRecord[]
   userRole: UserRole
   onStatusChange?: () => void
+  initialSelectedRecordId?: string | null
 }
 
 export function FinancialRecordTable({
   records,
   userRole,
-  onStatusChange
+  onStatusChange,
+  initialSelectedRecordId
 }: FinancialRecordTableProps) {
   const { success: showToastSuccess, error: showToastError } = useToast()
   const [selectedRecord, setSelectedRecord] = React.useState<FinancialRecord | null>(null)
   const [activeReviewId, setActiveReviewId] = React.useState<string | null>(null)
   const [isProcessing, setIsProcessing] = React.useState(false)
+
+  React.useEffect(() => {
+    if (initialSelectedRecordId) {
+      const found = records.find((r) => r.id === initialSelectedRecordId)
+      if (found) {
+        setSelectedRecord(found)
+      }
+    }
+  }, [initialSelectedRecordId, records])
 
   const handleReview = async (recordId: string, decision: 'approve' | 'reject') => {
     setIsProcessing(true)

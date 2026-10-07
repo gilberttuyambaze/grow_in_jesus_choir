@@ -370,11 +370,15 @@ async function deploySeeds(client) {
 
   // 7. Notifications
   await client.query(`
-    INSERT INTO notifications (id, user_id, title, message, type, is_read) VALUES
-      ('notif_01', 'user_sarah', 'Pending Record for Review', 'John Doe submitted a 50,000 RWF contribution for October', 'warning', false),
-      ('notif_02', 'user_sarah', 'Budget Milestone', 'Choir current balance reached healthy 1,845,000 RWF threshold', 'success', false),
-      ('notif_03', 'user_john', 'Contribution Status', 'Your September contribution was verified and recorded', 'success', true)
-    ON CONFLICT (id) DO NOTHING;
+    INSERT INTO notifications (id, user_id, title, message, type, is_read, link) VALUES
+      ('notif_01', 'user_sarah', 'Pending Record for Review', 'John Doe submitted a 50,000 RWF contribution for October', 'warning', false, '/finances?recordId=rec_11'),
+      ('notif_02', 'user_sarah', 'Budget Milestone', 'Choir current balance reached healthy 1,845,000 RWF threshold', 'success', false, '/reports'),
+      ('notif_03', 'user_john', 'Contribution Status', 'Your September contribution was verified and recorded', 'success', true, '/finances?recordId=rec_c02')
+    ON CONFLICT (id) DO UPDATE SET
+      title = EXCLUDED.title,
+      message = EXCLUDED.message,
+      type = EXCLUDED.type,
+      link = EXCLUDED.link;
   `)
   console.log('✓ Notifications seeded.')
 

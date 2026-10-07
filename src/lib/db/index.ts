@@ -22,6 +22,10 @@ import {
 let pgPoolInstance: pg.Pool | null = null
 let sqliteInstance: DatabaseSync | null = null
 
+function toPlainRows<T extends object>(rows: T[]): T[] {
+  return rows.map((row) => ({ ...row }))
+}
+
 export function getPgPool(): pg.Pool | null {
   if (pgPoolInstance) return pgPoolInstance
 
@@ -110,7 +114,7 @@ export async function getUserByEmail(
          WHERE LOWER(u.email) = LOWER($1)`,
         [email.trim()]
       )
-      if (res.rows.length > 0) return res.rows[0]
+      if (res.rows.length > 0) return { ...res.rows[0] }
     } catch {
       // fallback
     }
@@ -126,7 +130,7 @@ export async function getUserByEmail(
        WHERE LOWER(u.email) = LOWER(?)`
     )
     .get(email.trim()) as any
-  return row || null
+  return row ? { ...row } : null
 }
 
 export async function getUserById(id: string): Promise<User | null> {
@@ -141,7 +145,7 @@ export async function getUserById(id: string): Promise<User | null> {
          WHERE u.id = $1`,
         [id]
       )
-      if (res.rows.length > 0) return res.rows[0]
+      if (res.rows.length > 0) return { ...res.rows[0] }
     } catch {
       // fallback
     }
@@ -157,7 +161,7 @@ export async function getUserById(id: string): Promise<User | null> {
        WHERE u.id = ?`
     )
     .get(id) as any
-  return row || null
+  return row ? { ...row } : null
 }
 
 // -------------------------------------------------------------
@@ -307,7 +311,7 @@ export async function getFinancialRecords(options?: {
     sql += ` OFFSET ${Number(options.offset)}`
   }
 
-  return db.prepare(sql).all(...params) as any[]
+  return toPlainRows(db.prepare(sql).all(...params) as any[])
 }
 
 export async function createFinancialRecord(record: {
@@ -465,7 +469,7 @@ export async function getFinancialCategories(
            FROM financial_categories WHERE is_active = true ORDER BY name ASC`
       const params = type ? [type] : []
       const res = await pool.query(sql, params)
-      return res.rows
+      return toPlainRows(res.rows)
     } catch {
       // fallback
     }
@@ -475,9 +479,9 @@ export async function getFinancialCategories(
   let sql = 'SELECT id, name, type, description, is_active as isActive, created_at as createdAt FROM financial_categories WHERE is_active = 1'
   if (type) {
     sql += ' AND type = ?'
-    return db.prepare(sql).all(type) as any[]
+    return toPlainRows(db.prepare(sql).all(type) as any[])
   }
-  return db.prepare(sql).all() as any[]
+  return toPlainRows(db.prepare(sql).all() as any[])
 }
 
 export async function getMembers(): Promise<Member[]> {
@@ -490,7 +494,7 @@ export async function getMembers(): Promise<Member[]> {
         FROM members
         ORDER BY full_name ASC
       `)
-      return res.rows
+      return toPlainRows(res.rows)
     } catch {
       // fallback
     }
@@ -504,7 +508,8 @@ export async function getMembers(): Promise<Member[]> {
       FROM members
       ORDER BY full_name ASC
     `)
-    .all() as any[]
+    .all()
+    .map((row) => ({ ...row })) as any[]
 }
 
 export async function getMemberById(id: string): Promise<Member | null> {
@@ -517,7 +522,7 @@ export async function getMemberById(id: string): Promise<Member | null> {
          FROM members WHERE id = $1`,
         [id]
       )
-      if (res.rows.length > 0) return res.rows[0]
+      if (res.rows.length > 0) return { ...res.rows[0] }
     } catch {
       // fallback
     }
@@ -525,7 +530,7 @@ export async function getMemberById(id: string): Promise<Member | null> {
 
   const db = getDatabase()
   const row = db.prepare('SELECT id, user_id as userId, full_name as fullName, phone, voice_part as voicePart, status, joined_date as joinedDate, created_at as createdAt, updated_at as updatedAt FROM members WHERE id = ?').get(id) as any
-  return row || null
+  return row ? { ...row } : null
 }
 
 export async function getMemberByUserId(userId: string): Promise<Member | null> {
@@ -538,7 +543,7 @@ export async function getMemberByUserId(userId: string): Promise<Member | null> 
          FROM members WHERE user_id = $1`,
         [userId]
       )
-      if (res.rows.length > 0) return res.rows[0]
+      if (res.rows.length > 0) return { ...res.rows[0] }
     } catch {
       // fallback
     }
@@ -546,7 +551,7 @@ export async function getMemberByUserId(userId: string): Promise<Member | null> 
 
   const db = getDatabase()
   const row = db.prepare('SELECT id, user_id as userId, full_name as fullName, phone, voice_part as voicePart, status, joined_date as joinedDate, created_at as createdAt, updated_at as updatedAt FROM members WHERE user_id = ?').get(userId) as any
-  return row || null
+  return row ? { ...row } : null
 }
 
 export async function updateMemberProfile(
@@ -601,7 +606,7 @@ export async function getMembersByIds(
         `SELECT id, full_name as "fullName", user_id as "userId" FROM members WHERE id = ANY($1)`,
         [ids]
       )
-      return res.rows
+      return toPlainRows(res.rows)
     } catch {
       // fallback
     }
@@ -611,7 +616,8 @@ export async function getMembersByIds(
   const placeholders = ids.map(() => '?').join(',')
   return db
     .prepare(`SELECT id, full_name as fullName, user_id as userId FROM members WHERE id IN (${placeholders})`)
-    .all(...ids) as any[]
+    .all(...ids)
+    .map((row) => ({ ...row })) as any[]
 }
 
 export async function getPendingContributionMembers(): Promise<
@@ -630,7 +636,7 @@ export async function getPendingContributionMembers(): Promise<
           AND status IN ('recorded', 'needs_review')
         )
       `)
-      return res.rows
+      return toPlainRows(res.rows)
     } catch {
       // fallback
     }
@@ -648,7 +654,8 @@ export async function getPendingContributionMembers(): Promise<
         AND status IN ('recorded', 'needs_review')
       )
     `)
-    .all() as any[]
+    .all()
+    .map((row) => ({ ...row })) as any[]
 }
 
 // -------------------------------------------------------------
@@ -667,14 +674,14 @@ export async function getAuditLogs(limit = 50): Promise<AuditLogEntry[]> {
          LIMIT $1`,
         [limit]
       )
-      return res.rows
+      return toPlainRows(res.rows)
     } catch {
       // fallback
     }
   }
 
   const db = getDatabase()
-  const rows = db.prepare('SELECT id, actor_id as actorId, actor_name as actorName, action, target_type as targetType, target_id as targetId, details, created_at as createdAt FROM audit_logs ORDER BY created_at DESC LIMIT ?').all(limit) as any[]
+  const rows = toPlainRows(db.prepare('SELECT id, actor_id as actorId, actor_name as actorName, action, target_type as targetType, target_id as targetId, details, created_at as createdAt FROM audit_logs ORDER BY created_at DESC LIMIT ?').all(limit) as any[])
   return rows.map((r) => ({
     ...r,
     details: typeof r.details === 'string' ? JSON.parse(r.details) : r.details
@@ -738,14 +745,14 @@ export async function getNotifications(userId: string, limit = 20): Promise<Noti
          LIMIT $2`,
         [userId, limit]
       )
-      return res.rows
+      return toPlainRows(res.rows)
     } catch {
       // fallback
     }
   }
 
   const db = getDatabase()
-  const rows = db.prepare('SELECT id, user_id as userId, title, message, type, is_read as isRead, link, created_at as createdAt FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT ?').all(userId, limit) as any[]
+  const rows = toPlainRows(db.prepare('SELECT id, user_id as userId, title, message, type, is_read as isRead, link, created_at as createdAt FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT ?').all(userId, limit) as any[])
   return rows.map((r) => ({
     ...r,
     isRead: Boolean(r.isRead)
@@ -862,10 +869,10 @@ export async function getDocuments(recordId?: string): Promise<FinancialDocument
   `
   if (recordId) {
     sql += ' WHERE d.record_id = ?'
-    return db.prepare(sql).all(recordId) as any[]
+    return toPlainRows(db.prepare(sql).all(recordId) as any[])
   }
   sql += ' ORDER BY d.created_at DESC'
-  return db.prepare(sql).all() as any[]
+  return toPlainRows(db.prepare(sql).all() as any[])
 }
 
 export async function getDocumentById(id: string): Promise<FinancialDocument | null> {
@@ -909,7 +916,7 @@ export async function getDocumentById(id: string): Promise<FinancialDocument | n
       WHERE d.id = ?
     `)
     .get(id) as any
-  return row || null
+  return row ? { ...row } : null
 }
 
 export async function createDocument(doc: {

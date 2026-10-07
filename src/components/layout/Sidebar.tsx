@@ -10,6 +10,7 @@ import {
   BarChart3,
   FileText,
   Settings,
+  Bell,
   ArrowRight,
   LogOut,
   ChevronDown,
@@ -51,6 +52,7 @@ export function Sidebar({
       return [
         { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { label: 'My Contributions', href: '/finances', icon: WalletCards },
+        { label: 'Notifications', href: '/notifications', icon: Bell },
         { label: 'Documents', href: '/documents', icon: FileText },
         { label: 'Settings', href: '/settings', icon: Settings }
       ]
@@ -62,6 +64,7 @@ export function Sidebar({
       { label: 'Reports & Analytics', href: '/reports', icon: BarChart3 },
       { label: 'Documents', href: '/documents', icon: FileText },
       { label: 'Audit Logs', href: '/activity', icon: ShieldCheck },
+      { label: 'Notifications', href: '/notifications', icon: Bell },
       { label: 'Settings', href: '/settings', icon: Settings }
     ]
   }, [userRole, pendingCount])
