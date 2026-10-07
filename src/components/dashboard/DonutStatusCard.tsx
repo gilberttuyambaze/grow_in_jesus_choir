@@ -3,13 +3,37 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import { FinancialRecord } from '@/types'
 
-export function DonutStatusCard() {
-  // SVG circular stroke calculation for radius=44 (circumference ≈ 276.5)
-  // Active/Recorded: 84% -> 232
-  // Blue/Pending: 8% -> 22
-  // Amber/In Review: 6% -> 16
-  // Red/Needs Attention: 2% -> 6
+interface DonutStatusCardProps {
+  records?: FinancialRecord[]
+}
+
+export function DonutStatusCard({ records = [] }: DonutStatusCardProps) {
+  const totalCount = records.length
+
+  const recordedCount = records.filter((r) => r.status === 'recorded').length
+  const reviewCount = records.filter((r) => r.status === 'needs_review').length
+  const rejectedCount = records.filter((r) => r.status === 'rejected').length
+  const voidedCount = records.filter((r) => r.status === 'voided').length
+
+  // Circumference for r=44: 2 * π * 44 ≈ 276.46
+  const circumference = 276.46
+
+  const calcDash = (count: number) => {
+    if (totalCount === 0) return 0
+    return (count / totalCount) * circumference
+  }
+
+  const recordedDash = calcDash(recordedCount)
+  const reviewDash = calcDash(reviewCount)
+  const rejectedDash = calcDash(rejectedCount)
+  const voidedDash = calcDash(voidedCount)
+
+  // Accumulate offsets
+  const reviewOffset = -recordedDash
+  const rejectedOffset = reviewOffset - reviewDash
+  const voidedOffset = rejectedOffset - rejectedDash
 
   return (
     <div className="card-surface p-5 sm:p-6 bg-white flex flex-col justify-between h-full min-w-0">
@@ -34,60 +58,72 @@ export function DonutStatusCard() {
               stroke="#f1f5f9"
               strokeWidth="10"
             />
-            {/* Green / Active Segment (84%) */}
-            <circle
-              cx="55"
-              cy="55"
-              r="44"
-              fill="none"
-              stroke="#10b981"
-              strokeWidth="10"
-              strokeDasharray="232 282"
-              strokeDashoffset="0"
-              strokeLinecap="round"
-            />
-            {/* Blue Segment (8%) */}
-            <circle
-              cx="55"
-              cy="55"
-              r="44"
-              fill="none"
-              stroke="#3b82f6"
-              strokeWidth="10"
-              strokeDasharray="22 282"
-              strokeDashoffset="-234"
-              strokeLinecap="round"
-            />
-            {/* Amber Segment (6%) */}
-            <circle
-              cx="55"
-              cy="55"
-              r="44"
-              fill="none"
-              stroke="#f59e0b"
-              strokeWidth="10"
-              strokeDasharray="16 282"
-              strokeDashoffset="-258"
-              strokeLinecap="round"
-            />
-            {/* Red Segment (2%) */}
-            <circle
-              cx="55"
-              cy="55"
-              r="44"
-              fill="none"
-              stroke="#ef4444"
-              strokeWidth="10"
-              strokeDasharray="6 282"
-              strokeDashoffset="-276"
-              strokeLinecap="round"
-            />
+
+            {/* Recorded Segment (Emerald) */}
+            {recordedCount > 0 && (
+              <circle
+                cx="55"
+                cy="55"
+                r="44"
+                fill="none"
+                stroke="#10b981"
+                strokeWidth="10"
+                strokeDasharray={`${recordedDash} ${circumference}`}
+                strokeDashoffset="0"
+                strokeLinecap="round"
+              />
+            )}
+
+            {/* Needs Review Segment (Amber) */}
+            {reviewCount > 0 && (
+              <circle
+                cx="55"
+                cy="55"
+                r="44"
+                fill="none"
+                stroke="#f59e0b"
+                strokeWidth="10"
+                strokeDasharray={`${reviewDash} ${circumference}`}
+                strokeDashoffset={reviewOffset}
+                strokeLinecap="round"
+              />
+            )}
+
+            {/* Rejected Segment (Rose) */}
+            {rejectedCount > 0 && (
+              <circle
+                cx="55"
+                cy="55"
+                r="44"
+                fill="none"
+                stroke="#ef4444"
+                strokeWidth="10"
+                strokeDasharray={`${rejectedDash} ${circumference}`}
+                strokeDashoffset={rejectedOffset}
+                strokeLinecap="round"
+              />
+            )}
+
+            {/* Voided Segment (Slate) */}
+            {voidedCount > 0 && (
+              <circle
+                cx="55"
+                cy="55"
+                r="44"
+                fill="none"
+                stroke="#94a3b8"
+                strokeWidth="10"
+                strokeDasharray={`${voidedDash} ${circumference}`}
+                strokeDashoffset={voidedOffset}
+                strokeLinecap="round"
+              />
+            )}
           </svg>
 
           {/* Center Text matching Reference */}
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
             <span className="text-2xl font-bold text-slate-900 font-sans leading-none">
-              50
+              {totalCount}
             </span>
             <span className="text-[10px] text-slate-400 font-medium mt-1">
               Total Records
@@ -95,38 +131,38 @@ export function DonutStatusCard() {
           </div>
         </div>
 
-        {/* Legend matching Reference */}
+        {/* Legend matching Real Database Data */}
         <div className="space-y-2 text-xs w-full sm:flex-1">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
               <span className="text-slate-600 font-medium">Recorded</span>
             </div>
-            <span className="font-bold text-slate-900 font-sans">42</span>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-              <span className="text-slate-600 font-medium">Pending</span>
-            </div>
-            <span className="font-bold text-slate-900 font-sans">4</span>
+            <span className="font-bold text-slate-900 font-sans">{recordedCount}</span>
           </div>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-              <span className="text-slate-600 font-medium">In Review</span>
+              <span className="text-slate-600 font-medium">Needs Review</span>
             </div>
-            <span className="font-bold text-slate-900 font-sans">3</span>
+            <span className="font-bold text-slate-900 font-sans">{reviewCount}</span>
           </div>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
-              <span className="text-slate-600 font-medium">Discrepancy</span>
+              <span className="text-slate-600 font-medium">Rejected</span>
             </div>
-            <span className="font-bold text-slate-900 font-sans">1</span>
+            <span className="font-bold text-slate-900 font-sans">{rejectedCount}</span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+              <span className="text-slate-600 font-medium">Voided</span>
+            </div>
+            <span className="font-bold text-slate-900 font-sans">{voidedCount}</span>
           </div>
         </div>
       </div>

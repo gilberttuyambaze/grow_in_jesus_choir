@@ -12,8 +12,14 @@ import {
   Percent
 } from 'lucide-react'
 import { getSessionUser } from '@/lib/auth/session'
-import { getFinancialSummary, getFinancialRecords, getMemberByUserId } from '@/lib/db'
-import { formatCurrency } from '@/lib/utils/currency'
+import {
+  getFinancialSummary,
+  getFinancialRecords,
+  getMemberByUserId,
+  getMembers,
+  getAuditLogs
+} from '@/lib/db'
+import { formatCurrency, formatCompactCurrency } from '@/lib/utils/currency'
 import { formatDate } from '@/lib/utils/date'
 import { MetricWaveCard } from '@/components/dashboard/MetricWaveCard'
 import { MoneyFlowChart } from '@/components/dashboard/MoneyFlowChart'
@@ -31,14 +37,29 @@ export default async function DashboardPage() {
   }
 
   const isLeader = session.role === 'LEADER' || session.role === 'ADMIN'
-  const summary = await getFinancialSummary()
-  const records = isLeader ? await getFinancialRecords({ limit: 6 }) : []
+  const [summary, allRecords, members, auditLogs] = await Promise.all([
+    getFinancialSummary(),
+    getFinancialRecords(),
+    getMembers(),
+    getAuditLogs(10)
+  ])
+
   const member = !isLeader ? await getMemberByUserId(session.userId) : null
   const memberRecords = member ? await getFinancialRecords({ memberId: member.id, limit: 12 }) : []
   const memberTotal = memberRecords
     .filter((r) => r.type === 'income' && r.status === 'recorded')
     .reduce((sum, r) => sum + r.amount, 0)
   const memberPending = memberRecords.filter((r) => r.status === 'needs_review')
+
+  const activeMembersCount = members.filter((m) => m.status === 'active').length
+  const recordedContributionMemberIds = new Set(
+    allRecords
+      .filter((r) => r.type === 'income' && (r.status === 'recorded' || r.status === 'needs_review') && r.memberId)
+      .map((r) => r.memberId)
+  )
+  const recordedContribCount = recordedContributionMemberIds.size
+  const contributionRate = activeMembersCount > 0 ? ((recordedContribCount / activeMembersCount) * 100).toFixed(1) : '0.0'
+  const pendingRate = activeMembersCount > 0 ? Math.round(((activeMembersCount - recordedContribCount) / activeMembersCount) * 100) : 0
 
   const firstName = session.fullName.split(' ')[0]
 
@@ -63,40 +84,40 @@ export default async function DashboardPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3.5 sm:gap-4">
             <MetricWaveCard
               label="Current Balance"
-              value="1.85M"
+              value={formatCompactCurrency(summary.currentBalance)}
               subValue="RWF"
-              trend="12% vs last month"
+              trend="Reconciled net"
               color="blue"
               icon={<WalletCards className="w-4 h-4" />}
             />
             <MetricWaveCard
               label="Money Received"
-              value="2.86M"
+              value={formatCompactCurrency(summary.totalIncome)}
               subValue="RWF"
-              trend="18% vs last month"
+              trend={`${allRecords.filter((r) => r.type === 'income' && r.status === 'recorded').length} income records`}
               color="purple"
               icon={<ArrowDownLeft className="w-4 h-4" />}
             />
             <MetricWaveCard
               label="Contribution Rate"
-              value="84.0%"
-              trend="2.4% vs last month"
+              value={`${contributionRate}%`}
+              trend={`${recordedContribCount} of ${activeMembersCount} members`}
               color="emerald"
               icon={<Percent className="w-4 h-4" />}
             />
             <MetricWaveCard
               label="Money Spent"
-              value="1.02M"
+              value={formatCompactCurrency(summary.totalExpenses)}
               subValue="RWF"
-              trend="15% vs budget"
+              trend={`${allRecords.filter((r) => r.type === 'expense' && r.status === 'recorded').length} expense records`}
               color="amber"
               icon={<ArrowUpRight className="w-4 h-4" />}
             />
             <MetricWaveCard
               label="Active Members"
-              value="50"
+              value={`${activeMembersCount}`}
               subValue="Choir"
-              trend="8% pending"
+              trend={`${pendingRate}% pending`}
               color="cyan"
               icon={<Users className="w-4 h-4" />}
             />
@@ -105,23 +126,23 @@ export default async function DashboardPage() {
           {/* MIDDLE ROW: 2/3 CHART + 1/3 ACTIVITY FEED (RESPONSIVE ON ALL DEVICES) */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 sm:gap-6 min-w-0">
             <div className="xl:col-span-2 min-w-0">
-              <MoneyFlowChart />
+              <MoneyFlowChart records={allRecords} />
             </div>
             <div className="min-w-0">
-              <RecentActivityFeed />
+              <RecentActivityFeed auditLogs={auditLogs} records={allRecords} />
             </div>
           </div>
 
           {/* BOTTOM ROW: 3 CARDS (RESPONSIVE ON TABLETS & PHONES) */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6 min-w-0">
             <div className="min-w-0">
-              <TopCategoriesCard />
+              <TopCategoriesCard records={allRecords} />
             </div>
             <div className="min-w-0">
-              <ReviewQueueCard />
+              <ReviewQueueCard records={allRecords} />
             </div>
             <div className="min-w-0 md:col-span-2 xl:col-span-1">
-              <DonutStatusCard />
+              <DonutStatusCard records={allRecords} />
             </div>
           </div>
 
@@ -155,9 +176,9 @@ export default async function DashboardPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-4">
             <MetricWaveCard
               label="Your Total Contributions"
-              value={memberTotal > 0 ? (memberTotal >= 1000000 ? `${(memberTotal / 1000000).toFixed(2)}M` : (memberTotal / 1000).toFixed(0) + 'K') : '50K'}
+              value={formatCompactCurrency(memberTotal)}
               subValue="RWF"
-              trend={memberRecords.length > 0 ? `${memberRecords.length} recorded on ledger` : 'October Dues'}
+              trend={memberRecords.length > 0 ? `${memberRecords.length} recorded on ledger` : 'No contributions recorded'}
               color="emerald"
               icon={<CheckCircle2 className="w-4 h-4" />}
             />
@@ -170,9 +191,9 @@ export default async function DashboardPage() {
             />
             <MetricWaveCard
               label="Active Choir Members"
-              value="50"
+              value={`${activeMembersCount}`}
               subValue="Members"
-              trend="42 recorded this month"
+              trend={`${recordedContribCount} recorded this month`}
               color="cyan"
               icon={<Users className="w-4 h-4" />}
             />

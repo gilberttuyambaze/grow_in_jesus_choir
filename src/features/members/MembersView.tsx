@@ -13,7 +13,7 @@ import {
   UserCheck,
   AlertCircle
 } from 'lucide-react'
-import { Member, UserRole } from '@/types'
+import { Member, FinancialRecord, UserRole } from '@/types'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { sendRemindersAction } from '@/features/members/actions'
@@ -21,10 +21,11 @@ import { useToast } from '@/components/ui/Toast'
 
 interface MembersViewProps {
   members: Member[]
+  records?: FinancialRecord[]
   userRole: UserRole
 }
 
-export function MembersView({ members, userRole }: MembersViewProps) {
+export function MembersView({ members, records = [], userRole }: MembersViewProps) {
   const { success: showToastSuccess, error: showToastError } = useToast()
 
   const [activeVoice, setActiveVoice] = React.useState<string>('all')
@@ -32,10 +33,16 @@ export function MembersView({ members, userRole }: MembersViewProps) {
   const [search, setSearch] = React.useState('')
   const [isSendingBatch, setIsSendingBatch] = React.useState(false)
 
-  // Benchmark: The first 42 members have recorded October contributions, last 8 have not
+  // Dynamically compute recorded contributions from database records
   const recordedMemberIds = React.useMemo(() => {
-    return new Set(members.slice(0, 42).map((m) => m.id))
-  }, [members])
+    const ids = new Set<string>()
+    for (const r of records) {
+      if (r.type === 'income' && (r.status === 'recorded' || r.status === 'needs_review') && r.memberId) {
+        ids.add(r.memberId)
+      }
+    }
+    return ids
+  }, [records])
 
   const pendingMembers = React.useMemo(() => {
     return members.filter((m) => !recordedMemberIds.has(m.id))
@@ -88,9 +95,9 @@ export function MembersView({ members, userRole }: MembersViewProps) {
     }
   }
 
-  const recordedCount = 42
-  const pendingCount = 8
-  const percentage = Math.round((recordedCount / members.length) * 100)
+  const recordedCount = recordedMemberIds.size
+  const pendingCount = Math.max(0, members.length - recordedCount)
+  const percentage = members.length > 0 ? Math.round((recordedCount / members.length) * 100) : 0
   const isLeader = userRole === 'LEADER' || userRole === 'ADMIN'
 
   return (

@@ -813,7 +813,7 @@ Build the actual application framework that users will navigate.
 
 PUBLIC EXPERIENCE:
 
-- landing page
+
 - login entry point
 - public navigation where required
 

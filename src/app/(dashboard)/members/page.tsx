@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getSessionUser } from '@/lib/auth/session'
-import { getMembers } from '@/lib/db'
+import { getMembers, getFinancialRecords } from '@/lib/db'
 import { MembersView } from '@/features/members/MembersView'
 
 export default async function MembersPage() {
@@ -13,11 +13,15 @@ export default async function MembersPage() {
     redirect('/dashboard')
   }
 
-  const members = await getMembers()
+  const [members, records] = await Promise.all([
+    getMembers(),
+    getFinancialRecords({ type: 'income' })
+  ])
 
   return (
     <MembersView
       members={members}
+      records={records}
       userRole={session.role}
     />
   )

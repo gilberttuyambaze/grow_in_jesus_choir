@@ -11,7 +11,7 @@ import {
   Layers
 } from 'lucide-react'
 import { getSessionUser } from '@/lib/auth/session'
-import { getFinancialCategories, getMemberByUserId } from '@/lib/db'
+import { getFinancialCategories, getMemberByUserId, getMembers } from '@/lib/db'
 import { ProfileEditCard } from '@/components/settings/ProfileEditCard'
 
 export default async function SettingsPage() {
@@ -20,11 +20,13 @@ export default async function SettingsPage() {
     redirect('/login')
   }
 
-  const [member, incomeCategories, expenseCategories] = await Promise.all([
+  const [member, incomeCategories, expenseCategories, members] = await Promise.all([
     getMemberByUserId(session.userId),
     getFinancialCategories('income'),
-    getFinancialCategories('expense')
+    getFinancialCategories('expense'),
+    getMembers()
   ])
+  const activeCount = members.filter((m) => m.status === 'active').length
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -68,7 +70,7 @@ export default async function SettingsPage() {
             <div>
               <span className="text-slate-400 block text-[11px] font-medium">Active Choir Members</span>
               <strong className="text-slate-900 text-xs font-bold block mt-0.5">
-                50 Members
+                {activeCount} Members
               </strong>
             </div>
             <div>

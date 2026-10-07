@@ -298,8 +298,35 @@ async function deploySeeds(client) {
   console.log(`✓ 50 Choir Members seeded across Soprano, Alto, Tenor, Bass.`)
 
   // 5. Financial Records
-  const recordsData = [
-    ['rec_01', 'income', 'cat_inc_contributions', 1280000, 'RWF', '2026-10-07', 'October choir member contributions (42 members)', null, 'user_sarah', 'recorded', 'REF-2026-1001'],
+  // Generate 42 individual contributing member records matching October dues
+  // mem_01: Sarah Uwase (50,000 RWF)
+  // mem_02..mem_42 (41 members): 30,000 RWF each (41 * 30,000 = 1,230,000 RWF)
+  // Total member contributions = 50,000 + 1,230,000 = 1,280,000 RWF
+  const memberContribRecords = []
+  for (let i = 0; i < 42; i++) {
+    const m = membersData[i]
+    const memId = m[0]
+    const memName = m[2]
+    const amount = i === 0 ? 50000 : 30000
+    const day = String((i % 7) + 1).padStart(2, '0')
+    const id = `rec_c${String(i + 1).padStart(2, '0')}`
+    const ref = `REF-2026-C${String(i + 1).padStart(2, '0')}`
+    memberContribRecords.push([
+      id,
+      'income',
+      'cat_inc_contributions',
+      amount,
+      'RWF',
+      `2026-10-${day}`,
+      `October monthly contribution - ${memName}`,
+      memId,
+      'user_sarah',
+      'recorded',
+      ref
+    ])
+  }
+
+  const otherRecordsData = [
     ['rec_02', 'income', 'cat_inc_donations', 250000, 'RWF', '2026-10-04', 'Choir anniversary donation from Elder Mukamana', 'mem_03', 'user_sarah', 'recorded', 'REF-2026-1002'],
     ['rec_03', 'income', 'cat_inc_events', 850000, 'RWF', '2026-09-28', 'Worship Night concert guest offerings', null, 'user_sarah', 'recorded', 'REF-2026-0901'],
     ['rec_04', 'income', 'cat_inc_fundraising', 480000, 'RWF', '2026-09-15', 'Annual uniform modernization fund', null, 'user_sarah', 'recorded', 'REF-2026-0902'],
@@ -312,19 +339,29 @@ async function deploySeeds(client) {
     ['rec_11', 'income', 'cat_inc_contributions', 50000, 'RWF', '2026-10-07', 'Late contribution submission for October', 'mem_02', 'user_john', 'needs_review', 'REF-2026-1003']
   ]
 
+  // Clean up legacy lump-sum rec_01 if present
+  await client.query(`DELETE FROM financial_records WHERE id = 'rec_01';`)
+
+  const recordsData = [...memberContribRecords, ...otherRecordsData]
+
   for (const r of recordsData) {
     await client.query(`
       INSERT INTO financial_records (id, type, category_id, amount, currency, record_date, description, member_id, recorded_by_id, status, reference_number)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      ON CONFLICT (id) DO NOTHING;
+      ON CONFLICT (id) DO UPDATE SET
+        amount = EXCLUDED.amount,
+        record_date = EXCLUDED.record_date,
+        description = EXCLUDED.description,
+        member_id = EXCLUDED.member_id,
+        status = EXCLUDED.status;
     `, r)
   }
-  console.log('✓ 11 Financial records seeded.')
+  console.log(`✓ ${recordsData.length} Financial records seeded (42 individual member contributions + 10 special items).`)
 
   // 6. Audit logs
   await client.query(`
     INSERT INTO audit_logs (id, actor_id, actor_name, action, target_type, target_id, details) VALUES
-      ('aud_01', 'user_sarah', 'Sarah Uwase', 'RECORD_CREATED', 'financial_record', 'rec_01', '{"amount":1280000,"type":"income","category":"Contributions"}'),
+      ('aud_01', 'user_sarah', 'Sarah Uwase', 'RECORD_CREATED', 'financial_record', 'rec_c01', '{"amount":50000,"type":"income","category":"Contributions"}'),
       ('aud_02', 'user_sarah', 'Sarah Uwase', 'RECORD_CREATED', 'financial_record', 'rec_05', '{"amount":30000,"type":"expense","category":"Transport"}'),
       ('aud_03', 'user_john', 'John Doe', 'RECORD_CREATED', 'financial_record', 'rec_11', '{"amount":50000,"type":"income","category":"Contributions"}')
     ON CONFLICT (id) DO NOTHING;

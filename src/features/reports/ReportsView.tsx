@@ -55,6 +55,18 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1])
   }, [records])
 
+  const verifiedIncomeCount = React.useMemo(() => {
+    return records.filter((r) => r.type === 'income' && r.status === 'recorded').length
+  }, [records])
+
+  const verifiedExpenseCount = React.useMemo(() => {
+    return records.filter((r) => r.type === 'expense' && r.status === 'recorded').length
+  }, [records])
+
+  const totalVerifiedCount = React.useMemo(() => {
+    return records.filter((r) => r.status === 'recorded').length
+  }, [records])
+
   // Two-step asynchronous export workflow matching Section 77
   const handleStartExport = () => {
     setExportStep('preparing')
@@ -205,7 +217,7 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
             +{formatCurrency(summary.totalIncome)}
           </p>
           <span className="text-[11px] text-slate-500 mt-2 block">
-            From 42 member contributions, offerings & gifts
+            From {verifiedIncomeCount} verified contribution{verifiedIncomeCount === 1 ? '' : 's'} & income streams
           </span>
         </div>
 
@@ -217,7 +229,7 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
             -{formatCurrency(summary.totalExpenses)}
           </p>
           <span className="text-[11px] text-slate-500 mt-2 block">
-            Transport, robes, rehearsal venue & sound equipment
+            Across {verifiedExpenseCount} verified choir expenditure transactions
           </span>
         </div>
 
@@ -230,7 +242,7 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
           </p>
           <span className="text-[11px] text-emerald-700 font-semibold mt-2 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            Verified against 100% of ledger transactions
+            Verified against {totalVerifiedCount} reconciled transactions
           </span>
         </div>
       </div>

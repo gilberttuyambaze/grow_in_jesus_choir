@@ -2,16 +2,43 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { WalletCards, Sparkles, Music, Bus, Mic } from 'lucide-react'
+import { WalletCards, Sparkles, Music, Bus, Mic, Layers, ArrowDownLeft, ArrowUpRight } from 'lucide-react'
+import { FinancialRecord } from '@/types'
+import { formatCompactCurrency } from '@/lib/utils/currency'
 
-export function TopCategoriesCard() {
-  const categories = [
-    { name: 'Member Contributions', rate: '98.5%', amount: '1.28M RWF', icon: WalletCards, color: 'blue' },
-    { name: 'Concerts & Events', rate: '97.1%', amount: '850K RWF', icon: Music, color: 'emerald' },
-    { name: 'Patrons & Donations', rate: '94.3%', amount: '250K RWF', icon: Sparkles, color: 'purple' },
-    { name: 'Audio Equipment', rate: '99.2%', amount: '85K RWF', icon: Mic, color: 'amber' },
-    { name: 'Transport Logistics', rate: '95.0%', amount: '30K RWF', icon: Bus, color: 'cyan' },
-  ]
+interface TopCategoriesCardProps {
+  records?: FinancialRecord[]
+}
+
+export function TopCategoriesCard({ records = [] }: TopCategoriesCardProps) {
+  // Aggregate real financial records by category
+  const topCategories = React.useMemo(() => {
+    const map = new Map<string, { name: string; amount: number; count: number; type: string }>()
+    let grandTotal = 0
+
+    for (const r of records) {
+      if (r.status !== 'recorded') continue
+      const catName = r.categoryName || 'Other'
+      const existing = map.get(catName) || { name: catName, amount: 0, count: 0, type: r.type }
+      existing.amount += r.amount
+      existing.count += 1
+      map.set(catName, existing)
+      grandTotal += r.amount
+    }
+
+    return Array.from(map.values())
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5)
+      .map((c, i) => {
+        const rate = grandTotal > 0 ? ((c.amount / grandTotal) * 100).toFixed(1) + '%' : '0%'
+        const colors = ['blue', 'emerald', 'purple', 'amber', 'cyan'] as const
+        return {
+          ...c,
+          rate,
+          color: colors[i % colors.length]
+        }
+      })
+  }, [records])
 
   const colorStyles = {
     blue: 'bg-blue-50 text-blue-600',
@@ -40,20 +67,31 @@ export function TopCategoriesCard() {
       <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 pb-2 border-b border-slate-100">
         <span>Category</span>
         <div className="flex items-center gap-3 sm:gap-6">
-          <span>Success</span>
+          <span>Share</span>
           <span>Amount</span>
         </div>
       </div>
 
-      {/* Rows matching Reference */}
-      <div className="space-y-3 pt-3">
-        {categories.map((c, i) => {
-          const Icon = c.icon
-          return (
+      {/* Rows matching real database data */}
+      {topCategories.length === 0 ? (
+        <div className="py-8 text-center text-xs text-slate-400">
+          No recorded transactions available yet.
+        </div>
+      ) : (
+        <div className="space-y-3 pt-3">
+          {topCategories.map((c, i) => (
             <div key={i} className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${colorStyles[c.color as keyof typeof colorStyles]}`}>
-                  <Icon className="w-3.5 h-3.5" />
+                <div
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                    colorStyles[c.color]
+                  }`}
+                >
+                  {c.type === 'income' ? (
+                    <ArrowDownLeft className="w-3.5 h-3.5 stroke-[2.5]" />
+                  ) : (
+                    <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                  )}
                 </div>
                 <span className="font-semibold text-slate-900 truncate">
                   {c.name}
@@ -61,18 +99,17 @@ export function TopCategoriesCard() {
               </div>
 
               <div className="flex items-center gap-3 sm:gap-6 shrink-0">
-                <span className="font-medium text-slate-600 text-right w-10">
+                <span className="font-medium text-slate-600 text-right w-12">
                   {c.rate}
                 </span>
-                <span className="font-bold text-slate-900 text-right min-w-[4.5rem]">
-                  {c.amount}
+                <span className="font-bold text-slate-900 text-right min-w-[4.5rem] font-sans">
+                  {formatCompactCurrency(c.amount)} RWF
                 </span>
               </div>
             </div>
-          )
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
-

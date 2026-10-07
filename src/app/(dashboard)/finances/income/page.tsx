@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowDownLeft, ChevronLeft } from 'lucide-react'
 import { getSessionUser } from '@/lib/auth/session'
-import { getFinancialRecords, getFinancialCategories } from '@/lib/db'
+import { getFinancialRecords, getFinancialCategories, getMemberByUserId } from '@/lib/db'
 import { FinancesView } from '@/features/finances/FinancesView'
 
 export default async function IncomePage() {
@@ -12,10 +12,12 @@ export default async function IncomePage() {
   }
 
   const isLeader = session.role === 'LEADER' || session.role === 'ADMIN'
-  const records = await getFinancialRecords({
-    type: 'income',
-    ...(session.role === 'MEMBER' && session.userId ? { memberId: session.userId } : {})
-  })
+  const member = !isLeader ? await getMemberByUserId(session.userId) : null
+  const records = isLeader
+    ? await getFinancialRecords({ type: 'income' })
+    : member
+    ? await getFinancialRecords({ type: 'income', memberId: member.id })
+    : []
   const categories = await getFinancialCategories('income')
 
   return (
