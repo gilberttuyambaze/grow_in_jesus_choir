@@ -61,12 +61,6 @@ export default async function LandingPage() {
             <span>Enter Financial Dashboard</span>
             <ArrowUpRight className="w-4 h-4" />
           </Link>
-          <Link
-            href="/login"
-            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-sm font-semibold shadow-xs transition-all flex items-center justify-center"
-          >
-            1-Click Demo Accounts
-          </Link>
         </div>
 
         {/* 3 Pillar Features matching Reference Cards */}

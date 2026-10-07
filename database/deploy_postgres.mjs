@@ -24,8 +24,8 @@ function loadEnv() {
 loadEnv()
 
 const connectionString =
-  process.env.POSTGRES_DATABASE_URL ||
   process.env.POSTGRES_DIRECT_URL ||
+  process.env.POSTGRES_DATABASE_URL ||
   process.env.DATABASE_URL
 
 if (!connectionString) {

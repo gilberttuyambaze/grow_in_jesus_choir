@@ -16,6 +16,7 @@ import {
 
 type AuthUser = User & { passwordHash: string }
 type SessionUser = User & { expiresAt: number }
+const SUPPORTED_ROLES: UserRole[] = ['MEMBER', 'LEADER', 'ADMIN', 'AUDITOR']
 
 let pool: pg.Pool | null = null
 
@@ -86,9 +87,9 @@ export async function getUserByEmail(email: string): Promise<AuthUser | null> {
             u.created_at::text AS "createdAt"
      FROM users u
      JOIN roles r ON r.id = u.role_id
-     WHERE LOWER(u.email) = LOWER($1) AND u.is_active = TRUE
+     WHERE LOWER(u.email) = LOWER($1) AND u.is_active = TRUE AND r.name = ANY($2::text[])
      LIMIT 1`,
-    [email.trim()]
+    [email.trim(), SUPPORTED_ROLES]
   )
   return result.rows[0] ? { ...result.rows[0], role: result.rows[0].role as UserRole } : null
 }
@@ -100,14 +101,17 @@ export async function getUserForPasswordChange(userId: string): Promise<AuthUser
             u.created_at::text AS "createdAt"
      FROM users u
      JOIN roles r ON r.id = u.role_id
-     WHERE u.id = $1 AND u.is_active = TRUE`,
-    [userId]
+     WHERE u.id = $1 AND u.is_active = TRUE AND r.name = ANY($2::text[])`,
+    [userId, SUPPORTED_ROLES]
   )
   return result.rows[0] ? { ...result.rows[0], role: result.rows[0].role as UserRole } : null
 }
 
 export async function getUserById(id: string): Promise<User | null> {
-  const result = await getPgPool().query(`${USER_SELECT} WHERE u.id = $1 AND u.is_active = TRUE`, [id])
+  const result = await getPgPool().query(
+    `${USER_SELECT} WHERE u.id = $1 AND u.is_active = TRUE AND r.name = ANY($2::text[])`,
+    [id, SUPPORTED_ROLES]
+  )
   return result.rows[0] ? toUser(result.rows[0]) : null
 }
 
@@ -131,9 +135,9 @@ export async function getAuthSession(tokenHash: string): Promise<SessionUser | n
      JOIN users u ON u.id = s.user_id
      JOIN roles r ON r.id = u.role_id
      WHERE s.token_hash = $1 AND s.revoked_at IS NULL
-       AND s.expires_at > NOW() AND u.is_active = TRUE
+       AND s.expires_at > NOW() AND u.is_active = TRUE AND r.name = ANY($2::text[])
      LIMIT 1`,
-    [tokenHash]
+    [tokenHash, SUPPORTED_ROLES]
   )
   if (!result.rows[0]) return null
 

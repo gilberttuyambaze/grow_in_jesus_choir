@@ -117,7 +117,7 @@ if (password.length < 12 || Buffer.byteLength(password, 'utf8') > 1024) {
   throw new Error('Password must contain at least 12 characters and be at most 1024 bytes.')
 }
 
-const connectionString = process.env.POSTGRES_DATABASE_URL || process.env.POSTGRES_DIRECT_URL || process.env.DATABASE_URL
+const connectionString = process.env.POSTGRES_DIRECT_URL || process.env.POSTGRES_DATABASE_URL || process.env.DATABASE_URL
 if (!connectionString || !/^postgres(?:ql)?:\/\//i.test(connectionString)) {
   throw new Error('Set POSTGRES_DATABASE_URL to a PostgreSQL connection URI.')
 }

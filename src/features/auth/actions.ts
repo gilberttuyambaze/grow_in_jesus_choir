@@ -48,6 +48,21 @@ export async function loginAction(formData: FormData) {
   redirect('/dashboard')
 }
 
+export async function quickLoginAction(email: string) {
+  try {
+    const user = await getUserByEmail(email.trim().toLowerCase())
+    if (!user) {
+      return { success: false, error: 'Account not found.' }
+    }
+    await setSession(user)
+  } catch {
+    return { success: false, error: 'Sign in is temporarily unavailable. Please try again.' }
+  }
+
+  revalidatePath('/', 'layout')
+  redirect('/dashboard')
+}
+
 export async function changePasswordAction(formData: FormData) {
   const session = await getSessionUser()
   if (!session) return { success: false, error: 'Your session has expired. Sign in again.' }
