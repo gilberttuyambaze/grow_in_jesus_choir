@@ -47,7 +47,9 @@ export function Sidebar({
       { label: 'Financial Records', href: '/finances', icon: WalletCards, badge: pendingCount > 0 ? pendingCount : undefined },
       { label: 'Choir Members', href: '/members', icon: Users },
       { label: 'Financial Reports', href: '/reports', icon: BarChart3 },
-      { label: 'Activity & Audit', href: '/activity', icon: FileText }
+      { label: 'Documents', href: '/documents', icon: FileText },
+      { label: 'Activity & Audit', href: '/activity', icon: BarChart3 },
+      { label: 'Settings', href: '/settings', icon: Settings }
     ]
   }, [userRole, pendingCount])
 

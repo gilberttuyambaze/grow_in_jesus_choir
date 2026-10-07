@@ -7,6 +7,7 @@ import { formatCurrency } from '@/lib/utils/currency'
 import { formatDate } from '@/lib/utils/date'
 import { Badge } from '@/components/ui/Badge'
 import { reviewRecordAction } from '@/features/finances/actions'
+import { RecordDetailModal } from './RecordDetailModal'
 
 interface FinancialRecordTableProps {
   records: FinancialRecord[]
@@ -19,6 +20,7 @@ export function FinancialRecordTable({
   userRole,
   onStatusChange
 }: FinancialRecordTableProps) {
+  const [selectedRecord, setSelectedRecord] = React.useState<FinancialRecord | null>(null)
   const [activeReviewId, setActiveReviewId] = React.useState<string | null>(null)
   const [isProcessing, setIsProcessing] = React.useState(false)
 
@@ -64,7 +66,11 @@ export function FinancialRecordTable({
               const isPending = record.status === 'needs_review'
 
               return (
-                <tr key={record.id} className="hover:bg-[#f8faf9] transition-colors">
+                <tr
+                  key={record.id}
+                  onClick={() => setSelectedRecord(record)}
+                  className="hover:bg-[#f8faf9] transition-colors cursor-pointer"
+                >
                   <td className="py-3.5 px-4 text-[#607168] whitespace-nowrap font-medium">
                     {formatDate(record.recordDate)}
                   </td>
@@ -224,6 +230,15 @@ export function FinancialRecordTable({
           )
         })}
       </div>
+
+      {/* Record Detail & Lifecycle Modal */}
+      <RecordDetailModal
+        record={selectedRecord}
+        isOpen={Boolean(selectedRecord)}
+        onClose={() => setSelectedRecord(null)}
+        userRole={userRole}
+        onStatusUpdated={onStatusChange}
+      />
     </div>
   )
 }

@@ -89,3 +89,18 @@ export interface NotificationItem {
   createdAt: string
 }
 
+export interface FinancialDocument {
+  id: string
+  filename: string
+  originalName: string
+  mimeType: string
+  sizeBytes: number
+  recordId?: string | null
+  recordDescription?: string | null
+  recordAmount?: number | null
+  uploadedById: string
+  uploadedByName: string
+  notes?: string | null
+  createdAt: string
+}
+

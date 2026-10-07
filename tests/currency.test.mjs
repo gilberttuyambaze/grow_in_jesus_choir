@@ -34,3 +34,4 @@ describe('Currency Formatting & Minor Unit Parsing (Section 15)', () => {
     assert.equal(parseCurrencyInput(''), 0)
   })
 })
+

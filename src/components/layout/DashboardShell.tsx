@@ -4,7 +4,8 @@ import * as React from 'react'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { AddRecordDialog } from '@/components/finance/AddRecordDialog'
-import { FinancialCategory, Member, UserRole } from '@/types'
+import { CommandSearchModal } from './CommandSearchModal'
+import { FinancialCategory, FinancialRecord, Member, NotificationItem, UserRole } from '@/types'
 
 interface DashboardShellProps {
   userRole: UserRole
@@ -13,6 +14,8 @@ interface DashboardShellProps {
   pendingCount: number
   categories: FinancialCategory[]
   members: Member[]
+  records: FinancialRecord[]
+  notifications: NotificationItem[]
   children: React.ReactNode
 }
 
@@ -23,9 +26,12 @@ export function DashboardShell({
   pendingCount,
   categories,
   members,
+  records,
+  notifications,
   children
 }: DashboardShellProps) {
   const [isAddRecordOpen, setIsAddRecordOpen] = React.useState(false)
+  const [isSearchOpen, setIsSearchOpen] = React.useState(false)
   const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false)
 
   return (
@@ -65,7 +71,9 @@ export function DashboardShell({
         <Topbar
           pageTitle="Financial Workspace"
           userRole={userRole}
+          notifications={notifications}
           onOpenAddRecord={() => setIsAddRecordOpen(true)}
+          onOpenSearch={() => setIsSearchOpen(true)}
           onToggleMobileNav={() => setIsMobileNavOpen((prev) => !prev)}
         />
 
@@ -82,7 +90,15 @@ export function DashboardShell({
         members={members}
         userRole={userRole}
       />
+
+      {/* Global Command Search Modal */}
+      <CommandSearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        records={records}
+        members={members}
+        onOpenAddRecord={() => setIsAddRecordOpen(true)}
+      />
     </div>
   )
 }
-

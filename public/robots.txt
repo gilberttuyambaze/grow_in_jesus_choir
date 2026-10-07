@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Allow: /login
+Disallow: /dashboard/
+Disallow: /finances/
+Disallow: /members/
+Disallow: /reports/
+Disallow: /activity/
+Disallow: /documents/
+Disallow: /settings/
+Disallow: /api/
+
+Sitemap: http://localhost:3000/sitemap.xml
+

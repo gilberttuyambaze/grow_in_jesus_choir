@@ -212,3 +212,4 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
     </div>
   )
 }
+

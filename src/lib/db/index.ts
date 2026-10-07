@@ -13,7 +13,8 @@ import {
   Member,
   User,
   AuditLogEntry,
-  NotificationItem
+  NotificationItem,
+  FinancialDocument
 } from '@/types'
 
 let dbInstance: DatabaseSync | null = null
@@ -426,4 +427,119 @@ export function getNotifications(userId: string): NotificationItem[] {
     createdAt: r.createdAt
   }))
 }
+
+export function markNotificationAsRead(id: string): void {
+  const db = getDatabase()
+  db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(id)
+}
+
+// -------------------------------------------------------------
+// DOCUMENTS & RECEIPTS QUERIES
+// -------------------------------------------------------------
+
+export function getDocuments(): FinancialDocument[] {
+  const db = getDatabase()
+  const stmt = db.prepare(`
+    SELECT 
+      d.id,
+      d.filename,
+      d.original_name as originalName,
+      d.mime_type as mimeType,
+      d.size_bytes as sizeBytes,
+      d.record_id as recordId,
+      r.description as recordDescription,
+      r.amount as recordAmount,
+      d.uploaded_by_id as uploadedById,
+      u.full_name as uploadedByName,
+      d.notes,
+      d.created_at as createdAt
+    FROM documents d
+    JOIN users u ON d.uploaded_by_id = u.id
+    LEFT JOIN financial_records r ON d.record_id = r.id
+    ORDER BY d.created_at DESC
+  `)
+  const rows = stmt.all() as any[]
+  return rows.map((r) => ({
+    id: r.id,
+    filename: r.filename,
+    originalName: r.originalName,
+    mimeType: r.mimeType,
+    sizeBytes: Number(r.sizeBytes),
+    recordId: r.recordId,
+    recordDescription: r.recordDescription,
+    recordAmount: r.recordAmount ? Number(r.recordAmount) : null,
+    uploadedById: r.uploadedById,
+    uploadedByName: r.uploadedByName,
+    notes: r.notes,
+    createdAt: r.createdAt
+  }))
+}
+
+export function getDocumentById(id: string): FinancialDocument | null {
+  const db = getDatabase()
+  const stmt = db.prepare(`
+    SELECT 
+      d.id,
+      d.filename,
+      d.original_name as originalName,
+      d.mime_type as mimeType,
+      d.size_bytes as sizeBytes,
+      d.record_id as recordId,
+      r.description as recordDescription,
+      r.amount as recordAmount,
+      d.uploaded_by_id as uploadedById,
+      u.full_name as uploadedByName,
+      d.notes,
+      d.created_at as createdAt
+    FROM documents d
+    JOIN users u ON d.uploaded_by_id = u.id
+    LEFT JOIN financial_records r ON d.record_id = r.id
+    WHERE d.id = ?
+  `)
+  const row = stmt.get(id) as any
+  if (!row) return null
+  return {
+    id: row.id,
+    filename: row.filename,
+    originalName: row.originalName,
+    mimeType: row.mimeType,
+    sizeBytes: Number(row.sizeBytes),
+    recordId: row.recordId,
+    recordDescription: row.recordDescription,
+    recordAmount: row.recordAmount ? Number(row.recordAmount) : null,
+    uploadedById: row.uploadedById,
+    uploadedByName: row.uploadedByName,
+    notes: row.notes,
+    createdAt: row.createdAt
+  }
+}
+
+export function createDocument(data: {
+  filename: string
+  originalName: string
+  mimeType: string
+  sizeBytes: number
+  recordId?: string | null
+  uploadedById: string
+  notes?: string | null
+}): FinancialDocument {
+  const db = getDatabase()
+  const id = `doc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`
+  const stmt = db.prepare(`
+    INSERT INTO documents (id, filename, original_name, mime_type, size_bytes, record_id, uploaded_by_id, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  stmt.run(
+    id,
+    data.filename,
+    data.originalName,
+    data.mimeType,
+    data.sizeBytes,
+    data.recordId || null,
+    data.uploadedById,
+    data.notes || null
+  )
+  return getDocumentById(id)!
+}
+
 

@@ -51,3 +51,4 @@ describe('Centralized Role-Based Access Control (RBAC) (Section 39)', () => {
     assert.equal(canViewMemberRecord('LEADER', 'user_sarah', 'user_grace'), true)
   })
 })
+

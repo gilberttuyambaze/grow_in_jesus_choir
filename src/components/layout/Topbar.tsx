@@ -1,26 +1,38 @@
 'use client'
 
 import * as React from 'react'
-import { Search, Bell, Plus, Menu } from 'lucide-react'
-import { UserRole } from '@/types'
+import { Search, Plus, Menu } from 'lucide-react'
+import { UserRole, NotificationItem } from '@/types'
+import { NotificationCenter } from './NotificationCenter'
 
 interface TopbarProps {
   pageTitle: string
   userRole: UserRole
+  notifications: NotificationItem[]
   onOpenAddRecord: () => void
+  onOpenSearch: () => void
   onToggleMobileNav?: () => void
-  searchQuery?: string
-  onSearchChange?: (val: string) => void
 }
 
 export function Topbar({
   pageTitle,
   userRole,
+  notifications,
   onOpenAddRecord,
-  onToggleMobileNav,
-  searchQuery,
-  onSearchChange
+  onOpenSearch,
+  onToggleMobileNav
 }: TopbarProps) {
+  React.useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        onOpenSearch()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onOpenSearch])
+
   return (
     <header className="h-16 px-4 sm:px-8 border-b border-[#e2e8e4] bg-[#f8faf8]/90 backdrop-blur-sm sticky top-0 z-30 flex items-center justify-between gap-4">
       <div className="flex items-center gap-3">
@@ -40,20 +52,21 @@ export function Topbar({
         </div>
       </div>
 
-      <div className="flex items-center gap-3 sm:gap-4">
-        {/* Search input (if enabled) */}
-        {onSearchChange !== undefined && (
-          <div className="relative hidden sm:block w-48 lg:w-64">
-            <Search className="w-4 h-4 text-[#8a9990] absolute left-3 top-2.5" />
-            <input
-              type="text"
-              placeholder="Search records..."
-              value={searchQuery || ''}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[#dbe4dd] bg-white text-xs text-[#203a30] placeholder-[#95a49c] focus:outline-none focus:ring-2 focus:ring-[#4c7562]"
-            />
-          </div>
-        )}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Quick Search Button (⌘K) */}
+        <button
+          onClick={onOpenSearch}
+          className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#dbe4dd] bg-white text-xs text-[#71857a] hover:border-[#86a895] transition-all"
+        >
+          <Search className="w-3.5 h-3.5 text-[#889b90]" />
+          <span>Quick search...</span>
+          <kbd className="ml-3 px-1.5 py-0.5 rounded-md bg-[#edf2ee] border border-[#dce4de] text-[10px] font-mono text-[#6c7f75]">
+            ⌘K
+          </kbd>
+        </button>
+
+        {/* Notification Center Popover */}
+        <NotificationCenter notifications={notifications} />
 
         {/* Global Add Record Action Button */}
         <button
@@ -67,4 +80,3 @@ export function Topbar({
     </header>
   )
 }
-

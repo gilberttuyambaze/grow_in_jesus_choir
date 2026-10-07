@@ -171,3 +171,4 @@ export function FinancesView({ records, categories, userRole }: FinancesViewProp
     </div>
   )
 }
+

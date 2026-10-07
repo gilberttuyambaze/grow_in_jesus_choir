@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getSessionUser } from '@/lib/auth/session'
-import { getFinancialCategories, getMembers, getFinancialSummary } from '@/lib/db'
+import { getFinancialCategories, getMembers, getFinancialSummary, getFinancialRecords, getNotifications } from '@/lib/db'
 import { DashboardShell } from '@/components/layout/DashboardShell'
 
 export default async function DashboardLayout({
@@ -16,6 +16,8 @@ export default async function DashboardLayout({
   const categories = getFinancialCategories()
   const members = getMembers()
   const summary = getFinancialSummary()
+  const records = getFinancialRecords({ limit: 100 })
+  const notifications = getNotifications(session.userId)
 
   return (
     <DashboardShell
@@ -25,6 +27,8 @@ export default async function DashboardLayout({
       pendingCount={summary.pendingCount}
       categories={categories}
       members={members}
+      records={records}
+      notifications={notifications}
     >
       {children}
     </DashboardShell>
