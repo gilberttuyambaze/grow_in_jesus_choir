@@ -3,7 +3,13 @@
 import { revalidatePath } from 'next/cache'
 import { getSessionUser } from '@/lib/auth/session'
 import { canManageMembers } from '@/lib/permissions'
-import { getDatabase, createAuditLog, createNotification } from '@/lib/db'
+import {
+  getMembersByIds,
+  getPendingContributionMembers,
+  updateMemberProfile,
+  createAuditLog,
+  createNotification
+} from '@/lib/db'
 
 export async function sendRemindersAction(memberIds?: string[]) {
   const session = await getSessionUser()
@@ -11,28 +17,13 @@ export async function sendRemindersAction(memberIds?: string[]) {
     return { success: false, error: 'Unauthorized: Only leaders may send contribution reminders.' }
   }
 
-  const db = getDatabase()
-
   try {
     let targetMembers: { id: string; fullName: string; userId: string | null }[] = []
 
     if (memberIds && memberIds.length > 0) {
-      const placeholders = memberIds.map(() => '?').join(',')
-      const stmt = db.prepare(`SELECT id, full_name as fullName, user_id as userId FROM members WHERE id IN (${placeholders})`)
-      targetMembers = stmt.all(...memberIds) as any[]
+      targetMembers = await getMembersByIds(memberIds)
     } else {
-      // Find all members who have not recorded an October 2026 contribution
-      const stmt = db.prepare(`
-        SELECT m.id, m.full_name as fullName, m.user_id as userId
-        FROM members m
-        WHERE m.id NOT IN (
-          SELECT DISTINCT member_id FROM financial_records 
-          WHERE member_id IS NOT NULL 
-          AND record_date >= '2026-10-01' 
-          AND status IN ('recorded', 'needs_review')
-        )
-      `)
-      targetMembers = stmt.all() as any[]
+      targetMembers = await getPendingContributionMembers()
     }
 
     if (targetMembers.length === 0) {
@@ -42,7 +33,7 @@ export async function sendRemindersAction(memberIds?: string[]) {
     // Queue notification records
     for (const member of targetMembers) {
       if (member.userId) {
-        createNotification({
+        await createNotification({
           userId: member.userId,
           title: 'Monthly Contribution Reminder',
           message: 'Gentle reminder: Please submit your October 2026 choir contribution (50,000 RWF).',
@@ -52,7 +43,7 @@ export async function sendRemindersAction(memberIds?: string[]) {
       }
     }
 
-    createAuditLog({
+    await createAuditLog({
       actorId: session.userId,
       actorName: session.fullName,
       action: 'MEMBER_REMINDERS_DISPATCHED',
@@ -75,6 +66,37 @@ export async function sendRemindersAction(memberIds?: string[]) {
     }
   } catch (error: any) {
     return { success: false, error: error.message || 'Failed to dispatch reminders.' }
+  }
+}
+
+export async function updateMemberProfileAction(formData: FormData) {
+  const session = await getSessionUser()
+  if (!session) {
+    return { success: false, error: 'Unauthorized: Session expired.' }
+  }
+
+  const phone = (formData.get('phone') as string)?.trim()
+  const fullName = (formData.get('fullName') as string)?.trim()
+
+  try {
+    await updateMemberProfile(session.userId, { fullName, phone })
+
+    await createAuditLog({
+      actorId: session.userId,
+      actorName: fullName || session.fullName,
+      action: 'PROFILE_UPDATED',
+      targetType: 'users',
+      targetId: session.userId,
+      details: { phone, fullName }
+    })
+
+    revalidatePath('/settings')
+    revalidatePath('/dashboard')
+    revalidatePath('/members')
+
+    return { success: true, message: 'Profile updated successfully.' }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to update profile.' }
   }
 }
 

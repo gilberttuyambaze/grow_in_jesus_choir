@@ -82,21 +82,21 @@ export function FinancesView({ records, categories, userRole }: FinancesViewProp
         </div>
 
         {/* Quick totals pill */}
-        <div className="flex items-center gap-2 text-xs">
-          <div className="px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 font-bold">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <div className="px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 font-bold shrink-0">
             +{formatCurrency(totalReceived)}
           </div>
-          <div className="px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-200/80 text-amber-800 font-bold">
+          <div className="px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-200/80 text-amber-800 font-bold shrink-0">
             -{formatCurrency(totalSpent)}
           </div>
         </div>
       </div>
 
       {/* Filter Tabs & Search Bar */}
-      <div className="card-surface p-5 bg-white space-y-4">
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+      <div className="card-surface p-3.5 sm:p-5 bg-white space-y-4 min-w-0">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3.5 pb-2 border-b border-slate-100">
           {/* Tabs */}
-          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100/80 text-xs font-medium overflow-x-auto">
+          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100/80 text-xs font-medium overflow-x-auto max-w-full">
             <button
               onClick={() => setActiveTab('all')}
               className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap ${
@@ -135,13 +135,13 @@ export function FinancesView({ records, categories, userRole }: FinancesViewProp
                   : 'text-slate-500 hover:text-slate-900'
               }`}
             >
-              <Clock className="w-3.5 h-3.5 text-rose-500" />
+              <Clock className="w-3.5 h-3.5 text-rose-500 shrink-0" />
               <span>Needs Review ({pendingCount})</span>
             </button>
           </div>
 
-          {/* Search & Category Filter */}
-          <div className="flex items-center gap-3">
+          {/* Search & Category Filter (Responsive flex-col on mobile, flex-row on sm+) */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto">
             <div className="relative flex-1 sm:w-64">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-3" />
               <input
@@ -156,7 +156,7 @@ export function FinancesView({ records, categories, userRole }: FinancesViewProp
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="py-2 px-3.5 rounded-full border border-slate-200 bg-slate-50/60 text-xs text-slate-700 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="py-2 px-3.5 rounded-full border border-slate-200 bg-slate-50/60 text-xs text-slate-700 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 truncate"
             >
               <option value="all">All Categories</option>
               {categories.map((c) => (

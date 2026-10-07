@@ -22,7 +22,11 @@ export default async function ActivityPage() {
     redirect('/login')
   }
 
-  const auditLogs = getAuditLogs(50)
+  if (session.role === 'MEMBER') {
+    redirect('/dashboard')
+  }
+
+  const auditLogs = await getAuditLogs(50)
 
   return (
     <div className="space-y-6 max-w-4xl">

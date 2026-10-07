@@ -169,46 +169,47 @@ export function FinancialRecordTable({
           return (
             <div
               key={record.id}
-              className="p-4 rounded-2xl border border-[#e2e9e4] bg-white shadow-sm flex flex-col gap-3"
+              onClick={() => setSelectedRecord(record)}
+              className="p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 bg-white shadow-xs hover:border-indigo-300 flex flex-col gap-3 cursor-pointer active:scale-[0.99] transition-all min-w-0"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2.5">
+              <div className="flex items-start justify-between gap-2.5 min-w-0">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <span
-                    className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
-                      isReceived ? 'bg-[#e4efe6] text-[#3e7d50]' : 'bg-[#fbf0de] text-[#a57338]'
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                      isReceived ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'
                     }`}
                   >
                     {isReceived ? (
-                      <ArrowDownLeft className="w-4 h-4" />
+                      <ArrowDownLeft className="w-4 h-4 stroke-[2.5]" />
                     ) : (
-                      <ArrowUpRight className="w-4 h-4" />
+                      <ArrowUpRight className="w-4 h-4 stroke-[2.5]" />
                     )}
                   </span>
-                  <div>
-                    <h5 className="font-semibold text-sm text-[#213b31] leading-tight">
+                  <div className="min-w-0 flex-1">
+                    <h5 className="font-bold text-xs sm:text-sm text-slate-900 leading-tight truncate">
                       {record.description}
                     </h5>
-                    <span className="text-[11px] text-[#718079]">
+                    <span className="text-[11px] text-slate-500 truncate block mt-0.5">
                       {formatDate(record.recordDate)} • {record.categoryName}
                     </span>
                   </div>
                 </div>
 
                 <div
-                  className={`text-sm font-semibold whitespace-nowrap ${
-                    isReceived ? 'text-[#367949]' : 'text-[#af644d]'
+                  className={`text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 text-right ${
+                    isReceived ? 'text-indigo-700' : 'text-slate-900'
                   }`}
                 >
                   {isReceived ? '+' : '-'} {formatCurrency(record.amount)}
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-[#f0f4f1] text-xs">
-                <span className="text-[11px] text-[#607168]">
-                  By: {record.memberName || record.recordedByName}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                <span className="text-[11px] text-slate-500 truncate max-w-[150px]">
+                  {record.memberName || record.recordedByName}
                 </span>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   {record.status === 'recorded' && (
                     <Badge variant="recorded">Recorded</Badge>
                   )}
@@ -225,18 +226,24 @@ export function FinancialRecordTable({
               </div>
 
               {userRole === 'LEADER' && isPending && (
-                <div className="flex items-center gap-2 pt-2 border-t border-[#f0f4f1]">
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
                   <button
-                    onClick={() => handleReview(record.id, 'approve')}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleReview(record.id, 'approve')
+                    }}
                     disabled={isProcessing}
-                    className="flex-1 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold text-center transition-colors"
+                    className="flex-1 min-h-[44px] rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-semibold flex items-center justify-center transition-all shadow-xs"
                   >
                     Approve
                   </button>
                   <button
-                    onClick={() => handleReview(record.id, 'reject')}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleReview(record.id, 'reject')
+                    }}
                     disabled={isProcessing}
-                    className="flex-1 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold text-center transition-colors"
+                    className="flex-1 min-h-[44px] rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center justify-center transition-colors"
                   >
                     Reject
                   </button>

@@ -69,33 +69,33 @@ export function CommandSearchModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-[#19352b]/40 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-12 sm:pt-20 px-3 sm:px-4 pb-6 bg-slate-900/50 backdrop-blur-xs"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-[#dce6df] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Search Input Bar */}
-        <div className="p-3.5 border-b border-[#e5ebe6] flex items-center gap-3">
-          <Search className="w-4 h-4 text-[#798e83] shrink-0" />
+        <div className="p-4 border-b border-slate-100 flex items-center gap-3">
+          <Search className="w-4 h-4 text-slate-400 shrink-0" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search records, members, sections, or navigate..."
-            className="w-full text-xs text-[#203a30] placeholder-[#8a9e93] focus:outline-none bg-transparent"
+            className="w-full text-xs text-slate-900 placeholder-slate-400 focus:outline-none bg-transparent"
           />
-          <kbd className="hidden sm:inline-block px-1.5 py-0.5 rounded-md bg-[#edf2ee] border border-[#dce4de] text-[10px] font-mono text-[#6c7f75]">
+          <kbd className="hidden sm:inline-block px-1.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-[10px] font-mono text-slate-500">
             ESC
           </kbd>
         </div>
 
         {/* Results List */}
-        <div className="max-h-96 overflow-y-auto p-2 divide-y divide-[#f2f6f3] text-xs">
+        <div className="max-h-96 overflow-y-auto p-2 divide-y divide-slate-100 text-xs">
           {/* Quick Actions */}
           <div className="p-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#91a399] px-2 block mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 block mb-1">
               Quick Actions
             </span>
             <button
@@ -103,37 +103,37 @@ export function CommandSearchModal({
                 onClose()
                 onOpenAddRecord()
               }}
-              className="w-full p-2 rounded-xl text-left hover:bg-[#eaf3ec] flex items-center justify-between text-[#244f3e] transition-colors"
+              className="w-full p-2.5 rounded-2xl text-left hover:bg-indigo-50/60 flex items-center justify-between text-indigo-700 transition-colors"
             >
               <div className="flex items-center gap-2.5">
-                <span className="w-6 h-6 rounded-lg bg-[#d5e8dc] text-[#244f3e] flex items-center justify-center">
-                  <Plus className="w-3.5 h-3.5" />
+                <span className="w-7 h-7 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                  <Plus className="w-4 h-4 stroke-[2.5]" />
                 </span>
-                <span className="font-medium">+ Add New Financial Record</span>
+                <span className="font-semibold text-xs">+ Add New Financial Record</span>
               </div>
-              <ArrowRight className="w-3.5 h-3.5 text-[#8fa096]" />
+              <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
             </button>
           </div>
 
           {/* Records Section */}
           {filteredRecords.length > 0 && (
             <div className="p-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#91a399] px-2 block mb-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 block mb-1">
                 Financial Records
               </span>
               {filteredRecords.map((r) => (
                 <div
                   key={r.id}
                   onClick={() => handleSelectNav('/finances')}
-                  className="p-2 rounded-xl hover:bg-[#f4f7f5] flex items-center justify-between cursor-pointer transition-colors"
+                  className="p-2.5 rounded-2xl hover:bg-slate-50 flex items-center justify-between cursor-pointer transition-colors"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <WalletCards className="w-4 h-4 text-[#4e7463] shrink-0" />
-                    <span className="truncate font-medium text-[#203a30]">
+                    <WalletCards className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <span className="truncate font-semibold text-slate-900">
                       {r.description}
                     </span>
                   </div>
-                  <span className="font-semibold text-[#295c46] shrink-0 ml-2">
+                  <span className="font-bold text-slate-900 shrink-0 ml-2">
                     {formatCurrency(r.amount)}
                   </span>
                 </div>
@@ -144,20 +144,20 @@ export function CommandSearchModal({
           {/* Members Section */}
           {filteredMembers.length > 0 && (
             <div className="p-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#91a399] px-2 block mb-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 block mb-1">
                 Choir Members
               </span>
               {filteredMembers.map((m) => (
                 <div
                   key={m.id}
                   onClick={() => handleSelectNav('/members')}
-                  className="p-2 rounded-xl hover:bg-[#f4f7f5] flex items-center justify-between cursor-pointer transition-colors"
+                  className="p-2.5 rounded-2xl hover:bg-slate-50 flex items-center justify-between cursor-pointer transition-colors"
                 >
                   <div className="flex items-center gap-2.5">
-                    <Users className="w-4 h-4 text-[#4e7463]" />
-                    <span className="font-medium text-[#203a30]">{m.fullName}</span>
+                    <Users className="w-4 h-4 text-purple-600" />
+                    <span className="font-semibold text-slate-900">{m.fullName}</span>
                   </div>
-                  <span className="text-[11px] text-[#71857a] px-2 py-0.5 rounded-md bg-[#edf2ee]">
+                  <span className="text-[10px] text-slate-600 font-bold px-2 py-0.5 rounded-full bg-slate-100">
                     {m.voicePart}
                   </span>
                 </div>
@@ -167,50 +167,50 @@ export function CommandSearchModal({
 
           {/* Navigation Links */}
           <div className="p-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#91a399] px-2 block mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 block mb-1">
               Workspace Pages
             </span>
-            <div className="grid grid-cols-2 gap-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
               <button
                 onClick={() => handleSelectNav('/dashboard')}
-                className="p-2 rounded-lg text-left hover:bg-[#f0f5f1] text-[#335345] flex items-center gap-2"
+                className="p-2.5 rounded-xl text-left hover:bg-slate-50 text-slate-700 flex items-center gap-2 transition-colors font-medium"
               >
-                <Sparkles className="w-3.5 h-3.5 text-[#6c8f7d]" />
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
                 <span>Dashboard Overview</span>
               </button>
               <button
                 onClick={() => handleSelectNav('/finances')}
-                className="p-2 rounded-lg text-left hover:bg-[#f0f5f1] text-[#335345] flex items-center gap-2"
+                className="p-2.5 rounded-xl text-left hover:bg-slate-50 text-slate-700 flex items-center gap-2 transition-colors font-medium"
               >
-                <WalletCards className="w-3.5 h-3.5 text-[#6c8f7d]" />
+                <WalletCards className="w-3.5 h-3.5 text-indigo-600" />
                 <span>Financial Ledger</span>
               </button>
               <button
                 onClick={() => handleSelectNav('/members')}
-                className="p-2 rounded-lg text-left hover:bg-[#f0f5f1] text-[#335345] flex items-center gap-2"
+                className="p-2.5 rounded-xl text-left hover:bg-slate-50 text-slate-700 flex items-center gap-2 transition-colors font-medium"
               >
-                <Users className="w-3.5 h-3.5 text-[#6c8f7d]" />
+                <Users className="w-3.5 h-3.5 text-indigo-600" />
                 <span>50 Choir Members</span>
               </button>
               <button
                 onClick={() => handleSelectNav('/reports')}
-                className="p-2 rounded-lg text-left hover:bg-[#f0f5f1] text-[#335345] flex items-center gap-2"
+                className="p-2.5 rounded-xl text-left hover:bg-slate-50 text-slate-700 flex items-center gap-2 transition-colors font-medium"
               >
-                <BarChart3 className="w-3.5 h-3.5 text-[#6c8f7d]" />
+                <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
                 <span>Reports & Exports</span>
               </button>
               <button
                 onClick={() => handleSelectNav('/documents')}
-                className="p-2 rounded-lg text-left hover:bg-[#f0f5f1] text-[#335345] flex items-center gap-2"
+                className="p-2.5 rounded-xl text-left hover:bg-slate-50 text-slate-700 flex items-center gap-2 transition-colors font-medium"
               >
-                <FileText className="w-3.5 h-3.5 text-[#6c8f7d]" />
+                <FileText className="w-3.5 h-3.5 text-indigo-600" />
                 <span>Receipts & Documents</span>
               </button>
               <button
                 onClick={() => handleSelectNav('/settings')}
-                className="p-2 rounded-lg text-left hover:bg-[#f0f5f1] text-[#335345] flex items-center gap-2"
+                className="p-2.5 rounded-xl text-left hover:bg-slate-50 text-slate-700 flex items-center gap-2 transition-colors font-medium"
               >
-                <Settings className="w-3.5 h-3.5 text-[#6c8f7d]" />
+                <Settings className="w-3.5 h-3.5 text-indigo-600" />
                 <span>Workspace Settings</span>
               </button>
             </div>

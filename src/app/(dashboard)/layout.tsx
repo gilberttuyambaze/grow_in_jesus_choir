@@ -13,11 +13,13 @@ export default async function DashboardLayout({
     redirect('/login')
   }
 
-  const categories = getFinancialCategories()
-  const members = getMembers()
-  const summary = getFinancialSummary()
-  const records = getFinancialRecords({ limit: 100 })
-  const notifications = getNotifications(session.userId)
+  const [categories, members, summary, records, notifications] = await Promise.all([
+    getFinancialCategories(),
+    getMembers(),
+    getFinancialSummary(),
+    getFinancialRecords({ limit: 100 }),
+    getNotifications(session.userId)
+  ])
 
   return (
     <DashboardShell

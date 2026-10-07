@@ -11,7 +11,8 @@ import {
   Layers
 } from 'lucide-react'
 import { getSessionUser } from '@/lib/auth/session'
-import { getFinancialCategories } from '@/lib/db'
+import { getFinancialCategories, getMemberByUserId } from '@/lib/db'
+import { ProfileEditCard } from '@/components/settings/ProfileEditCard'
 
 export default async function SettingsPage() {
   const session = await getSessionUser()
@@ -19,8 +20,11 @@ export default async function SettingsPage() {
     redirect('/login')
   }
 
-  const incomeCategories = getFinancialCategories('income')
-  const expenseCategories = getFinancialCategories('expense')
+  const [member, incomeCategories, expenseCategories] = await Promise.all([
+    getMemberByUserId(session.userId),
+    getFinancialCategories('income'),
+    getFinancialCategories('expense')
+  ])
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -76,48 +80,14 @@ export default async function SettingsPage() {
           </div>
         </div>
 
-        {/* User Account Profile Card matching Reference */}
-        <div className="card-surface p-6 bg-white space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold shadow-xs">
-              <UserCheck className="w-5 h-5 stroke-[2.5]" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 tracking-tight">
-                Your Account Profile
-              </h3>
-              <p className="text-[11px] text-slate-400">Current session & access permissions</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 text-xs pt-2">
-            <div>
-              <span className="text-slate-400 block text-[11px] font-medium">Full Name</span>
-              <strong className="text-slate-900 text-xs font-bold block mt-0.5">
-                {session.fullName}
-              </strong>
-            </div>
-            <div>
-              <span className="text-slate-400 block text-[11px] font-medium">Email Address</span>
-              <strong className="text-slate-900 text-xs font-bold block mt-0.5 truncate">
-                {session.email}
-              </strong>
-            </div>
-            <div>
-              <span className="text-slate-400 block text-[11px] font-medium">Assigned Role</span>
-              <span className="inline-block mt-0.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 font-bold text-[11px]">
-                {session.role}
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-400 block text-[11px] font-medium">Session Security</span>
-              <span className="text-emerald-700 font-bold block mt-0.5 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                HMAC Signed (7 days)
-              </span>
-            </div>
-          </div>
-        </div>
+        {/* User Account Profile Card with Live Edit Capability */}
+        <ProfileEditCard
+          initialFullName={session.fullName}
+          initialPhone={member?.phone}
+          email={session.email}
+          role={session.role}
+          voicePart={member?.voicePart}
+        />
       </div>
 
       {/* Financial Categories Management Overview (Section 16 & 127) */}

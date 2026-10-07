@@ -35,7 +35,7 @@ export function NotificationCenter({ notifications: initialNotifications }: Noti
       {/* Bell Trigger */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="relative p-2 rounded-xl text-[#607469] hover:bg-[#eaf1ec] hover:text-[#1e382d] transition-colors"
+        className="relative p-2 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
         aria-label="Open notifications"
       >
         <Bell className="w-4 h-4" />
@@ -52,12 +52,12 @@ export function NotificationCenter({ notifications: initialNotifications }: Noti
             onClick={() => setIsOpen(false)}
             aria-hidden="true"
           />
-          <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-[#dce6df] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="p-4 border-b border-[#edf2ee] flex items-center justify-between">
+          <div className="fixed sm:absolute top-16 sm:top-full right-3 sm:right-0 sm:mt-2 w-[calc(100vw-1.5rem)] max-w-sm sm:w-96 bg-white rounded-3xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <h4 className="text-xs font-semibold text-[#1e382d]">Notifications</h4>
+                <h4 className="text-xs font-bold text-slate-900">Notifications</h4>
                 {unreadCount > 0 && (
-                  <span className="px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 text-[10px] font-bold">
+                  <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 text-[10px] font-bold">
                     {unreadCount} unread
                   </span>
                 )}
@@ -66,16 +66,16 @@ export function NotificationCenter({ notifications: initialNotifications }: Noti
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAll}
-                  className="text-[11px] text-[#3c6b54] hover:text-[#1e382d] font-semibold"
+                  className="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold transition-colors"
                 >
                   Mark all as read
                 </button>
               )}
             </div>
 
-            <div className="max-h-80 overflow-y-auto divide-y divide-[#f2f6f3] text-xs">
+            <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 text-xs">
               {notifications.length === 0 ? (
-                <div className="py-8 text-center text-xs text-[#7d9086]">
+                <div className="py-8 text-center text-xs text-slate-400">
                   No notifications at this time.
                 </div>
               ) : (
@@ -89,7 +89,7 @@ export function NotificationCenter({ notifications: initialNotifications }: Noti
                       key={item.id}
                       onClick={() => !item.isRead && handleMarkAsRead(item.id)}
                       className={`p-3.5 flex items-start gap-3 transition-colors cursor-pointer ${
-                        item.isRead ? 'bg-white hover:bg-[#fafbfa]' : 'bg-[#f4f9f5] hover:bg-[#ebf4ee]'
+                        item.isRead ? 'bg-white hover:bg-slate-50' : 'bg-indigo-50/40 hover:bg-indigo-50/70'
                       }`}
                     >
                       <span
@@ -100,7 +100,7 @@ export function NotificationCenter({ notifications: initialNotifications }: Noti
                             ? 'bg-amber-100 text-amber-800'
                             : isAlert
                             ? 'bg-rose-100 text-rose-700'
-                            : 'bg-[#e4efe6] text-[#2c5b48]'
+                            : 'bg-indigo-100 text-indigo-700'
                         }`}
                       >
                         {isSuccess && <CheckCircle2 className="w-3.5 h-3.5" />}
@@ -111,17 +111,17 @@ export function NotificationCenter({ notifications: initialNotifications }: Noti
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline justify-between gap-1 mb-0.5">
-                          <h5 className="font-semibold text-xs text-[#203a30] truncate">
+                          <h5 className="font-semibold text-xs text-slate-900 truncate">
                             {item.title}
                           </h5>
                           {!item.isRead && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 shrink-0" />
                           )}
                         </div>
-                        <p className="text-[11px] text-[#63776d] leading-relaxed">
+                        <p className="text-[11px] text-slate-500 leading-relaxed">
                           {item.message}
                         </p>
-                        <span className="text-[10px] text-[#8e9f95] block mt-1">
+                        <span className="text-[10px] text-slate-400 block mt-1">
                           {formatDateTime(item.createdAt)}
                         </span>
                       </div>

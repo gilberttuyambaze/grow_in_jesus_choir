@@ -22,7 +22,7 @@ export function TopCategoriesCard() {
   }
 
   return (
-    <div className="card-surface p-6 bg-white flex flex-col justify-between h-full">
+    <div className="card-surface p-4 sm:p-6 bg-white flex flex-col justify-between h-full min-w-0">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-bold text-slate-900 tracking-tight">
@@ -39,7 +39,7 @@ export function TopCategoriesCard() {
       {/* Table Headers */}
       <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 pb-2 border-b border-slate-100">
         <span>Category</span>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 sm:gap-6">
           <span>Success</span>
           <span>Amount</span>
         </div>
@@ -51,7 +51,7 @@ export function TopCategoriesCard() {
           const Icon = c.icon
           return (
             <div key={i} className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${colorStyles[c.color as keyof typeof colorStyles]}`}>
                   <Icon className="w-3.5 h-3.5" />
                 </div>
@@ -60,11 +60,11 @@ export function TopCategoriesCard() {
                 </span>
               </div>
 
-              <div className="flex items-center gap-6 shrink-0">
+              <div className="flex items-center gap-3 sm:gap-6 shrink-0">
                 <span className="font-medium text-slate-600 text-right w-10">
                   {c.rate}
                 </span>
-                <span className="font-bold text-slate-900 text-right w-18">
+                <span className="font-bold text-slate-900 text-right min-w-[4.5rem]">
                   {c.amount}
                 </span>
               </div>

@@ -3,9 +3,10 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { getSessionUser } from '@/lib/auth/session'
 import { createDocument, createAuditLog } from '@/lib/db'
+import { uploadToStorage } from '@/lib/storage'
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
-const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024
 
 export async function POST(request: Request) {
   const session = await getSessionUser()
@@ -32,25 +33,24 @@ export async function POST(request: Request) {
 
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: 'File exceeds the maximum permitted size of 5 MB.' },
+        { error: 'File exceeds the maximum permitted size of 50 MB.' },
         { status: 400 }
       )
     }
 
-    const uploadDir = path.resolve(process.cwd(), 'data/uploads')
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true })
-    }
-
     const ext = path.extname(file.name) || (file.type === 'application/pdf' ? '.pdf' : '.jpg')
     const sanitizedFilename = `doc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}${ext}`
-    const targetFilePath = path.join(uploadDir, sanitizedFilename)
 
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
-    fs.writeFileSync(targetFilePath, buffer)
+    
+    // Upload to Supabase Storage (grow-in-jesus-choir bucket)
+    const uploadResult = await uploadToStorage(sanitizedFilename, buffer, file.type)
+    if (!uploadResult.success) {
+      return NextResponse.json({ error: uploadResult.error || 'Failed to upload document to storage' }, { status: 500 })
+    }
 
-    const doc = createDocument({
+    const doc = await createDocument({
       filename: sanitizedFilename,
       originalName: file.name,
       mimeType: file.type,
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       notes
     })
 
-    createAuditLog({
+    await createAuditLog({
       actorId: session.userId,
       actorName: session.fullName,
       action: 'DOCUMENT_UPLOADED',
@@ -69,7 +69,8 @@ export async function POST(request: Request) {
       details: {
         filename: file.name,
         sizeBytes: file.size,
-        recordId
+        recordId,
+        storagePath: uploadResult.path
       }
     })
 
@@ -78,4 +79,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message || 'File upload failed' }, { status: 500 })
   }
 }
-

@@ -111,10 +111,10 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
         </div>
 
         {/* Action Buttons: Print Statement & Two-Step Export */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
           <button
             onClick={handlePrint}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white border border-slate-200 text-slate-700 hover:text-indigo-600 hover:bg-indigo-50/40 text-xs font-semibold shadow-xs transition-all"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white border border-slate-200 text-slate-700 hover:text-indigo-600 hover:bg-indigo-50/40 text-xs font-semibold shadow-xs transition-all shrink-0"
             title="Print formal church financial summary"
           >
             <Printer className="w-4 h-4" />
@@ -125,7 +125,7 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
           {exportStep === 'idle' && (
             <button
               onClick={handleStartExport}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-semibold shadow-md shadow-indigo-500/20 transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-semibold shadow-md shadow-indigo-500/20 transition-all shrink-0"
             >
               <Download className="w-4 h-4" />
               <span>Generate CSV Report</span>
@@ -133,7 +133,7 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
           )}
 
           {exportStep === 'preparing' && (
-            <div className="px-5 py-2.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold flex items-center gap-2 animate-pulse">
+            <div className="px-5 py-2.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold flex items-center gap-2 animate-pulse shrink-0">
               <span className="w-2 h-2 rounded-full bg-indigo-600 animate-ping" />
               <span>Preparing your report...</span>
             </div>
@@ -142,7 +142,7 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
           {exportStep === 'ready' && (
             <button
               onClick={handleDownload}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition-all animate-bounce"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition-all animate-bounce shrink-0"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>Download Report Now</span>
@@ -152,10 +152,10 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
       </div>
 
       {/* Timeframe Filter Buttons (Section 140) */}
-      <div className="flex items-center gap-2 p-1 rounded-2xl bg-slate-100/80 text-xs font-medium w-fit">
+      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100/80 text-xs font-medium overflow-x-auto max-w-full">
         <button
           onClick={() => setTimeframe('month')}
-          className={`px-4 py-2 rounded-xl transition-all ${
+          className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap ${
             timeframe === 'month'
               ? 'bg-white text-slate-900 font-bold shadow-xs'
               : 'text-slate-500 hover:text-slate-900'
@@ -165,7 +165,7 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
         </button>
         <button
           onClick={() => setTimeframe('quarter')}
-          className={`px-4 py-2 rounded-xl transition-all ${
+          className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap ${
             timeframe === 'quarter'
               ? 'bg-white text-slate-900 font-bold shadow-xs'
               : 'text-slate-500 hover:text-slate-900'
@@ -175,7 +175,7 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
         </button>
         <button
           onClick={() => setTimeframe('year')}
-          className={`px-4 py-2 rounded-xl transition-all ${
+          className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap ${
             timeframe === 'year'
               ? 'bg-white text-slate-900 font-bold shadow-xs'
               : 'text-slate-500 hover:text-slate-900'
@@ -185,7 +185,7 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
         </button>
         <button
           onClick={() => setTimeframe('all')}
-          className={`px-4 py-2 rounded-xl transition-all ${
+          className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap ${
             timeframe === 'all'
               ? 'bg-white text-slate-900 font-bold shadow-xs'
               : 'text-slate-500 hover:text-slate-900'

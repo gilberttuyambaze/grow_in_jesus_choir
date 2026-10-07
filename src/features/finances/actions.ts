@@ -51,7 +51,7 @@ export async function createRecordAction(formData: FormData) {
   const status = session.role === 'MEMBER' ? 'needs_review' : 'recorded'
 
   try {
-    const record = createFinancialRecord({
+    const record = await createFinancialRecord({
       type,
       categoryId,
       amount,
@@ -59,7 +59,6 @@ export async function createRecordAction(formData: FormData) {
       description,
       memberId,
       recordedById: session.userId,
-      actorName: session.fullName,
       status,
       receiptFilename
     })
@@ -94,7 +93,7 @@ export async function reviewRecordAction(
   const newStatus = decision === 'approve' ? 'recorded' : 'rejected'
 
   try {
-    updateRecordStatus({
+    await updateRecordStatus({
       recordId,
       status: newStatus,
       actorId: session.userId,
@@ -127,7 +126,7 @@ export async function voidRecordAction(recordId: string, reason: string) {
   }
 
   try {
-    updateRecordStatus({
+    await updateRecordStatus({
       recordId,
       status: 'voided',
       actorId: session.userId,

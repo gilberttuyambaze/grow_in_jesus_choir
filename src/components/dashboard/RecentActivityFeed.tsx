@@ -44,7 +44,7 @@ export function RecentActivityFeed() {
   ]
 
   return (
-    <div className="card-surface p-6 bg-white flex flex-col justify-between h-full">
+    <div className="card-surface p-4 sm:p-6 bg-white flex flex-col justify-between h-full min-w-0">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-bold text-slate-900 tracking-tight">

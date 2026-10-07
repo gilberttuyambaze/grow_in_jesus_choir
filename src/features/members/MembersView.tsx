@@ -107,8 +107,8 @@ export function MembersView({ members, userRole }: MembersViewProps) {
         </div>
 
         {/* Section 74: Progress & Batch Follow-up Action */}
-        <div className="flex items-center gap-3">
-          <div className="px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200/80 flex items-center gap-2.5 text-xs">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200/80 flex items-center gap-2.5 text-xs shrink-0">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span className="text-emerald-900 font-semibold">
               October: <strong>{recordedCount} / {members.length}</strong> ({percentage}%)
@@ -119,7 +119,7 @@ export function MembersView({ members, userRole }: MembersViewProps) {
             <button
               onClick={handleSendBatchReminders}
               disabled={isSendingBatch}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-semibold shadow-xs transition-all disabled:opacity-50 shrink-0"
             >
               <Send className="w-3.5 h-3.5" />
               <span>{isSendingBatch ? 'Sending...' : `Remind ${pendingCount} Pending`}</span>
@@ -129,13 +129,13 @@ export function MembersView({ members, userRole }: MembersViewProps) {
       </div>
 
       {/* Filter Bar & Controls */}
-      <div className="card-surface p-5 bg-white space-y-4">
+      <div className="card-surface p-3.5 sm:p-5 bg-white space-y-4 min-w-0">
         {/* Section 74 Drilldown Tabs: All (50) | Recorded (42) | Not Recorded (8) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-          <div className="flex items-center gap-2 p-1 rounded-2xl bg-slate-100/80 text-xs font-medium w-fit">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 pb-4 border-b border-slate-100">
+          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100/80 text-xs font-medium overflow-x-auto max-w-full">
             <button
               onClick={() => setActiveStatus('all')}
-              className={`px-4 py-2 rounded-xl transition-all ${
+              className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap ${
                 activeStatus === 'all'
                   ? 'bg-white text-slate-900 font-bold shadow-xs'
                   : 'text-slate-500 hover:text-slate-900'
@@ -145,7 +145,7 @@ export function MembersView({ members, userRole }: MembersViewProps) {
             </button>
             <button
               onClick={() => setActiveStatus('recorded')}
-              className={`px-4 py-2 rounded-xl transition-all ${
+              className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap ${
                 activeStatus === 'recorded'
                   ? 'bg-white text-emerald-700 font-bold shadow-xs'
                   : 'text-slate-500 hover:text-slate-900'
@@ -155,7 +155,7 @@ export function MembersView({ members, userRole }: MembersViewProps) {
             </button>
             <button
               onClick={() => setActiveStatus('pending')}
-              className={`px-4 py-2 rounded-xl transition-all ${
+              className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap ${
                 activeStatus === 'pending'
                   ? 'bg-white text-amber-700 font-bold shadow-xs'
                   : 'text-slate-500 hover:text-slate-900'
@@ -166,7 +166,7 @@ export function MembersView({ members, userRole }: MembersViewProps) {
           </div>
 
           {/* Voice Part Filters */}
-          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100/60 text-xs font-medium overflow-x-auto">
+          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100/60 text-xs font-medium overflow-x-auto max-w-full">
             {['all', 'Soprano', 'Alto', 'Tenor', 'Bass'].map((part) => (
               <button
                 key={part}
@@ -177,7 +177,7 @@ export function MembersView({ members, userRole }: MembersViewProps) {
                     : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                {part === 'all' ? 'All Voice Sections' : part}
+                {part === 'all' ? 'All Sections' : part}
               </button>
             ))}
           </div>

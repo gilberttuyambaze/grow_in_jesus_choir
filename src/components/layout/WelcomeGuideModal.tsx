@@ -34,14 +34,7 @@ export function WelcomeGuideModal() {
       maxWidth="md"
     >
       <div className="space-y-4 py-2 text-xs">
-        <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-100 flex items-center gap-3 text-indigo-900">
-          <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-            <Sparkles className="w-4 h-4" />
-          </div>
-          <p className="leading-relaxed">
-            Complexity is hidden underneath. Human simplicity is on top. Here is how to get started:
-          </p>
-        </div>
+        
 
         <div className="space-y-3 pt-1">
           {/* Step 1 */}

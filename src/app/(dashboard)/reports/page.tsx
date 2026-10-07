@@ -9,9 +9,15 @@ export default async function ReportsPage() {
     redirect('/login')
   }
 
-  const summary = getFinancialSummary()
-  const records = getFinancialRecords()
-  const categories = getFinancialCategories()
+  if (session.role === 'MEMBER') {
+    redirect('/dashboard')
+  }
+
+  const [summary, records, categories] = await Promise.all([
+    getFinancialSummary(),
+    getFinancialRecords(),
+    getFinancialCategories()
+  ])
 
   return (
     <ReportsView

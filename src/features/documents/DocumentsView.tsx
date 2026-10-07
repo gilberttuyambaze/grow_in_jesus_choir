@@ -158,12 +158,12 @@ export function DocumentsView({ documents, records, userRole }: DocumentsViewPro
       </div>
 
       {/* Filter and Document Grid */}
-      <div className="card-surface p-6 bg-white space-y-4">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-          <div className="flex items-center gap-2 p-1 rounded-2xl bg-slate-100/80 text-xs font-medium w-fit">
+      <div className="card-surface p-3.5 sm:p-6 bg-white space-y-4 min-w-0">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 pb-4 border-b border-slate-100">
+          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100/80 text-xs font-medium overflow-x-auto max-w-full">
             <button
               onClick={() => setFilterType('all')}
-              className={`px-4 py-2 rounded-xl transition-all ${
+              className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap ${
                 filterType === 'all'
                   ? 'bg-white text-slate-900 font-bold shadow-xs'
                   : 'text-slate-500 hover:text-slate-900'
@@ -173,7 +173,7 @@ export function DocumentsView({ documents, records, userRole }: DocumentsViewPro
             </button>
             <button
               onClick={() => setFilterType('pdf')}
-              className={`px-4 py-2 rounded-xl transition-all ${
+              className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap ${
                 filterType === 'pdf'
                   ? 'bg-white text-rose-700 font-bold shadow-xs'
                   : 'text-slate-500 hover:text-slate-900'
@@ -183,7 +183,7 @@ export function DocumentsView({ documents, records, userRole }: DocumentsViewPro
             </button>
             <button
               onClick={() => setFilterType('image')}
-              className={`px-4 py-2 rounded-xl transition-all ${
+              className={`px-3.5 py-2 rounded-xl transition-all whitespace-nowrap ${
                 filterType === 'image'
                   ? 'bg-white text-emerald-700 font-bold shadow-xs'
                   : 'text-slate-500 hover:text-slate-900'
@@ -193,7 +193,7 @@ export function DocumentsView({ documents, records, userRole }: DocumentsViewPro
             </button>
           </div>
 
-          <div className="relative sm:w-72">
+          <div className="relative w-full sm:w-72">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
             <input
               type="text"
@@ -388,7 +388,7 @@ export function DocumentsView({ documents, records, userRole }: DocumentsViewPro
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Select Document File (Max 5 MB) *
+                  Select Document File (Max 50 MB) *
                 </label>
                 <input
                   type="file"

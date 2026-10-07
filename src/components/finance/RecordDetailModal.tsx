@@ -142,10 +142,10 @@ export function RecordDetailModal({
         </div>
 
         {/* Detailed Attribute Grid */}
-        <div className="grid grid-cols-2 gap-4 text-xs bg-white p-4 rounded-2xl border border-slate-150">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 text-xs bg-white p-4 rounded-2xl border border-slate-150">
           <div>
             <span className="text-[11px] text-slate-400 block font-medium">Description</span>
-            <strong className="text-slate-900 text-xs font-bold block mt-0.5">
+            <strong className="text-slate-900 text-xs font-bold block mt-0.5 break-words">
               {record.description}
             </strong>
           </div>
@@ -177,23 +177,23 @@ export function RecordDetailModal({
         )}
 
         {/* Supporting Receipt Attachment (Section 143) */}
-        <div className="p-3.5 rounded-2xl bg-indigo-50/50 border border-indigo-100 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-3">
+        <div className="p-3.5 rounded-2xl bg-indigo-50/50 border border-indigo-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="w-8 h-8 rounded-xl bg-white text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-150 shadow-xs">
               <FileText className="w-4 h-4" />
             </div>
-            <div>
-              <span className="font-bold text-slate-900 block">
+            <div className="min-w-0 flex-1">
+              <span className="font-bold text-slate-900 block truncate">
                 {record.receiptFilename || 'Proof of Payment Attachment'}
               </span>
-              <span className="text-[10px] text-slate-500">
+              <span className="text-[10px] text-slate-500 block truncate">
                 Ledger audit reference: {record.referenceNumber || 'Verified'}
               </span>
             </div>
           </div>
           <a
             href="/documents"
-            className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-indigo-700 font-semibold text-[11px] hover:bg-indigo-50 transition-colors shadow-xs"
+            className="w-full sm:w-auto px-4 py-2 rounded-full bg-white border border-slate-200 text-indigo-700 font-semibold text-[11px] hover:bg-indigo-50 transition-colors shadow-xs text-center shrink-0"
           >
             Open in Vault
           </a>
@@ -212,13 +212,13 @@ export function RecordDetailModal({
                   placeholder="e.g. Missing receipt or incorrect amount"
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-rose-200 text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  className="w-full px-3 py-2.5 rounded-xl border border-rose-200 text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500"
                 />
                 <div className="flex justify-end gap-2 pt-1">
                   <button
                     type="button"
                     onClick={() => setShowRejectInput(false)}
-                    className="px-3 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                    className="px-4 py-2 rounded-full text-xs font-semibold text-slate-600 hover:bg-slate-100 min-h-[44px]"
                   >
                     Cancel
                   </button>
@@ -226,18 +226,18 @@ export function RecordDetailModal({
                     type="button"
                     onClick={() => handleReview('reject')}
                     disabled={isProcessing}
-                    className="px-4 py-1.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold"
+                    className="px-5 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold min-h-[44px]"
                   >
                     Confirm Rejection
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-end gap-3">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setShowRejectInput(true)}
-                  className="px-4 py-2 rounded-full border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-colors"
+                  className="px-4 py-2.5 rounded-full border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-colors min-h-[44px] flex items-center justify-center"
                 >
                   Reject Record
                 </button>
@@ -245,7 +245,7 @@ export function RecordDetailModal({
                   type="button"
                   onClick={() => handleReview('approve')}
                   disabled={isProcessing}
-                  className="px-5 py-2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5"
+                  className="px-5 py-2.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-1.5 min-h-[44px]"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>Approve & Verify Balance</span>

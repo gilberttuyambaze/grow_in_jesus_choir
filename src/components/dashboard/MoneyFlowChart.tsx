@@ -7,31 +7,31 @@ export function MoneyFlowChart() {
   const [timeRange, setTimeRange] = React.useState('Last 7 Days')
 
   return (
-    <div className="card-surface p-6 bg-white flex flex-col justify-between">
-      {/* Chart Header matching Reference */}
-      <div className="flex items-center justify-between mb-4">
+    <div className="card-surface p-4 sm:p-6 bg-white flex flex-col justify-between min-w-0">
+      {/* Chart Header matching Reference (Responsive on Mobile) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+          <h3 className="text-sm font-bold text-slate-900 tracking-tight truncate">
             Financial Flow Execution Overview
           </h3>
-          <div className="flex items-center gap-4 mt-2 text-xs">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-2 text-xs">
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-1 rounded bg-blue-600 inline-block" />
+              <span className="w-2.5 h-1 rounded bg-blue-600 inline-block shrink-0" />
               <span className="text-slate-600 font-medium">Money Received</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-1 rounded bg-rose-500 inline-block" />
+              <span className="w-2.5 h-1 rounded bg-rose-500 inline-block shrink-0" />
               <span className="text-slate-600 font-medium">Money Spent</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-1 rounded bg-amber-500 inline-block" />
+              <span className="w-2.5 h-1 rounded bg-amber-500 inline-block shrink-0" />
               <span className="text-slate-600 font-medium">Contributions</span>
             </div>
           </div>
         </div>
 
         {/* Time Selector Dropdown matching Reference */}
-        <div className="relative">
+        <div className="self-start sm:self-center">
           <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-slate-100/70 text-xs text-slate-700 font-medium transition-colors shadow-2xs">
             <span>{timeRange}</span>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -40,10 +40,10 @@ export function MoneyFlowChart() {
       </div>
 
       {/* SVG Chart Graphic with Y-Axis and Curves matching Reference */}
-      <div className="pt-2">
+      <div className="pt-2 min-w-0">
         <div className="flex">
           {/* Y-Axis */}
-          <div className="flex flex-col justify-between text-[11px] text-slate-400 pr-3 pb-6 font-medium select-none text-right w-10">
+          <div className="flex flex-col justify-between text-[10px] sm:text-[11px] text-slate-400 pr-2 sm:pr-3 pb-6 font-medium select-none text-right w-7 sm:w-10 shrink-0">
             <span>400</span>
             <span>300</span>
             <span>200</span>
@@ -52,7 +52,7 @@ export function MoneyFlowChart() {
           </div>
 
           {/* Canvas SVG */}
-          <div className="flex-1 h-52 relative">
+          <div className="flex-1 h-44 sm:h-52 relative min-w-0">
             {/* Grid lines */}
             <div className="absolute inset-0 pb-6 flex flex-col justify-between pointer-events-none">
               <div className="border-b border-slate-100 w-full" />
@@ -98,33 +98,23 @@ export function MoneyFlowChart() {
               <path
                 d="M 10 155 C 80 145, 160 148, 250 142 C 340 135, 430 130, 520 128 C 580 125, 610 132, 640 135"
                 fill="none"
-                stroke="#ef4444"
+                stroke="#f43f5e"
                 strokeWidth="2"
                 strokeLinecap="round"
               />
-              <circle cx="10" cy="155" r="3" fill="#ef4444" stroke="#ffffff" strokeWidth="1.5" />
-              <circle cx="160" cy="148" r="3" fill="#ef4444" stroke="#ffffff" strokeWidth="1.5" />
-              <circle cx="340" cy="135" r="3" fill="#ef4444" stroke="#ffffff" strokeWidth="1.5" />
-              <circle cx="520" cy="128" r="3" fill="#ef4444" stroke="#ffffff" strokeWidth="1.5" />
-              <circle cx="640" cy="135" r="3" fill="#ef4444" stroke="#ffffff" strokeWidth="1.5" />
 
-              {/* Amber Curve (Human Review / Contributions) */}
+              {/* Amber Curve (Human Review) */}
               <path
-                d="M 10 170 C 90 162, 180 165, 270 160 C 360 155, 450 158, 540 152 C 590 150, 620 155, 640 158"
+                d="M 10 170 C 80 166, 170 162, 260 158 C 350 155, 440 156, 530 152 C 580 150, 610 156, 640 160"
                 fill="none"
                 stroke="#f59e0b"
                 strokeWidth="2"
                 strokeLinecap="round"
               />
-              <circle cx="10" cy="170" r="3" fill="#f59e0b" stroke="#ffffff" strokeWidth="1.5" />
-              <circle cx="180" cy="165" r="3" fill="#f59e0b" stroke="#ffffff" strokeWidth="1.5" />
-              <circle cx="360" cy="155" r="3" fill="#f59e0b" stroke="#ffffff" strokeWidth="1.5" />
-              <circle cx="540" cy="152" r="3" fill="#f59e0b" stroke="#ffffff" strokeWidth="1.5" />
-              <circle cx="640" cy="158" r="3" fill="#f59e0b" stroke="#ffffff" strokeWidth="1.5" />
             </svg>
 
-            {/* X-Axis Dates */}
-            <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium pt-2 select-none">
+            {/* X-Axis responsive date labels */}
+            <div className="hidden sm:flex justify-between text-[11px] text-slate-400 font-medium select-none pt-2">
               <span>Oct 01</span>
               <span>Oct 02</span>
               <span>Oct 03</span>
@@ -133,10 +123,17 @@ export function MoneyFlowChart() {
               <span>Oct 06</span>
               <span>Oct 07</span>
             </div>
+
+            {/* Mobile X-Axis labels (fewer to prevent collision) */}
+            <div className="flex sm:hidden justify-between text-[10px] text-slate-400 font-medium select-none pt-2">
+              <span>Oct 01</span>
+              <span>Oct 03</span>
+              <span>Oct 05</span>
+              <span>Oct 07</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
   )
 }
-

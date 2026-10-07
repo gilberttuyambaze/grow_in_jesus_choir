@@ -9,7 +9,11 @@ export default async function MembersPage() {
     redirect('/login')
   }
 
-  const members = getMembers()
+  if (session.role === 'MEMBER') {
+    redirect('/dashboard')
+  }
+
+  const members = await getMembers()
 
   return (
     <MembersView

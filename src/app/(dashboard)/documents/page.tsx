@@ -9,8 +9,10 @@ export default async function DocumentsPage() {
     redirect('/login')
   }
 
-  const documents = getDocuments()
-  const records = getFinancialRecords()
+  const [documents, records] = await Promise.all([
+    getDocuments(),
+    getFinancialRecords()
+  ])
 
   return (
     <DocumentsView

@@ -11,7 +11,7 @@ export async function loginAction(formData: FormData) {
     return { success: false, error: 'Please enter your email address' }
   }
 
-  const user = getUserByEmail(email.trim())
+  const user = await getUserByEmail(email.trim())
   if (!user) {
     return { success: false, error: 'No account found with this email' }
   }
@@ -23,7 +23,7 @@ export async function loginAction(formData: FormData) {
 
 export async function switchRoleAction(role: 'LEADER' | 'MEMBER') {
   const targetEmail = role === 'LEADER' ? 'sarah@growinjesus.rw' : 'john@growinjesus.rw'
-  const user = getUserByEmail(targetEmail)
+  const user = await getUserByEmail(targetEmail)
   if (!user) {
     return { success: false, error: 'Target demo account not found' }
   }

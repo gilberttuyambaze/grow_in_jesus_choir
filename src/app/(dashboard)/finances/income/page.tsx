@@ -11,14 +11,18 @@ export default async function IncomePage() {
     redirect('/login')
   }
 
-  const records = getFinancialRecords({ type: 'income' })
-  const categories = getFinancialCategories('income')
+  const isLeader = session.role === 'LEADER' || session.role === 'ADMIN'
+  const records = await getFinancialRecords({
+    type: 'income',
+    ...(session.role === 'MEMBER' && session.userId ? { memberId: session.userId } : {})
+  })
+  const categories = await getFinancialCategories('income')
 
   return (
     <div className="space-y-4">
       <Link
         href="/finances"
-        className="inline-flex items-center gap-1 text-xs text-[#527464] hover:text-[#1e382d] font-semibold"
+        className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-indigo-600 font-semibold transition-colors"
       >
         <ChevronLeft className="w-4 h-4" />
         <span>Back to All Finances</span>

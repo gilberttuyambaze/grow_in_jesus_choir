@@ -137,8 +137,8 @@ export function AddRecordDialog({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Supporting document must be smaller than 5 MB.')
+      if (file.size > 50 * 1024 * 1024) {
+        setError('Supporting document must be smaller than 50 MB.')
         return
       }
       setReceiptFile(file)
@@ -501,7 +501,7 @@ export function AddRecordDialog({
                     Click to attach receipt or invoice
                   </span>
                   <span className="text-[10px] text-slate-400">
-                    PNG, JPG, or PDF up to 5 MB
+                    PNG, JPG, or PDF up to 50 MB
                   </span>
                 </div>
               )}
@@ -509,18 +509,18 @@ export function AddRecordDialog({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-3">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 pt-3">
             <button
               type="button"
               onClick={handleClose}
-              className="px-5 py-2.5 rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 text-xs font-semibold transition-all"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 text-xs font-semibold transition-all min-h-[44px] flex items-center justify-center"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-2.5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-semibold transition-all shadow-md shadow-indigo-500/25 disabled:opacity-50 flex items-center gap-2"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-semibold transition-all shadow-md shadow-indigo-500/25 disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]"
             >
               {isSubmitting ? (
                 <span>Saving...</span>

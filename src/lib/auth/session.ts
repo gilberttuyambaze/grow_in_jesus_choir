@@ -58,7 +58,7 @@ export async function getSessionUser(): Promise<SessionPayload | null> {
   const token = cookieStore.get(COOKIE_NAME)?.value
   if (!token) {
     // Default fallback to leader demo account for seamless local inspection if no cookie is set yet
-    const leader = getUserByEmail('sarah@growinjesus.rw')
+    const leader = await getUserByEmail('sarah@growinjesus.rw')
     if (leader) {
       return {
         userId: leader.id,

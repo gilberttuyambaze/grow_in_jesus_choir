@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
+import { MobileBottomNav } from './MobileBottomNav'
 import { AddRecordDialog } from '@/components/finance/AddRecordDialog'
 import { CommandSearchModal } from './CommandSearchModal'
 import { WelcomeGuideModal } from './WelcomeGuideModal'
@@ -36,9 +37,9 @@ export function DashboardShell({
   const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false)
 
   return (
-    <div className="min-h-screen bg-[#f7f9f7] flex">
-      {/* Desktop Sidebar */}
-      <div className="hidden md:block">
+    <div className="h-dvh w-full flex bg-[#f4f6fc] overflow-hidden">
+      {/* Desktop Persistent Sidebar */}
+      <div className="hidden md:block h-full shrink-0">
         <Sidebar
           userRole={userRole}
           userName={userName}
@@ -47,14 +48,14 @@ export function DashboardShell({
         />
       </div>
 
-      {/* Mobile Drawer Backdrop */}
+      {/* Mobile Drawer Backdrop and Off-Canvas Sidebar */}
       {isMobileNavOpen && (
         <div
-          className="fixed inset-0 z-50 bg-[#162a22]/50 backdrop-blur-xs md:hidden"
+          className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs md:hidden animate-in fade-in duration-200"
           onClick={() => setIsMobileNavOpen(false)}
         >
           <div
-            className="w-72 bg-white h-full shadow-2xl"
+            className="w-72 max-w-[85vw] bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-left duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             <Sidebar
@@ -62,13 +63,15 @@ export function DashboardShell({
               userName={userName}
               userInitials={userInitials}
               pendingCount={pendingCount}
+              onClose={() => setIsMobileNavOpen(false)}
+              onNavigate={() => setIsMobileNavOpen(false)}
             />
           </div>
         </div>
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 w-full h-full overflow-y-auto overscroll-contain pb-20 md:pb-6">
         <Topbar
           pageTitle="Financial Workspace"
           userRole={userRole}
@@ -78,10 +81,17 @@ export function DashboardShell({
           onToggleMobileNav={() => setIsMobileNavOpen((prev) => !prev)}
         />
 
-        <main className="flex-1 p-4 sm:p-7 lg:p-9 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto min-w-0">
           {children}
         </main>
       </div>
+
+      {/* Mobile Fixed Bottom Navigation Bar (Section 26) */}
+      <MobileBottomNav
+        userRole={userRole}
+        onOpenAddRecord={() => setIsAddRecordOpen(true)}
+        onToggleMobileNav={() => setIsMobileNavOpen(true)}
+      />
 
       {/* Global Add Record Dialog */}
       <AddRecordDialog

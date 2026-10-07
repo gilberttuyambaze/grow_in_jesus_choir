@@ -5,7 +5,7 @@ import { markNotificationAsRead } from '@/lib/db'
 
 export async function markNotificationReadAction(id: string) {
   try {
-    markNotificationAsRead(id)
+    await markNotificationAsRead(id)
     revalidatePath('/', 'layout')
     return { success: true }
   } catch (error: any) {
