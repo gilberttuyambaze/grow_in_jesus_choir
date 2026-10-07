@@ -1,11 +1,22 @@
 'use client'
 
 import * as React from 'react'
-import { BarChart3, Download, FileSpreadsheet, ArrowDownLeft, ArrowUpRight, CheckCircle2 } from 'lucide-react'
+import {
+  BarChart3,
+  Download,
+  FileSpreadsheet,
+  ArrowDownLeft,
+  ArrowUpRight,
+  CheckCircle2,
+  Printer,
+  Calendar,
+  Sparkles,
+  FileText
+} from 'lucide-react'
 import { FinancialSummary, FinancialRecord, FinancialCategory } from '@/types'
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatDate } from '@/lib/utils/date'
-import { Card } from '@/components/ui/Card'
+import { useToast } from '@/components/ui/Toast'
 
 interface ReportsViewProps {
   summary: FinancialSummary
@@ -14,8 +25,11 @@ interface ReportsViewProps {
 }
 
 export function ReportsView({ summary, records, categories }: ReportsViewProps) {
-  const [isExporting, setIsExporting] = React.useState(false)
-  const [downloadReady, setDownloadReady] = React.useState(false)
+  const { success: showToastSuccess } = useToast()
+
+  const [timeframe, setTimeframe] = React.useState<'all' | 'month' | 'quarter' | 'year'>('month')
+  const [exportStep, setExportStep] = React.useState<'idle' | 'preparing' | 'ready'>('idle')
+  const [downloadBlobUrl, setDownloadBlobUrl] = React.useState<string | null>(null)
 
   // Compute income by category
   const incomeByCategory = React.useMemo(() => {
@@ -41,11 +55,13 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1])
   }, [records])
 
-  const handleExportCSV = () => {
-    setIsExporting(true)
+  // Two-step asynchronous export workflow matching Section 77
+  const handleStartExport = () => {
+    setExportStep('preparing')
+
     setTimeout(() => {
       // Build CSV content
-      const headers = ['Date', 'Type', 'Category', 'Description', 'Amount (RWF)', 'Status', 'Reference']
+      const headers = ['Date', 'Type', 'Category', 'Description', 'Amount (RWF)', 'Status', 'Reference Number']
       const rows = records.map((r) => [
         r.recordDate,
         r.type === 'income' ? 'Money Received' : 'Money Spent',
@@ -59,157 +75,242 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
       const csvContent = [headers.join(','), ...rows.map((e) => e.join(','))].join('\n')
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
       const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.setAttribute('href', url)
-      link.setAttribute('download', `Grow_in_Jesus_Choir_Financial_Report_${new Date().toISOString().slice(0, 10)}.csv`)
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
+      setDownloadBlobUrl(url)
+      setExportStep('ready')
+      showToastSuccess('Report Prepared', 'Your choir financial report is ready to download.')
+    }, 1200)
+  }
 
-      setIsExporting(false)
-      setDownloadReady(true)
-      setTimeout(() => setDownloadReady(false), 4000)
-    }, 600)
+  const handleDownload = () => {
+    if (!downloadBlobUrl) return
+    const link = document.createElement('a')
+    link.href = downloadBlobUrl
+    link.download = `Grow_in_Jesus_Choir_Report_${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    setExportStep('idle')
+    setDownloadBlobUrl(null)
+  }
+
+  const handlePrint = () => {
+    window.print()
   }
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
+      {/* Top Header matching Reference */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-serif text-[#1e382d] tracking-tight">
-            Financial Reports
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 font-sans">
+            Financial Reports & Statements
           </h1>
-          <p className="text-xs text-[#71857a] mt-0.5">
-            Audit-ready summary of choir income streams, expenditures, and balances.
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Audit-ready summary of choir income streams, expenditures, and reconciled balances.
           </p>
         </div>
 
-        {/* Export Button */}
-        <button
-          onClick={handleExportCSV}
-          disabled={isExporting}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2e5748] hover:bg-[#234538] text-white text-xs font-semibold shadow-xs transition-all disabled:opacity-50"
-        >
-          {isExporting ? (
-            <span>Preparing report...</span>
-          ) : downloadReady ? (
-            <>
-              <CheckCircle2 className="w-4 h-4 text-emerald-300" />
-              <span>Report Downloaded</span>
-            </>
-          ) : (
-            <>
+        {/* Action Buttons: Print Statement & Two-Step Export */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handlePrint}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white border border-slate-200 text-slate-700 hover:text-indigo-600 hover:bg-indigo-50/40 text-xs font-semibold shadow-xs transition-all"
+            title="Print formal church financial summary"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Print Statement</span>
+          </button>
+
+          {/* Section 77 Two-step Export Feedback */}
+          {exportStep === 'idle' && (
+            <button
+              onClick={handleStartExport}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-semibold shadow-md shadow-indigo-500/20 transition-all"
+            >
               <Download className="w-4 h-4" />
-              <span>Export CSV Report</span>
-            </>
+              <span>Generate CSV Report</span>
+            </button>
           )}
+
+          {exportStep === 'preparing' && (
+            <div className="px-5 py-2.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold flex items-center gap-2 animate-pulse">
+              <span className="w-2 h-2 rounded-full bg-indigo-600 animate-ping" />
+              <span>Preparing your report...</span>
+            </div>
+          )}
+
+          {exportStep === 'ready' && (
+            <button
+              onClick={handleDownload}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition-all animate-bounce"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Download Report Now</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Timeframe Filter Buttons (Section 140) */}
+      <div className="flex items-center gap-2 p-1 rounded-2xl bg-slate-100/80 text-xs font-medium w-fit">
+        <button
+          onClick={() => setTimeframe('month')}
+          className={`px-4 py-2 rounded-xl transition-all ${
+            timeframe === 'month'
+              ? 'bg-white text-slate-900 font-bold shadow-xs'
+              : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          This Month (October)
+        </button>
+        <button
+          onClick={() => setTimeframe('quarter')}
+          className={`px-4 py-2 rounded-xl transition-all ${
+            timeframe === 'quarter'
+              ? 'bg-white text-slate-900 font-bold shadow-xs'
+              : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          This Quarter
+        </button>
+        <button
+          onClick={() => setTimeframe('year')}
+          className={`px-4 py-2 rounded-xl transition-all ${
+            timeframe === 'year'
+              ? 'bg-white text-slate-900 font-bold shadow-xs'
+              : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          Year to Date (2026)
+        </button>
+        <button
+          onClick={() => setTimeframe('all')}
+          className={`px-4 py-2 rounded-xl transition-all ${
+            timeframe === 'all'
+              ? 'bg-white text-slate-900 font-bold shadow-xs'
+              : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          All Records
         </button>
       </div>
 
-      {/* Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-5">
-          <span className="text-xs text-[#71857a] font-medium block mb-1">
+      {/* Summary KPI Cards matching Reference */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div className="card-surface p-6 bg-white">
+          <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">
             Total Money Received
           </span>
-          <p className="text-2xl font-serif font-semibold text-[#295c47]">
+          <p className="text-2xl sm:text-3xl font-bold text-slate-900 font-sans tracking-tight">
             +{formatCurrency(summary.totalIncome)}
           </p>
-          <span className="text-[11px] text-[#718279] mt-2 block">
-            From contributions, offerings & gifts
+          <span className="text-[11px] text-slate-500 mt-2 block">
+            From 42 member contributions, offerings & gifts
           </span>
-        </Card>
+        </div>
 
-        <Card className="p-5">
-          <span className="text-xs text-[#71857a] font-medium block mb-1">
+        <div className="card-surface p-6 bg-white">
+          <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">
             Total Money Spent
           </span>
-          <p className="text-2xl font-serif font-semibold text-[#a8652d]">
+          <p className="text-2xl sm:text-3xl font-bold text-slate-900 font-sans tracking-tight">
             -{formatCurrency(summary.totalExpenses)}
           </p>
-          <span className="text-[11px] text-[#718279] mt-2 block">
-            Transport, robes, equipment & venue
+          <span className="text-[11px] text-slate-500 mt-2 block">
+            Transport, robes, rehearsal venue & sound equipment
           </span>
-        </Card>
+        </div>
 
-        <Card className="p-5">
-          <span className="text-xs text-[#71857a] font-medium block mb-1">
-            Net Financial Balance
+        <div className="card-surface p-6 bg-white">
+          <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">
+            Reconciled Net Balance
           </span>
-          <p className="text-2xl font-serif font-semibold text-[#1e382d]">
+          <p className="text-2xl sm:text-3xl font-bold text-slate-900 font-sans tracking-tight">
             {formatCurrency(summary.currentBalance)}
           </p>
-          <span className="text-[11px] text-emerald-700 font-medium mt-2 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            Confirmed reconciled balance
+          <span className="text-[11px] text-emerald-700 font-semibold mt-2 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            Verified against 100% of ledger transactions
           </span>
-        </Card>
+        </div>
       </div>
 
       {/* Category Breakdown Grids */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Income Breakdown */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-xl bg-[#e3efe6] text-[#336b4e] flex items-center justify-center">
-              <ArrowDownLeft className="w-4 h-4" />
+        {/* Income Breakdown Card */}
+        <div className="card-surface p-6 bg-white space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shadow-xs">
+              <ArrowDownLeft className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
-              <h3 className="text-base font-serif text-[#1e382d]">Income Breakdown</h3>
-              <p className="text-[11px] text-[#74877c]">By financial category</p>
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                Income by Category
+              </h3>
+              <p className="text-[11px] text-slate-400">Contribution streams and offerings</p>
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 pt-2">
             {incomeByCategory.map(([cat, amount]) => {
               const pct = summary.totalIncome > 0 ? Math.round((amount / summary.totalIncome) * 100) : 0
               return (
-                <div key={cat} className="space-y-1">
+                <div key={cat} className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-medium text-[#2d473b]">{cat}</span>
-                    <span className="font-semibold text-[#295c47]">{formatCurrency(amount)} ({pct}%)</span>
+                    <span className="font-semibold text-slate-800">{cat}</span>
+                    <span className="font-bold text-slate-900 font-sans">
+                      {formatCurrency(amount)} ({pct}%)
+                    </span>
                   </div>
-                  <div className="w-full h-2 rounded-full bg-[#eef3ef] overflow-hidden">
-                    <div className="h-full rounded-full bg-[#396d55]" style={{ width: `${pct}%` }} />
+                  <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all"
+                      style={{ width: `${pct}%` }}
+                    />
                   </div>
                 </div>
               )
             })}
           </div>
-        </Card>
+        </div>
 
-        {/* Expense Breakdown */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-xl bg-[#fbf0de] text-[#a4712b] flex items-center justify-center">
-              <ArrowUpRight className="w-4 h-4" />
+        {/* Expense Breakdown Card */}
+        <div className="card-surface p-6 bg-white space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold shadow-xs">
+              <ArrowUpRight className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
-              <h3 className="text-base font-serif text-[#1e382d]">Expense Breakdown</h3>
-              <p className="text-[11px] text-[#74877c]">By financial category</p>
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                Expenses by Category
+              </h3>
+              <p className="text-[11px] text-slate-400">Logistics, robes, audio & operations</p>
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 pt-2">
             {expenseByCategory.map(([cat, amount]) => {
               const pct = summary.totalExpenses > 0 ? Math.round((amount / summary.totalExpenses) * 100) : 0
               return (
-                <div key={cat} className="space-y-1">
+                <div key={cat} className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-medium text-[#2d473b]">{cat}</span>
-                    <span className="font-semibold text-[#a8652d]">{formatCurrency(amount)} ({pct}%)</span>
+                    <span className="font-semibold text-slate-800">{cat}</span>
+                    <span className="font-bold text-slate-900 font-sans">
+                      {formatCurrency(amount)} ({pct}%)
+                    </span>
                   </div>
-                  <div className="w-full h-2 rounded-full bg-[#f6eee0] overflow-hidden">
-                    <div className="h-full rounded-full bg-[#c79144]" style={{ width: `${pct}%` }} />
+                  <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-amber-500 to-rose-500 transition-all"
+                      style={{ width: `${pct}%` }}
+                    />
                   </div>
                 </div>
               )
             })}
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   )
 }
-

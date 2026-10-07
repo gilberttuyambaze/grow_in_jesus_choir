@@ -301,10 +301,15 @@ export function updateRecordStatus(data: {
   `)
   stmt.run(data.status, data.reason || null, data.recordId)
 
+  let action = 'RECORD_UPDATED'
+  if (data.status === 'recorded') action = 'RECORD_APPROVED'
+  else if (data.status === 'rejected') action = 'RECORD_REJECTED'
+  else if (data.status === 'voided') action = 'RECORD_VOIDED'
+
   createAuditLog({
     actorId: data.actorId,
     actorName: data.actorName,
-    action: data.status === 'recorded' ? 'RECORD_APPROVED' : data.status === 'rejected' ? 'RECORD_REJECTED' : 'RECORD_UPDATED',
+    action,
     targetType: 'financial_record',
     targetId: data.recordId,
     details: {
@@ -431,6 +436,22 @@ export function getNotifications(userId: string): NotificationItem[] {
 export function markNotificationAsRead(id: string): void {
   const db = getDatabase()
   db.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(id)
+}
+
+export function createNotification(data: {
+  userId: string
+  title: string
+  message: string
+  type?: 'info' | 'success' | 'warning' | 'alert'
+  link?: string
+}): void {
+  const db = getDatabase()
+  const id = `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`
+  const stmt = db.prepare(`
+    INSERT INTO notifications (id, user_id, title, message, type, is_read, link)
+    VALUES (?, ?, ?, ?, ?, 0, ?)
+  `)
+  stmt.run(id, data.userId, data.title, data.message, data.type || 'info', data.link || null)
 }
 
 // -------------------------------------------------------------

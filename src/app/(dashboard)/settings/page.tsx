@@ -1,7 +1,17 @@
 import { redirect } from 'next/navigation'
-import { ShieldCheck, UserCheck, Settings as SettingsIcon, Globe, Bell } from 'lucide-react'
+import {
+  ShieldCheck,
+  UserCheck,
+  Settings as SettingsIcon,
+  Globe,
+  Bell,
+  Coins,
+  Users,
+  Calendar,
+  Layers
+} from 'lucide-react'
 import { getSessionUser } from '@/lib/auth/session'
-import { Card } from '@/components/ui/Card'
+import { getFinancialCategories } from '@/lib/db'
 
 export default async function SettingsPage() {
   const session = await getSessionUser()
@@ -9,83 +19,159 @@ export default async function SettingsPage() {
     redirect('/login')
   }
 
+  const incomeCategories = getFinancialCategories('income')
+  const expenseCategories = getFinancialCategories('expense')
+
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-serif text-[#1e382d] tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 font-sans">
           Workspace Settings
         </h1>
-        <p className="text-xs text-[#71857a] mt-0.5">
-          Choir organization profile, currency standards, and security controls.
+        <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          Choir organization identity, currency standards, categories, and account configuration.
         </p>
       </div>
 
-      {/* Choir Profile */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-9 h-9 rounded-xl bg-[#e4efe6] text-[#2c5b48] flex items-center justify-center font-bold">
-            <Globe className="w-4 h-4" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Choir Identity Card matching Reference */}
+        <div className="card-surface p-6 bg-white space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shadow-xs">
+              <Globe className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                Choir Identity
+              </h3>
+              <p className="text-[11px] text-slate-400">Organization profile & ministry details</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-base font-serif text-[#1e382d]">Choir Identity</h3>
-            <p className="text-[11px] text-[#71857a]">Organization profile & ministry details</p>
+
+          <div className="grid grid-cols-2 gap-4 text-xs pt-2">
+            <div>
+              <span className="text-slate-400 block text-[11px] font-medium">Organization</span>
+              <strong className="text-slate-900 text-xs font-bold block mt-0.5">
+                Grow in Jesus Choir
+              </strong>
+            </div>
+            <div>
+              <span className="text-slate-400 block text-[11px] font-medium">Base Currency</span>
+              <strong className="text-slate-900 text-xs font-bold block mt-0.5">
+                Rwandan Franc (RWF)
+              </strong>
+            </div>
+            <div>
+              <span className="text-slate-400 block text-[11px] font-medium">Active Choir Members</span>
+              <strong className="text-slate-900 text-xs font-bold block mt-0.5">
+                50 Members
+              </strong>
+            </div>
+            <div>
+              <span className="text-slate-400 block text-[11px] font-medium">Monthly Dues Target</span>
+              <strong className="text-slate-900 text-xs font-bold block mt-0.5">
+                50,000 RWF / Member
+              </strong>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-          <div>
-            <span className="text-[#7d9086] block text-[11px]">Organization Name</span>
-            <strong className="text-[#203a30] text-sm font-semibold">Grow in Jesus Choir</strong>
+        {/* User Account Profile Card matching Reference */}
+        <div className="card-surface p-6 bg-white space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold shadow-xs">
+              <UserCheck className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                Your Account Profile
+              </h3>
+              <p className="text-[11px] text-slate-400">Current session & access permissions</p>
+            </div>
           </div>
-          <div>
-            <span className="text-[#7d9086] block text-[11px]">Base Currency</span>
-            <strong className="text-[#203a30] text-sm font-semibold">Rwandan Franc (RWF)</strong>
-          </div>
-          <div>
-            <span className="text-[#7d9086] block text-[11px]">Active Choir Members</span>
-            <strong className="text-[#203a30] text-sm font-semibold">50 Members</strong>
-          </div>
-          <div>
-            <span className="text-[#7d9086] block text-[11px]">Financial Year</span>
-            <strong className="text-[#203a30] text-sm font-semibold">2026 / 2027</strong>
+
+          <div className="grid grid-cols-2 gap-4 text-xs pt-2">
+            <div>
+              <span className="text-slate-400 block text-[11px] font-medium">Full Name</span>
+              <strong className="text-slate-900 text-xs font-bold block mt-0.5">
+                {session.fullName}
+              </strong>
+            </div>
+            <div>
+              <span className="text-slate-400 block text-[11px] font-medium">Email Address</span>
+              <strong className="text-slate-900 text-xs font-bold block mt-0.5 truncate">
+                {session.email}
+              </strong>
+            </div>
+            <div>
+              <span className="text-slate-400 block text-[11px] font-medium">Assigned Role</span>
+              <span className="inline-block mt-0.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 font-bold text-[11px]">
+                {session.role}
+              </span>
+            </div>
+            <div>
+              <span className="text-slate-400 block text-[11px] font-medium">Session Security</span>
+              <span className="text-emerald-700 font-bold block mt-0.5 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                HMAC Signed (7 days)
+              </span>
+            </div>
           </div>
         </div>
-      </Card>
+      </div>
 
-      {/* User Profile Info */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-9 h-9 rounded-xl bg-[#f2f6f3] text-[#2c5b48] flex items-center justify-center font-bold">
-            <UserCheck className="w-4 h-4" />
+      {/* Financial Categories Management Overview (Section 16 & 127) */}
+      <div className="card-surface p-6 bg-white space-y-5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shadow-xs">
+            <Layers className="w-5 h-5 stroke-[2.5]" />
           </div>
           <div>
-            <h3 className="text-base font-serif text-[#1e382d]">Your Account Profile</h3>
-            <p className="text-[11px] text-[#71857a]">Current user permissions & session</p>
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+              Configured Financial Categories
+            </h3>
+            <p className="text-[11px] text-slate-400">
+              Active classification categories for income streams and choir expenses.
+            </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-          <div>
-            <span className="text-[#7d9086] block text-[11px]">Full Name</span>
-            <strong className="text-[#203a30] text-sm font-semibold">{session.fullName}</strong>
-          </div>
-          <div>
-            <span className="text-[#7d9086] block text-[11px]">Email Address</span>
-            <strong className="text-[#203a30] text-sm font-semibold">{session.email}</strong>
-          </div>
-          <div>
-            <span className="text-[#7d9086] block text-[11px]">Assigned Role</span>
-            <span className="inline-block mt-0.5 px-2.5 py-0.5 rounded-full bg-[#e3efe6] text-[#2c5b48] font-bold text-[11px]">
-              {session.role}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+          {/* Income Categories */}
+          <div className="space-y-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">
+              Income Streams ({incomeCategories.length})
             </span>
+            <div className="flex flex-wrap gap-2">
+              {incomeCategories.map((c) => (
+                <span
+                  key={c.id}
+                  className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs font-semibold text-slate-800"
+                >
+                  {c.name}
+                </span>
+              ))}
+            </div>
           </div>
-          <div>
-            <span className="text-[#7d9086] block text-[11px]">Session Expiration</span>
-            <span className="text-[#607469] block mt-0.5">Active (7-day secure token)</span>
+
+          {/* Expense Categories */}
+          <div className="space-y-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">
+              Expense Categories ({expenseCategories.length})
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {expenseCategories.map((c) => (
+                <span
+                  key={c.id}
+                  className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs font-semibold text-slate-800"
+                >
+                  {c.name}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
-      </Card>
+      </div>
     </div>
   )
 }
-

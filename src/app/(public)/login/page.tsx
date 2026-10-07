@@ -28,7 +28,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-3 mb-3">
+          <Link href="/login" className="inline-flex items-center gap-3 mb-3">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#2e5748] to-[#1c3a30] text-white flex items-center justify-center font-bold text-xl shadow-md">
               G
             </div>
@@ -130,14 +130,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Back Link */}
-        <p className="text-center mt-6 text-xs text-[#71857a]">
-          <Link href="/" className="hover:text-[#213b30] underline font-medium">
-            ← Return to main page
-          </Link>
-        </p>
       </div>
     </div>
   )
 }
-

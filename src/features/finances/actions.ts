@@ -42,8 +42,9 @@ export async function createRecordAction(formData: FormData) {
     return { success: false, error: 'Please enter a brief description for this record.' }
   }
 
-  const recordDate = (formData.get('recordDate') as string)?.trim() || getTodayISODate()
+    const recordDate = (formData.get('recordDate') as string)?.trim() || getTodayISODate()
   const memberId = (formData.get('memberId') as string)?.trim() || null
+  const receiptFilename = (formData.get('receiptFilename') as string)?.trim() || undefined
 
   // If added by a member, it requires leader approval ('needs_review')
   // If added by a leader, it is directly confirmed ('recorded')
@@ -59,7 +60,8 @@ export async function createRecordAction(formData: FormData) {
       memberId,
       recordedById: session.userId,
       actorName: session.fullName,
-      status
+      status,
+      receiptFilename
     })
 
     revalidatePath('/dashboard')
@@ -111,6 +113,39 @@ export async function reviewRecordAction(
     }
   } catch (error: any) {
     return { success: false, error: error.message || 'Failed to update record status.' }
+  }
+}
+
+export async function voidRecordAction(recordId: string, reason: string) {
+  const session = await getSessionUser()
+  if (!session || !canApproveRecord(session.role)) {
+    return { success: false, error: 'Unauthorized: Only leaders may void financial records.' }
+  }
+
+  if (!reason || !reason.trim()) {
+    return { success: false, error: 'Please provide a reason for voiding this record.' }
+  }
+
+  try {
+    updateRecordStatus({
+      recordId,
+      status: 'voided',
+      actorId: session.userId,
+      actorName: session.fullName,
+      reason: reason.trim()
+    })
+
+    revalidatePath('/dashboard')
+    revalidatePath('/finances')
+    revalidatePath('/activity')
+    revalidatePath('/reports')
+
+    return {
+      success: true,
+      message: 'Record marked as voided. Financial balances have been updated.'
+    }
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to void record.' }
   }
 }
 

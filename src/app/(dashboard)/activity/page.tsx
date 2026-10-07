@@ -1,9 +1,20 @@
 import { redirect } from 'next/navigation'
-import { Clock, ShieldCheck, UserCheck, FileText, CheckCircle2, XCircle, PlusCircle } from 'lucide-react'
+import {
+  Clock,
+  ShieldCheck,
+  UserCheck,
+  FileText,
+  CheckCircle2,
+  XCircle,
+  PlusCircle,
+  Ban,
+  BellRing,
+  Sparkles
+} from 'lucide-react'
 import { getSessionUser } from '@/lib/auth/session'
 import { getAuditLogs } from '@/lib/db'
 import { formatDateTime } from '@/lib/utils/date'
-import { Card } from '@/components/ui/Card'
+import { formatCurrency } from '@/lib/utils/currency'
 
 export default async function ActivityPage() {
   const session = await getSessionUser()
@@ -15,73 +26,117 @@ export default async function ActivityPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
+      {/* Header matching Reference */}
       <div>
-        <h1 className="text-2xl font-serif text-[#1e382d] tracking-tight">
-          Activity & Audit Log
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 font-sans">
+          Audit Ledger & Activity Timeline
         </h1>
-        <p className="text-xs text-[#71857a] mt-0.5">
-          Verifiable ledger of all financial creations, approvals, and system events.
+        <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          Historical, verifiable record of all financial creations, approvals, rejections, and reminders.
         </p>
       </div>
 
-      <Card className="p-6">
-        <div className="space-y-6">
-          {auditLogs.map((log, index) => {
+      {/* Audit Log Card matching Reference */}
+      <div className="card-surface p-6 bg-white space-y-6">
+        <div className="space-y-5">
+          {auditLogs.map((log) => {
             const isApproved = log.action === 'RECORD_APPROVED'
             const isRejected = log.action === 'RECORD_REJECTED'
             const isCreated = log.action === 'RECORD_CREATED'
+            const isVoided = log.action === 'RECORD_VOIDED'
+            const isReminders = log.action === 'MEMBER_REMINDERS_DISPATCHED'
+
+            const details = log.details as any
 
             return (
               <div key={log.id} className="flex items-start gap-4 text-xs">
-                {/* Event Icon */}
+                {/* Event Icon Pill */}
                 <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                  className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 shadow-xs ${
                     isApproved
-                      ? 'bg-emerald-100 text-emerald-700'
+                      ? 'bg-emerald-50 text-emerald-600'
                       : isRejected
-                      ? 'bg-rose-100 text-rose-700'
-                      : 'bg-[#e4efe6] text-[#2c5b48]'
+                      ? 'bg-rose-50 text-rose-600'
+                      : isVoided
+                      ? 'bg-slate-100 text-slate-600'
+                      : isReminders
+                      ? 'bg-purple-50 text-purple-600'
+                      : 'bg-indigo-50 text-indigo-600'
                   }`}
                 >
-                  {isApproved ? (
-                    <CheckCircle2 className="w-4 h-4" />
-                  ) : isRejected ? (
-                    <XCircle className="w-4 h-4" />
-                  ) : (
-                    <PlusCircle className="w-4 h-4" />
+                  {isApproved && <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />}
+                  {isRejected && <XCircle className="w-5 h-5 stroke-[2.5]" />}
+                  {isVoided && <Ban className="w-5 h-5 stroke-[2.5]" />}
+                  {isReminders && <BellRing className="w-5 h-5 stroke-[2.5]" />}
+                  {isCreated && <PlusCircle className="w-5 h-5 stroke-[2.5]" />}
+                  {!isApproved && !isRejected && !isVoided && !isReminders && !isCreated && (
+                    <Clock className="w-5 h-5 stroke-[2.5]" />
                   )}
                 </div>
 
                 {/* Details */}
-                <div className="flex-1 pb-6 border-b border-[#edf2ee]">
+                <div className="flex-1 pb-5 border-b border-slate-100 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="font-semibold text-sm text-[#1e382d]">
+                    <span className="font-bold text-sm text-slate-900 truncate">
                       {log.actorName}
                     </span>
-                    <span className="text-[11px] text-[#7d9086] whitespace-nowrap">
+                    <span className="text-[11px] text-slate-400 whitespace-nowrap">
                       {formatDateTime(log.createdAt)}
                     </span>
                   </div>
 
-                  <p className="text-[#51675c] leading-relaxed">
-                    {isCreated && 'Created a new financial record.'}
-                    {isApproved && 'Approved and confirmed pending financial record.'}
-                    {isRejected && 'Rejected pending financial record.'}
-                    {!isCreated && !isApproved && !isRejected && `Performed action: ${log.action}`}
+                  {/* Human-friendly action description (Section 2 & 71) */}
+                  <p className="text-slate-600 leading-relaxed font-medium">
+                    {isCreated && (
+                      <span>
+                        Added a new financial record:{' '}
+                        <strong>
+                          {details?.amount ? formatCurrency(details.amount) : ''}
+                        </strong>{' '}
+                        ({details?.description || 'Choir transaction'}).
+                      </span>
+                    )}
+                    {isApproved && (
+                      <span className="text-emerald-800">
+                        Approved pending transaction and verified balance update.
+                      </span>
+                    )}
+                    {isRejected && (
+                      <span className="text-rose-800">
+                        Rejected pending record.
+                        {details?.reason && (
+                          <span className="block mt-0.5 text-xs text-rose-600 font-normal">
+                            Reason: "{details.reason}"
+                          </span>
+                        )}
+                      </span>
+                    )}
+                    {isVoided && (
+                      <span className="text-amber-800">
+                        Marked record as voided.
+                        {details?.reason && (
+                          <span className="block mt-0.5 text-xs text-amber-700 font-normal">
+                            Reason: "{details.reason}"
+                          </span>
+                        )}
+                      </span>
+                    )}
+                    {isReminders && (
+                      <span className="text-purple-800">
+                        Dispatched gentle monthly contribution reminders to{' '}
+                        <strong>{details?.count || 'choir'}</strong> members.
+                      </span>
+                    )}
+                    {!isCreated && !isApproved && !isRejected && !isVoided && !isReminders && (
+                      <span>Performed system event: {log.action}</span>
+                    )}
                   </p>
-
-                  {log.details && (
-                    <div className="mt-2 p-2.5 rounded-xl bg-[#f7faf8] border border-[#e5ece7] text-[11px] font-mono text-[#436253]">
-                      {JSON.stringify(log.details, null, 2)}
-                    </div>
-                  )}
                 </div>
               </div>
             )
           })}
         </div>
-      </Card>
+      </div>
     </div>
   )
 }
-

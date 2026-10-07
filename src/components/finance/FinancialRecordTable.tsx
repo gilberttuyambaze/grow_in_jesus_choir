@@ -8,6 +8,7 @@ import { formatDate } from '@/lib/utils/date'
 import { Badge } from '@/components/ui/Badge'
 import { reviewRecordAction } from '@/features/finances/actions'
 import { RecordDetailModal } from './RecordDetailModal'
+import { useToast } from '@/components/ui/Toast'
 
 interface FinancialRecordTableProps {
   records: FinancialRecord[]
@@ -20,16 +21,25 @@ export function FinancialRecordTable({
   userRole,
   onStatusChange
 }: FinancialRecordTableProps) {
+  const { success: showToastSuccess, error: showToastError } = useToast()
   const [selectedRecord, setSelectedRecord] = React.useState<FinancialRecord | null>(null)
   const [activeReviewId, setActiveReviewId] = React.useState<string | null>(null)
   const [isProcessing, setIsProcessing] = React.useState(false)
 
   const handleReview = async (recordId: string, decision: 'approve' | 'reject') => {
     setIsProcessing(true)
-    await reviewRecordAction(recordId, decision)
+    const res = await reviewRecordAction(recordId, decision)
     setIsProcessing(false)
     setActiveReviewId(null)
-    if (onStatusChange) onStatusChange()
+    if (res.success) {
+      showToastSuccess(
+        decision === 'approve' ? 'Record Approved' : 'Record Rejected',
+        res.message
+      )
+      if (onStatusChange) onStatusChange()
+    } else {
+      showToastError('Review Failed', res.error)
+    }
   }
 
   if (records.length === 0) {
@@ -114,6 +124,9 @@ export function FinancialRecordTable({
                     )}
                     {record.status === 'rejected' && (
                       <Badge variant="rejected">Rejected</Badge>
+                    )}
+                    {record.status === 'voided' && (
+                      <Badge variant="voided">Voided</Badge>
                     )}
                   </td>
                   {userRole === 'LEADER' && (
@@ -204,6 +217,9 @@ export function FinancialRecordTable({
                   )}
                   {record.status === 'rejected' && (
                     <Badge variant="rejected">Rejected</Badge>
+                  )}
+                  {record.status === 'voided' && (
+                    <Badge variant="voided">Voided</Badge>
                   )}
                 </div>
               </div>

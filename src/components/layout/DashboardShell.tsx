@@ -5,6 +5,7 @@ import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { AddRecordDialog } from '@/components/finance/AddRecordDialog'
 import { CommandSearchModal } from './CommandSearchModal'
+import { WelcomeGuideModal } from './WelcomeGuideModal'
 import { FinancialCategory, FinancialRecord, Member, NotificationItem, UserRole } from '@/types'
 
 interface DashboardShellProps {
@@ -99,6 +100,9 @@ export function DashboardShell({
         members={members}
         onOpenAddRecord={() => setIsAddRecordOpen(true)}
       />
+
+      {/* First-time Onboarding Guide (Section 114) */}
+      <WelcomeGuideModal />
     </div>
   )
 }
