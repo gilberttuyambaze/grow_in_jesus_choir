@@ -591,7 +591,6 @@ Recommended:
 ```text
 database/
 ├── migrations/
-├── seeds/
 ├── functions/
 ├── triggers/
 ├── views/
@@ -2800,7 +2799,7 @@ Build:
 
 ## Phase 5 — Database foundation
 
-Create migrations and seed data.
+Create ordered PostgreSQL migrations. Do not add local databases, seed SQL, or demo records.
 
 ## Phase 6 — Member experience
 
@@ -2953,21 +2952,8 @@ Every visualization must be tied to actual data.
 
 Do not create fake statistics in production.
 
-During development, seed realistic demo data, but clearly separate seed/demo data from production data.
-
-Example demo values:
-
-```text
-Income: 680,000 RWF
-Expenses: 245,000 RWF
-Balance: 1,845,000 RWF
-Members: 50
-Contributions recorded: 42
-```
-
-These are development examples only.
-
-Production must display actual database values.
+All environments must read application records from their configured PostgreSQL database.
+Do not use hard-coded or demo values as a substitute for database records.
 
 ---
 
@@ -2989,23 +2975,13 @@ Document dangerous migrations.
 
 ---
 
-# 102. SEED DATA
+# 102. DATABASE DATA POLICY
 
-Development seed data should create a realistic environment.
-
-Include:
-
-- Sample leaders
-- Sample members
-- Income
-- Expenses
-- Contributions
-- Categories
-- Activity history
-
-Do not use real people's private data in development.
-
-Use obviously fictional/demo information.
+- Do not create seed SQL, demo credentials, or fake member and finance records.
+- Read application records from the configured PostgreSQL database.
+- Use a separate non-production PostgreSQL database for development.
+- Create development records through normal application workflows.
+- Never copy real people's private data into a non-production database.
 
 ---
 

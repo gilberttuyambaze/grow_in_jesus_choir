@@ -2,13 +2,14 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { Lock, Mail } from 'lucide-react'
+import { Lock, Mail, Eye, EyeOff } from 'lucide-react'
 import { loginAction } from '@/features/auth/actions'
 import { ChoirLogo } from '@/components/brand/ChoirLogo'
 
 export default function LoginPage() {
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
+  const [showPassword, setShowPassword] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [isLoading, setIsLoading] = React.useState(false)
 
@@ -101,7 +102,7 @@ export default function LoginPage() {
               <div className="relative flex items-center rounded-2xl bg-[#EEF2FC] px-4 py-3.5 border-0 outline-none ring-0 transition-all">
                 <Lock className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   name="password"
                   required
                   autoComplete="current-password"
@@ -111,6 +112,19 @@ export default function LoginPage() {
                   className="w-full bg-transparent text-xs sm:text-sm text-slate-800 placeholder-slate-400 border-0 outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 shadow-none font-medium"
                   style={{ outline: 'none', border: 'none', boxShadow: 'none' }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="text-slate-400 hover:text-slate-600 ml-2 shrink-0 p-1 rounded-lg focus:outline-none transition-colors cursor-pointer"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4 stroke-[2.2]" />
+                  ) : (
+                    <Eye className="w-4 h-4 stroke-[2.2]" />
+                  )}
+                </button>
               </div>
             </div>
 

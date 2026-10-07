@@ -641,7 +641,6 @@ DATABASE STRUCTURE:
 
 database/
 ├── migrations/
-├── seeds/
 ├── functions/
 ├── triggers/
 └── views/
@@ -658,7 +657,10 @@ database/
     ├── 004_financial_records.sql
     └── ...
 
-Create seed data only where useful for development/testing.
+Use the configured PostgreSQL database as the source of application records.
+Do not add local database files, seed SQL, or demo records. Use a separate
+non-production PostgreSQL database for development and create records through
+normal application workflows.
 
 Implement appropriate database authorization mechanisms where the
 chosen database architecture supports them.
@@ -685,7 +687,7 @@ DEFINITION OF DONE:
 [ ] Audit strategy implemented.
 [ ] Migrations work.
 [ ] Database can be recreated from migrations.
-[ ] Seed data works where required.
+[ ] The application has no local database or demo-data fallback.
 [ ] Database integrity tests pass.
 [ ] Financial calculations are unambiguous.
 
