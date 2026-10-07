@@ -1,0 +1,32 @@
+# dependencies
+/node_modules
+/.pnpm-store
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# local environment files
+*.env*.local
+.env
+
+# databases & logs
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+/data
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# system & IDE
+.DS_Store
+*.pem
+.vscode/
+.idea/
+

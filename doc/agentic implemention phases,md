@@ -1,0 +1,1950 @@
+```text
+============================================================
+GROW IN JESUS CHOIR
+COMPLETE DEVELOPMENT PHASE PROMPTS
+============================================================
+
+PROJECT:
+Grow in Jesus Choir
+
+PROJECT STARTING POINT:
+ABSOLUTE ZERO
+
+NUMBER OF PHASES:
+15
+
+PHASES:
+00 — Project Initialization
+01 — Product Discovery & Requirements
+02 — Technical Architecture
+03 — Database & Data Model
+04 — Design System
+05 — Application Shell & Navigation
+06 — Authentication & Authorization
+07 — Member Experience
+08 — Leader Financial Management
+09 — Dashboard & Analytics
+10 — Reports, Documents & Notifications
+11 — Futuristic Experience Layer
+12 — Security, Accessibility & Performance
+13 — Full Testing & Production Readiness
+14 — Launch
+
+============================================================
+MASTER DEVELOPMENT RULE
+============================================================
+
+You are working on the Grow in Jesus Choir project.
+
+The project is being developed in controlled phases.
+
+NEVER assume that a feature exists merely because:
+
+- a file exists
+- a route exists
+- a component exists
+- a database table exists
+- an API endpoint exists
+- a button exists
+- code compiles
+- a previous AI agent claimed it was complete
+
+Verify actual behavior.
+
+A phase is complete ONLY when:
+
+1. The required implementation exists.
+2. The implementation actually works.
+3. The required tests pass.
+4. The production build succeeds.
+5. Security implications have been considered.
+6. Accessibility implications have been considered.
+7. Performance implications have been considered.
+8. Documentation has been updated where required.
+9. No critical known issue remains.
+10. The completion report provides evidence.
+
+Never falsely report completion.
+
+If something cannot be completed:
+
+STATUS = BLOCKED
+
+or:
+
+STATUS = READY_FOR_REVIEW
+
+Do not hide the problem.
+
+============================================================
+GLOBAL PROJECT PRINCIPLES
+============================================================
+
+The Grow in Jesus Choir platform must prioritize:
+
+1. Simplicity
+2. Trust
+3. Financial accuracy
+4. Security
+5. Accessibility
+6. Reliability
+7. Maintainability
+8. Performance
+9. Responsive design
+10. Excellent user experience
+
+Visual quality is important, but visual effects must NEVER take
+priority over usability, accessibility, performance, security, or
+financial correctness.
+
+The application is intended for users who may not be technically
+experienced.
+
+Therefore:
+
+- labels must be clear
+- navigation must be obvious
+- actions must be understandable
+- errors must explain what went wrong
+- financial information must be easy to understand
+- destructive actions must require appropriate confirmation
+- important information must never be hidden behind animation
+- the system must not depend on technical knowledge
+
+============================================================
+VISUAL DIRECTION
+============================================================
+
+The product should eventually feel:
+
+- futuristic
+- premium
+- modern
+- intelligent
+- calm
+- trustworthy
+- polished
+- timeless
+
+Primary visual direction:
+
+LIGHT MODE
+
+The design should feel advanced without becoming confusing.
+
+Avoid:
+
+- excessive visual noise
+- unnecessary gradients
+- excessive glass effects
+- unreadable futuristic fonts
+- excessive animation
+- confusing navigation
+- decorative effects that interfere with financial information
+
+The eventual product may use:
+
+- GSAP
+- Motion
+- Lottie
+- Three.js
+
+But these should be introduced only when they provide real value.
+
+The product must remain usable if animations are disabled.
+
+============================================================
+PROJECT STRUCTURE
+============================================================
+
+The project should use three primary root directories:
+
+/
+├── public/
+├── src/
+└── database/
+
+PUBLIC:
+
+Static publicly accessible assets.
+
+SRC:
+
+Application source code.
+
+DATABASE:
+
+Database-related files, migrations, seeds, functions, triggers,
+views, and other database infrastructure.
+
+Never place private financial documents inside public/.
+
+============================================================
+ROLE MODEL
+============================================================
+
+The application has two primary roles:
+
+MEMBER
+
+LEADER
+
+The exact permissions are defined during PHASE 01.
+
+Never assume that frontend hiding alone provides authorization.
+
+Authorization must eventually be enforced at the appropriate backend,
+API, database, or server layer.
+
+============================================================
+FINANCIAL DATA PRINCIPLES
+============================================================
+
+Financial information is highly sensitive.
+
+The system must eventually provide:
+
+- accurate amounts
+- consistent calculations
+- clear statuses
+- auditability
+- controlled access
+- reliable reporting
+- reconciliation between records and totals
+
+Never use unsafe floating-point arithmetic for financial calculations
+without a deliberate, documented strategy.
+
+The exact currency and accounting rules must be defined during
+requirements and database phases.
+
+============================================================
+PHASE STATUS SYSTEM
+============================================================
+
+NOT_STARTED
+
+↓
+
+IN_PROGRESS
+
+↓
+
+BLOCKED
+
+or
+
+↓
+
+READY_FOR_REVIEW
+
+↓
+
+COMPLETED
+
+Never skip directly from NOT_STARTED to COMPLETED without verification.
+
+============================================================
+PHASE 00
+PROJECT INITIALIZATION
+============================================================
+
+OBJECTIVE:
+
+Create the technical foundation from absolute zero.
+
+TASKS:
+
+1. Inspect the repository.
+2. Inspect the development environment.
+3. Determine whether the project is empty.
+4. Select an appropriate technology stack.
+5. Initialize the application if necessary.
+6. Configure TypeScript where appropriate.
+7. Configure package management.
+8. Configure linting.
+9. Configure formatting.
+10. Configure environment variables.
+11. Configure Git.
+12. Create the basic project structure.
+13. Create a minimal working application.
+14. Create README.md.
+15. Create .env.example.
+16. Create appropriate .gitignore.
+17. Verify development.
+18. Verify production build.
+19. Verify linting.
+20. Verify type checking.
+
+EXPECTED STRUCTURE:
+
+/
+├── public/
+├── src/
+├── database/
+├── README.md
+├── .gitignore
+├── .env.example
+├── package.json
+└── framework/configuration files
+
+Possible src structure:
+
+src/
+├── app/
+├── components/
+├── features/
+├── hooks/
+├── layouts/
+├── lib/
+├── services/
+├── styles/
+├── types/
+└── utils/
+
+Do not create meaningless placeholder files.
+
+DO NOT IMPLEMENT:
+
+- authentication
+- financial dashboard
+- member management
+- reports
+- notifications
+- full database schema
+- advanced animation
+- analytics
+
+Those belong to later phases.
+
+VERIFICATION:
+
+Run the actual commands for:
+
+- dependency installation
+- development server
+- production build
+- lint
+- type checking
+
+Verify that the initial application renders.
+
+DEFINITION OF DONE:
+
+[ ] Project initializes correctly.
+[ ] Dependencies install.
+[ ] Development server works.
+[ ] Production build works.
+[ ] Lint passes.
+[ ] Type check passes where applicable.
+[ ] Folder architecture exists.
+[ ] README exists.
+[ ] .env.example exists.
+[ ] Secrets are protected.
+[ ] Git configuration exists.
+[ ] Initial page renders.
+[ ] No critical setup issue remains.
+
+============================================================
+PHASE 01
+PRODUCT DISCOVERY & REQUIREMENTS
+============================================================
+
+OBJECTIVE:
+
+Define exactly what Grow in Jesus Choir should do before building
+major application functionality.
+
+Do not rush into implementation.
+
+TASKS:
+
+Define:
+
+1. Product purpose.
+2. Target users.
+3. User problems.
+4. Core workflows.
+5. Non-goals.
+6. Member role.
+7. Leader role.
+8. Permissions.
+9. User journeys.
+10. Sitemap.
+11. Feature inventory.
+12. Required screens.
+13. Required states.
+14. Ambiguous requirements.
+15. Business decisions requiring confirmation.
+
+PROPOSED SITEMAP:
+
+/
+├── login
+├── member
+│   ├── dashboard
+│   ├── contributions
+│   ├── activity
+│   └── profile
+└── leader
+    ├── dashboard
+    ├── finances
+    ├── members
+    ├── reports
+    ├── documents
+    ├── activity
+    └── settings
+
+This sitemap is a starting point, NOT a final business requirement.
+
+Define what each screen must accomplish.
+
+For every major workflow document:
+
+START
+→ ACTION
+→ VALIDATION
+→ CONFIRMATION
+→ RESULT
+
+Example:
+
+Member adds contribution:
+
+Dashboard
+→ Add Contribution
+→ Enter amount
+→ Select type
+→ Select date
+→ Optional note/receipt
+→ Review
+→ Submit
+→ Success
+→ History
+
+Define:
+
+- happy paths
+- validation failures
+- permission failures
+- empty states
+- loading states
+- error states
+- success states
+
+Create a permission matrix.
+
+Example:
+
+FEATURE                  MEMBER       LEADER
+------------------------------------------------
+Own profile              YES          YES
+Own contributions        YES          YES
+Other member data        NO           YES
+Financial management     NO           YES
+Reports                  LIMITED      YES
+Leader settings          NO           YES
+
+Do not assume these exact permissions are final.
+
+Document the decisions.
+
+DEFINITION OF DONE:
+
+[ ] Product purpose documented.
+[ ] Users documented.
+[ ] Roles documented.
+[ ] Permissions documented.
+[ ] Core workflows documented.
+[ ] Sitemap documented.
+[ ] Feature inventory documented.
+[ ] Required screens documented.
+[ ] Required states documented.
+[ ] Non-goals documented.
+[ ] Ambiguous requirements identified.
+[ ] Major hidden assumptions identified.
+[ ] No major unknown workflow is being silently assumed.
+
+GATE:
+
+DO NOT BEGIN DATABASE IMPLEMENTATION UNTIL THE CORE WORKFLOWS
+AND PERMISSION MODEL ARE UNDERSTOOD.
+
+============================================================
+PHASE 02
+TECHNICAL ARCHITECTURE
+============================================================
+
+OBJECTIVE:
+
+Translate the product requirements into a maintainable technical
+architecture.
+
+TASKS:
+
+Define:
+
+- frontend architecture
+- backend/server architecture
+- database architecture
+- authentication architecture
+- authorization architecture
+- storage architecture
+- API/data-access architecture
+- validation architecture
+- error-handling architecture
+- testing architecture
+- deployment architecture
+- logging architecture
+- environment architecture
+
+ESTABLISH DATA FLOW:
+
+UI
+↓
+Feature
+↓
+Service / Server Action / API
+↓
+Database / External Service
+↓
+Response
+↓
+UI
+
+Avoid allowing random components to directly manipulate sensitive
+data without an intentional architecture.
+
+Define where:
+
+- validation occurs
+- authorization occurs
+- business logic occurs
+- database queries occur
+- error transformation occurs
+
+Define error behavior for:
+
+- validation failure
+- authentication failure
+- authorization failure
+- database failure
+- network failure
+- file upload failure
+- unexpected server failure
+
+Define the boundary between:
+
+- public code
+- server-only code
+- client-side code
+- database code
+
+Do not expose server-only secrets to clients.
+
+Define the eventual deployment model.
+
+Do not deploy yet.
+
+DEFINITION OF DONE:
+
+[ ] Technology stack documented.
+[ ] Architecture documented.
+[ ] Source architecture documented.
+[ ] Data flow documented.
+[ ] Authentication strategy documented.
+[ ] Authorization strategy documented.
+[ ] Storage strategy documented.
+[ ] Validation strategy documented.
+[ ] Error strategy documented.
+[ ] Testing strategy documented.
+[ ] Deployment strategy documented.
+[ ] Environment strategy documented.
+[ ] Server/client boundaries documented.
+[ ] Major architectural decisions documented.
+
+============================================================
+PHASE 03
+DATABASE & DATA MODEL
+============================================================
+
+OBJECTIVE:
+
+Create the trustworthy data foundation for the platform.
+
+TASKS:
+
+Design the database based on PHASE 01 requirements.
+
+Potential entities include:
+
+- users
+- roles
+- members
+- financial_categories
+- financial_records
+- contributions
+- expenses
+- documents
+- notifications
+- audit_logs
+- settings
+
+Do not blindly create every table.
+
+Only create entities justified by the approved requirements.
+
+Every relevant table should consider:
+
+- primary key
+- foreign keys
+- timestamps
+- constraints
+- indexes
+- ownership
+- statuses
+- data validation
+- audit requirements
+
+FINANCIAL RULES:
+
+Define:
+
+- currency
+- amount representation
+- precision
+- rounding
+- balance calculations
+- positive/negative conventions
+- income rules
+- expense rules
+- contribution rules
+
+Do not use floating point for money unless there is a deliberate,
+documented reason.
+
+AUDITABILITY:
+
+Financial records should eventually support traceability such as:
+
+Created
+↓
+Edited
+↓
+Submitted
+↓
+Reviewed
+↓
+Approved / Rejected
+
+DATABASE STRUCTURE:
+
+database/
+├── migrations/
+├── seeds/
+├── functions/
+├── triggers/
+└── views/
+
+Migrations should be ordered and reproducible.
+
+Example:
+
+database/
+└── migrations/
+    ├── 001_initial.sql
+    ├── 002_roles.sql
+    ├── 003_members.sql
+    ├── 004_financial_records.sql
+    └── ...
+
+Create seed data only where useful for development/testing.
+
+Implement appropriate database authorization mechanisms where the
+chosen database architecture supports them.
+
+Test:
+
+- relationships
+- constraints
+- ownership
+- invalid data
+- duplicate records where prohibited
+- financial calculations
+- migration recreation
+
+DEFINITION OF DONE:
+
+[ ] Approved schema implemented.
+[ ] Relationships implemented.
+[ ] Foreign keys implemented.
+[ ] Constraints implemented.
+[ ] Indexes reviewed.
+[ ] Financial representation defined.
+[ ] Ownership rules defined.
+[ ] Audit strategy implemented.
+[ ] Migrations work.
+[ ] Database can be recreated from migrations.
+[ ] Seed data works where required.
+[ ] Database integrity tests pass.
+[ ] Financial calculations are unambiguous.
+
+CRITICAL GATE:
+
+DO NOT MARK COMPLETE IF FINANCIAL CALCULATIONS OR DATA OWNERSHIP
+RULES ARE AMBIGUOUS.
+
+============================================================
+PHASE 04
+DESIGN SYSTEM
+============================================================
+
+OBJECTIVE:
+
+Create the reusable visual language for the entire platform.
+
+DESIGN CHARACTER:
+
+- futuristic
+- premium
+- light
+- calm
+- intelligent
+- trustworthy
+- accessible
+- timeless
+
+Define design tokens for:
+
+- colors
+- typography
+- spacing
+- radius
+- borders
+- shadows
+- elevation
+- motion
+- breakpoints
+- z-index
+
+Create reusable components.
+
+CORE COMPONENTS:
+
+- Button
+- Input
+- Select
+- Checkbox
+- Radio
+- Textarea
+- Card
+- Table
+- Badge
+- Avatar
+- Dialog
+- Drawer
+- Dropdown
+- Tabs
+- Tooltip
+- Toast
+- Pagination
+- Skeleton
+- EmptyState
+- ErrorState
+- LoadingState
+
+FINANCIAL COMPONENTS:
+
+- Money
+- Balance
+- Income
+- Expense
+- Transaction
+- Status
+- Date
+- Percentage
+- Trend
+
+Every component should have appropriate states:
+
+- default
+- hover
+- focus
+- active
+- disabled
+- loading
+- error
+- success where applicable
+
+Responsive behavior must be considered for:
+
+- mobile
+- tablet
+- desktop
+- large desktop
+
+Do not duplicate components unnecessarily.
+
+Do not create page-specific versions of reusable UI elements unless
+there is a genuine reason.
+
+DEFINITION OF DONE:
+
+[ ] Design tokens exist.
+[ ] Typography established.
+[ ] Color system established.
+[ ] Spacing system established.
+[ ] Responsive system established.
+[ ] Core components implemented.
+[ ] Component states implemented.
+[ ] Financial components implemented.
+[ ] Keyboard/focus behavior considered.
+[ ] Components are reusable.
+[ ] No major unnecessary duplication exists.
+
+============================================================
+PHASE 05
+APPLICATION SHELL & NAVIGATION
+============================================================
+
+OBJECTIVE:
+
+Build the actual application framework that users will navigate.
+
+PUBLIC EXPERIENCE:
+
+- landing page
+- login entry point
+- public navigation where required
+
+AUTHENTICATED EXPERIENCE:
+
+- application shell
+- sidebar/navigation
+- header
+- user menu
+- notification area
+- main content
+- responsive navigation
+
+Create distinct navigation experiences for:
+
+MEMBER
+
+and
+
+LEADER
+
+Do not expose leader-only navigation to members.
+
+The shell must communicate:
+
+- current location
+- available actions
+- user identity
+- application state
+
+Mobile navigation must be intentionally designed.
+
+Do not simply shrink desktop navigation.
+
+Implement:
+
+- active route states
+- loading states
+- error states
+- empty states where applicable
+- responsive behavior
+
+DEFINITION OF DONE:
+
+[ ] Public shell works.
+[ ] Authenticated shell works.
+[ ] Member navigation works.
+[ ] Leader navigation structure exists.
+[ ] Mobile navigation works.
+[ ] Active route is clear.
+[ ] User menu works where applicable.
+[ ] Loading states exist.
+[ ] Error states exist.
+[ ] Unauthorized navigation is not exposed.
+
+============================================================
+PHASE 06
+AUTHENTICATION & AUTHORIZATION
+============================================================
+
+OBJECTIVE:
+
+Create secure identity and permission handling.
+
+TASKS:
+
+Implement the approved authentication strategy.
+
+Potential functionality:
+
+- registration/invitation
+- login
+- logout
+- session management
+- password recovery
+- email verification if required
+- role assignment
+- protected routes
+
+Do not implement functionality that was not approved.
+
+AUTHORIZATION MUST NOT depend only on:
+
+- hidden buttons
+- frontend route guards
+- CSS
+- client-side role checks
+
+Server/data/database authorization must enforce access.
+
+TEST:
+
+Member attempts to:
+
+- access leader dashboard
+- access leader API
+- access another member's private data
+- perform leader-only financial action
+
+Expected result:
+
+ACCESS DENIED.
+
+Test valid leader access.
+
+Test session expiration.
+
+Test logout.
+
+Test invalid authentication.
+
+Test unauthorized API requests.
+
+DEFINITION OF DONE:
+
+[ ] Login works.
+[ ] Logout works.
+[ ] Sessions work.
+[ ] Protected routes work.
+[ ] Member role works.
+[ ] Leader role works.
+[ ] Unauthorized access is blocked.
+[ ] Server-side authorization exists.
+[ ] Security-sensitive flows are tested.
+[ ] Recovery/security flows work where required.
+
+============================================================
+PHASE 07
+MEMBER EXPERIENCE
+============================================================
+
+OBJECTIVE:
+
+Build the complete member-facing experience.
+
+MEMBER DASHBOARD SHOULD PROVIDE:
+
+- welcome
+- contribution status
+- recent activity
+- personal records
+- notifications
+- useful quick actions
+
+Avoid overwhelming the member with financial information that they
+do not need.
+
+CORE CONTRIBUTION FLOW:
+
++ ADD CONTRIBUTION
+↓
+Amount
+↓
+Category/type
+↓
+Date
+↓
+Optional note
+↓
+Optional receipt
+↓
+Review
+↓
+Submit
+↓
+Success
+
+The flow should have:
+
+- clear labels
+- sensible defaults
+- inline validation
+- helpful error messages
+- review step
+- success confirmation
+
+MEMBER HISTORY:
+
+Show useful information such as:
+
+- date
+- amount
+- type
+- status
+
+The member should be able to understand whether a record is:
+
+- pending
+- approved
+- rejected
+- completed
+- otherwise applicable
+
+Do not expose sensitive leader-only information.
+
+Test mobile use carefully.
+
+DEFINITION OF DONE:
+
+[ ] Member can log in.
+[ ] Member understands dashboard.
+[ ] Member can create required record.
+[ ] Validation works.
+[ ] Errors are understandable.
+[ ] Member can submit record.
+[ ] Confirmation is shown.
+[ ] Member can view history.
+[ ] Member understands status.
+[ ] Mobile experience works.
+[ ] Member cannot access unauthorized information.
+
+============================================================
+PHASE 08
+LEADER FINANCIAL MANAGEMENT
+============================================================
+
+OBJECTIVE:
+
+Build the core leader financial-management system.
+
+INCOME:
+
+Implement where approved:
+
+- create
+- view
+- edit
+- search
+- filter
+- detail
+
+EXPENSES:
+
+Implement:
+
+- create
+- view
+- edit
+- search
+- filter
+- detail
+
+CONTRIBUTIONS:
+
+Implement:
+
+- view
+- search
+- filter
+- review
+- approve/reject where required
+- detail
+
+FINANCIAL RECORD DETAIL SHOULD SHOW:
+
+- amount
+- date
+- category
+- description
+- creator
+- status
+- supporting document
+- history
+
+The leader should be able to understand exactly what happened to
+a financial record.
+
+Do not allow unauthorized editing.
+
+Do not silently modify historical financial information.
+
+Where records require auditability, record the change history.
+
+FINANCIAL CORRECTNESS:
+
+Totals shown in the UI must reconcile with underlying records.
+
+Test:
+
+- adding income
+- adding expense
+- adding contribution
+- editing allowed record
+- filtering
+- searching
+- status changes
+- totals
+
+DEFINITION OF DONE:
+
+[ ] Leader can create income.
+[ ] Leader can create expense.
+[ ] Leader can view records.
+[ ] Leader can search.
+[ ] Leader can filter.
+[ ] Leader can edit permitted records.
+[ ] Leader can review member records.
+[ ] Approval/rejection works where required.
+[ ] Totals are accurate.
+[ ] Record history is visible where required.
+[ ] Authorization is enforced.
+
+============================================================
+PHASE 09
+DASHBOARD & ANALYTICS
+============================================================
+
+OBJECTIVE:
+
+Transform raw financial data into information that ordinary users
+can understand.
+
+LEADER KPIs MAY INCLUDE:
+
+- balance
+- income
+- expenses
+- contributions
+- pending records
+
+POSSIBLE CHARTS:
+
+- income vs expenses
+- monthly cash flow
+- contribution trends
+- expense categories
+
+FILTERS:
+
+- date range
+- category
+- type
+- status
+
+Every chart must use real application data.
+
+Never create fake charts just to make the dashboard look complete.
+
+A signature visualization may eventually be called:
+
+"Financial Pulse"
+
+but it must remain understandable.
+
+Charts must have:
+
+- labels
+- accessible alternatives
+- useful empty states
+- useful loading states
+- understandable tooltips
+- correct calculations
+
+Test large datasets.
+
+Test:
+
+- no records
+- one record
+- many records
+- filtered records
+- date ranges
+- unusual values
+
+DEFINITION OF DONE:
+
+[ ] Dashboard loads real data.
+[ ] KPIs are accurate.
+[ ] Charts use real data.
+[ ] Filters work.
+[ ] Date ranges work.
+[ ] Empty states work.
+[ ] Loading states work.
+[ ] Large datasets remain usable.
+[ ] Calculations reconcile with underlying records.
+[ ] Charts remain understandable on mobile.
+
+============================================================
+PHASE 10
+REPORTS, DOCUMENTS & NOTIFICATIONS
+============================================================
+
+OBJECTIVE:
+
+Provide useful reporting, secure documents, and clear notifications.
+
+REPORTS MAY INCLUDE:
+
+- financial summary
+- income report
+- expense report
+- contribution report
+- date-filtered reports
+
+Exports may include:
+
+- CSV
+- PDF
+
+Only implement formats that are required.
+
+REPORTS MUST USE THE SAME TRUSTWORTHY FINANCIAL DATA AS THE DASHBOARD.
+
+Documents may include:
+
+- receipts
+- invoices
+- financial attachments
+
+PRIVATE DOCUMENTS MUST NOT BE STORED IN public/.
+
+Document access must be controlled.
+
+NOTIFICATIONS MAY INCLUDE:
+
+- record submitted
+- record approved
+- record rejected
+- reminders
+- system notifications
+
+Notifications should communicate:
+
+- what happened
+- when it happened
+- what the user can do next if applicable
+
+Do not create notification spam.
+
+DEFINITION OF DONE:
+
+[ ] Required reports generate correctly.
+[ ] Report filters work.
+[ ] Exported data is correct.
+[ ] Documents upload correctly.
+[ ] Documents are access-controlled.
+[ ] Private documents are not publicly exposed.
+[ ] Notifications work.
+[ ] Notification states are understandable.
+[ ] Errors are handled.
+[ ] Large reports remain usable.
+
+============================================================
+PHASE 11
+FUTURISTIC EXPERIENCE LAYER
+============================================================
+
+IMPORTANT:
+
+DO NOT BEGIN THIS PHASE UNTIL THE CORE PRODUCT IS FUNCTIONAL.
+
+This phase is about making the product extraordinary without
+destroying usability.
+
+TOOLS MAY INCLUDE:
+
+GSAP
+
+Use for justified experiences such as:
+
+- page transitions
+- dashboard reveals
+- number animations
+- scroll sequences
+- hero interactions
+- signature visual moments
+
+MOTION
+
+Use for:
+
+- microinteractions
+- dialogs
+- menus
+- layout transitions
+- feedback
+
+LOTTIE
+
+Use for:
+
+- success states
+- onboarding
+- empty states
+- upload states
+
+THREE.JS
+
+Use only where genuinely valuable.
+
+Possible applications:
+
+- financial visualization
+- ambient background
+- hero experience
+- interactive data visualization
+
+DO NOT USE THREE.JS JUST BECAUSE IT LOOKS IMPRESSIVE.
+
+Animation principles:
+
+1. Animation must have a purpose.
+2. Animation must not block tasks.
+3. Animation must not hide information.
+4. Animation must not slow the application unnecessarily.
+5. Animation must respect reduced-motion preferences.
+6. Animation must remain usable on mobile.
+7. Animation must not cause layout instability.
+8. Animation must not make financial information harder to read.
+
+CRITICAL REQUIREMENT:
+
+The application should remain functionally usable with animation
+disabled.
+
+Test:
+
+- prefers-reduced-motion
+- slow devices
+- mobile
+- keyboard navigation
+- screen readers
+- low bandwidth
+
+DEFINITION OF DONE:
+
+[ ] Motion system implemented.
+[ ] GSAP used only where justified.
+[ ] Motion used only where justified.
+[ ] Lottie used only where justified.
+[ ] Three.js used only where justified.
+[ ] Reduced-motion support works.
+[ ] Animation does not block functionality.
+[ ] Mobile performance remains acceptable.
+[ ] Accessibility remains intact.
+[ ] No unnecessary animation exists.
+
+============================================================
+PHASE 12
+SECURITY, ACCESSIBILITY & PERFORMANCE
+============================================================
+
+OBJECTIVE:
+
+Perform a serious production-quality hardening pass.
+
+SECURITY REVIEW:
+
+Check:
+
+- authentication
+- authorization
+- database permissions
+- input validation
+- output handling
+- file uploads
+- sessions
+- cookies
+- secrets
+- API endpoints
+- error messages
+- logging
+- audit logs
+- private documents
+- dependency vulnerabilities
+
+Verify that sensitive data cannot be accessed by unauthorized users.
+
+ACCESSIBILITY REVIEW:
+
+Check:
+
+- keyboard navigation
+- focus indicators
+- semantic HTML
+- screen-reader labels
+- form labels
+- error messages
+- contrast
+- touch targets
+- headings
+- landmarks
+- dialogs
+- menus
+- reduced motion
+
+PERFORMANCE REVIEW:
+
+Check:
+
+- initial page load
+- JavaScript size
+- images
+- fonts
+- charts
+- database queries
+- API calls
+- animation
+- lazy loading
+
+Do not load heavy features unnecessarily.
+
+For example:
+
+DO NOT load Three.js on the login page simply because the application
+uses Three.js elsewhere.
+
+Use code splitting/lazy loading where appropriate.
+
+Optimize:
+
+- images
+- fonts
+- heavy charts
+- animations
+- data requests
+
+DEFINITION OF DONE:
+
+[ ] Security audit completed.
+[ ] No critical security issues.
+[ ] Authorization tested.
+[ ] Private data protected.
+[ ] File access tested.
+[ ] Accessibility audit completed.
+[ ] Keyboard navigation works.
+[ ] Focus states work.
+[ ] Forms are accessible.
+[ ] Reduced motion works.
+[ ] Mobile usability verified.
+[ ] Performance reviewed.
+[ ] Heavy features optimized.
+[ ] Database queries reviewed.
+[ ] No obvious unnecessary network requests remain.
+
+============================================================
+PHASE 13
+FULL TESTING & PRODUCTION READINESS
+============================================================
+
+OBJECTIVE:
+
+Test the entire system as a real production product.
+
+UNIT TESTS:
+
+Test:
+
+- balance calculations
+- income calculations
+- expense calculations
+- contribution totals
+- date calculations
+- permission logic
+- validation
+- status transitions
+- financial calculations
+
+INTEGRATION TESTS:
+
+Test:
+
+- authentication
+- database operations
+- record creation
+- record updates
+- approval
+- rejection
+- file uploads
+- notifications
+- reports
+- exports
+
+END-TO-END MEMBER JOURNEY:
+
+Login
+↓
+Dashboard
+↓
+Create contribution
+↓
+Submit
+↓
+Confirmation
+↓
+View history
+
+END-TO-END LEADER JOURNEY:
+
+Login
+↓
+Dashboard
+↓
+Review record
+↓
+Approve
+↓
+Verify dashboard
+↓
+Generate report
+
+Test both success and failure paths.
+
+Test unauthorized access.
+
+Test mobile.
+
+Test desktop.
+
+Test empty states.
+
+Test loading states.
+
+Test network/API failure behavior.
+
+Test database failure behavior where practical.
+
+PRODUCTION CHECKLIST:
+
+[ ] Production build succeeds.
+[ ] Environment variables configured.
+[ ] Database migrations verified.
+[ ] Backup strategy exists.
+[ ] Error monitoring exists.
+[ ] Logging exists.
+[ ] Authentication tested.
+[ ] Authorization tested.
+[ ] Financial calculations tested.
+[ ] Mobile tested.
+[ ] Desktop tested.
+[ ] Accessibility tested.
+[ ] Performance tested.
+[ ] SEO configured.
+[ ] Favicon configured.
+[ ] robots.txt configured.
+[ ] sitemap configured.
+[ ] 404 page exists.
+[ ] Error page exists.
+[ ] Loading states exist.
+[ ] Empty states exist.
+[ ] Documentation complete.
+
+Do not launch with:
+
+- failing critical tests
+- known critical security issues
+- broken financial calculations
+- broken authorization
+- inaccessible core workflows
+- broken mobile experience
+- failing production build
+
+DEFINITION OF DONE:
+
+Every critical workflow has been tested successfully.
+
+============================================================
+PHASE 14
+LAUNCH
+============================================================
+
+OBJECTIVE:
+
+Deploy the actual production application and verify that real users
+can use it successfully.
+
+BEFORE DEPLOYMENT:
+
+Verify:
+
+- production environment
+- environment variables
+- database
+- migrations
+- storage
+- authentication
+- domains
+- HTTPS
+- monitoring
+- backups
+- error tracking
+- logs
+
+DEPLOYMENT:
+
+Deploy the production application using the approved deployment
+strategy.
+
+After deployment, do not assume success simply because the deployment
+provider reports "successful".
+
+Perform real production smoke tests.
+
+PRODUCTION SMOKE TEST:
+
+Landing page
+↓
+Login
+↓
+Member dashboard
+↓
+Member action
+↓
+Member history
+↓
+Leader logout
+↓
+Leader login
+↓
+Leader dashboard
+↓
+Financial record
+↓
+Approval/review
+↓
+Dashboard verification
+↓
+Report generation
+
+Verify:
+
+- production URLs
+- authentication
+- authorization
+- database connectivity
+- financial calculations
+- document access
+- notifications
+- reports
+- responsive UI
+- error handling
+
+Check monitoring after deployment.
+
+Verify that no unexpected production errors are occurring.
+
+DEFINITION OF DONE:
+
+[ ] Production deployment succeeded.
+[ ] Production site is reachable.
+[ ] HTTPS works.
+[ ] Authentication works.
+[ ] Member workflow works.
+[ ] Leader workflow works.
+[ ] Authorization works.
+[ ] Financial records work.
+[ ] Dashboard works.
+[ ] Reports work.
+[ ] Private documents remain private.
+[ ] Notifications work.
+[ ] Production errors are monitored.
+[ ] Backups are configured.
+[ ] Documentation is updated.
+[ ] Production smoke tests pass.
+
+CRITICAL RULE:
+
+DEPLOYMENT SUCCESS DOES NOT EQUAL PROJECT SUCCESS.
+
+The project is complete only when real production workflows have been
+verified.
+
+============================================================
+MASTER PHASE COMPLETION REPORT
+============================================================
+
+At the end of EVERY phase, provide the following report.
+
+==================================================
+PHASE COMPLETION REPORT
+==================================================
+
+Phase:
+[PHASE NUMBER + NAME]
+
+Status:
+COMPLETED / READY_FOR_REVIEW / BLOCKED
+
+Objective:
+[What this phase was supposed to accomplish.]
+
+Implemented:
+- ...
+- ...
+- ...
+
+Files Created:
+- ...
+- ...
+- ...
+
+Files Modified:
+- ...
+- ...
+- ...
+
+Database Changes:
+- ...
+- ...
+- ...
+
+Routes Added/Changed:
+- ...
+- ...
+
+Components Added/Changed:
+- ...
+- ...
+
+Services Added/Changed:
+- ...
+- ...
+
+Tests Performed:
+- ...
+- ...
+
+Test Results:
+- PASS
+- PASS
+- PASS
+
+Build:
+PASS / FAIL
+
+Lint:
+PASS / FAIL
+
+Type Check:
+PASS / FAIL / NOT APPLICABLE
+
+Runtime Verification:
+PASS / FAIL / PARTIALLY VERIFIED
+
+Security:
+PASS / FAIL / REVIEW REQUIRED
+
+Accessibility:
+PASS / FAIL / REVIEW REQUIRED
+
+Performance:
+PASS / FAIL / REVIEW REQUIRED
+
+Known Issues:
+- ...
+- ...
+
+Deferred Work:
+- ...
+- ...
+
+Architectural Decisions:
+- ...
+- ...
+
+Evidence:
+[Explain exactly what was tested and verified.]
+
+Phase Gate:
+PASSED / FAILED
+
+Next Phase:
+[PHASE NUMBER + NAME]
+
+============================================================
+MASTER RULE FOR MOVING TO THE NEXT PHASE
+============================================================
+
+DO NOT automatically begin the next phase simply because the current
+phase's code appears complete.
+
+First:
+
+1. Run verification.
+2. Review the completion criteria.
+3. Produce the completion report.
+4. Identify unresolved issues.
+5. Confirm the phase gate.
+
+Only then proceed to the next phase.
+
+============================================================
+PHASE DEPENDENCY MAP
+============================================================
+
+PHASE 00
+Project Initialization
+        ↓
+PHASE 01
+Product Discovery & Requirements
+        ↓
+PHASE 02
+Technical Architecture
+        ↓
+PHASE 03
+Database & Data Model
+        ↓
+PHASE 04
+Design System
+        ↓
+PHASE 05
+Application Shell & Navigation
+        ↓
+PHASE 06
+Authentication & Authorization
+        ↓
+PHASE 07
+Member Experience
+        ↓
+PHASE 08
+Leader Financial Management
+        ↓
+PHASE 09
+Dashboard & Analytics
+        ↓
+PHASE 10
+Reports, Documents & Notifications
+        ↓
+PHASE 11
+Futuristic Experience Layer
+        ↓
+PHASE 12
+Security, Accessibility & Performance
+        ↓
+PHASE 13
+Full Testing & Production Readiness
+        ↓
+PHASE 14
+Launch
+
+============================================================
+IMPORTANT IMPLEMENTATION PHILOSOPHY
+============================================================
+
+Do not build the entire application in one pass.
+
+Do not generate hundreds of files merely to make the repository look
+complete.
+
+Build progressively.
+
+Each phase must have:
+
+OBJECTIVE
+↓
+IMPLEMENTATION
+↓
+VERIFICATION
+↓
+COMPLETION GATE
+
+The project should evolve approximately as:
+
+UX
+↓
+Design System
+↓
+Functional UI
+↓
+Real Data
+↓
+Motion
+↓
+Polish
+↓
+Security
+↓
+Testing
+↓
+Production
+
+============================================================
+QUALITY PRIORITY
+============================================================
+
+When there is a conflict between priorities, use this order:
+
+1. Financial correctness
+2. Security
+3. Data integrity
+4. Authorization
+5. Accessibility
+6. Reliability
+7. Usability
+8. Performance
+9. Maintainability
+10. Visual polish
+11. Animation
+
+A beautiful interface with incorrect financial information is a
+failure.
+
+A futuristic interface that exposes private data is a failure.
+
+A highly animated interface that is difficult to use is a failure.
+
+A simple interface that is accurate, secure, accessible, fast, and
+easy to understand is a successful foundation.
+
+============================================================
+FINAL PROJECT STANDARD
+============================================================
+
+The ultimate goal is not merely to produce a website.
+
+The goal is to produce a trustworthy digital platform for Grow in
+Jesus Choir that members and leaders can confidently use to:
+
+- understand financial information
+- record appropriate financial activity
+- review records
+- manage financial information
+- generate useful reports
+- access appropriate documents
+- receive important notifications
+- understand the state of their records
+
+The product should feel premium and futuristic while remaining:
+
+SIMPLE
+CLEAR
+FAST
+ACCESSIBLE
+SECURE
+TRUSTWORTHY
+ACCURATE
+
+The final product should feel advanced without requiring users to
+understand technology.
+
+============================================================
+END OF MASTER DEVELOPMENT PHASES
+============================================================
+```
