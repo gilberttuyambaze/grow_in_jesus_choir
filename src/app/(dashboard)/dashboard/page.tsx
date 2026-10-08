@@ -30,7 +30,7 @@ import { DonutStatusCard } from '@/components/dashboard/DonutStatusCard'
 import { FinancialRecordTable } from '@/components/finance/FinancialRecordTable'
 import { Badge } from '@/components/ui/Badge'
 import { canViewAllFinances } from '@/lib/permissions'
-import { DashboardQuickActions, DashboardHeaderQuickButtons } from '@/components/dashboard/DashboardQuickActions'
+import { DashboardHeaderQuickButtons } from '@/components/dashboard/DashboardQuickActions'
 
 export default async function DashboardPage() {
   const session = await getSessionUser()
@@ -98,8 +98,6 @@ export default async function DashboardPage() {
         <DashboardHeaderQuickButtons userRole={session.role} />
       </div>
 
-      {/* Prominent 1-Click Visual Communication Cards for Recording & Creation */}
-      <DashboardQuickActions userRole={session.role} />
 
       {/* LEADER DASHBOARD EXPERIENCE MATCHING REFERENCE IMAGE */}
       {isLeader ? (
