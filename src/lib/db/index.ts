@@ -77,6 +77,7 @@ import {
   validateAttendanceCheckIn,
   validateContributionSubmission
 } from '@/features/sessions/domain.mjs'
+import { getRuntimePostgresConnectionUrl } from '@/lib/db/connection-url.mjs'
 import { sessionDateIso } from '@/lib/utils/zoned-time'
 
 type AuthUser = User & { passwordHash: string }
@@ -121,9 +122,15 @@ export function getPgPool(): pg.Pool {
     throw new Error('DATABASE_URL must be a PostgreSQL connection string.')
   }
 
+  const runtimeConnection = getRuntimePostgresConnectionUrl(connectionString)
+  if (runtimeConnection.switchedToTransactionPooler) {
+    console.warn('[PostgreSQL] Supabase session-pooler URL detected; using transaction-pooler port 6543 for the application runtime.')
+  }
+
   const caCert = loadCaCertificate()
-  const isLocalhost = connectionString.includes('localhost') || connectionString.includes('127.0.0.1')
-  const isSslDisabled = connectionString.includes('sslmode=disable')
+  const isLocalhost = runtimeConnection.connectionString.includes('localhost') ||
+    runtimeConnection.connectionString.includes('127.0.0.1')
+  const isSslDisabled = runtimeConnection.connectionString.includes('sslmode=disable')
 
   const sslConfig = isLocalhost || isSslDisabled
     ? false
@@ -133,9 +140,9 @@ export function getPgPool(): pg.Pool {
       }
 
   const pool = new pg.Pool({
-    connectionString,
+    connectionString: runtimeConnection.connectionString,
     ssl: sslConfig,
-    max: 3,
+    max: process.env.VERCEL === '1' ? 1 : 3,
     idleTimeoutMillis: 10000,
     connectionTimeoutMillis: 10000
   })

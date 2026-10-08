@@ -12,7 +12,7 @@ A financial records and member contribution platform built with Next.js, Postgre
 ## Setup
 
 1. Install dependencies and copy `.env.example` to `.env`.
-2. Set `POSTGRES_DATABASE_URL` to the Supabase PostgreSQL pooler URI and `POSTGRES_CA_CERT_PATH` to the downloaded database root CA certificate (for example, `certs/supabase-ca.crt`). Set `POSTGRES_DIRECT_URL` only when your deployment requires a direct URI. The database user needs permission to create and alter the application's tables.
+2. Set `POSTGRES_DATABASE_URL` to the Supabase **transaction pooler** URI (port `6543`) and `POSTGRES_CA_CERT_PATH` to the downloaded database root CA certificate (for example, `certs/supabase-ca.crt`). Vercel runtime connections use one local pool connection per function instance; if a Supabase pooler URL uses session-mode port `5432`, the app automatically switches that URL to transaction-mode port `6543`. Set `POSTGRES_DIRECT_URL` only for migrations or tools that require a direct connection. The database user needs permission to create and alter the application's tables.
 3. Set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `SUPABASE_STORAGE_BUCKET` for the private document bucket. Do not add the service role key to any `NEXT_PUBLIC_*` variable.
 4. Apply the PostgreSQL schema with `pnpm db:migrate`.
 5. Provision the first account with `pnpm auth:provision -- --email admin@example.org --name "Choir Administrator" --role ADMIN` and follow the hidden password prompts. Use `--role MEMBER --voice-part Soprano` when creating a choir member account.
