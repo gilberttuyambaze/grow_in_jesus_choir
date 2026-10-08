@@ -137,7 +137,7 @@ export function MembersView({ members, records = [], userRole }: MembersViewProp
           {isLeader && (
             <>
             <Link href="/members/invitations" className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-white px-4 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">
-              <MailPlus className="h-3.5 w-3.5" /> Invite member
+              <MailPlus className="h-3.5 w-3.5" /> Invite user
             </Link>
             <Link href="/communications" className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white px-4 py-2 text-xs font-semibold text-cyan-700 hover:bg-cyan-50">
               <MessagesSquare className="h-3.5 w-3.5" /> Communicate

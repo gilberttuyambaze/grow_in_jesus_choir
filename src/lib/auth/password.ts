@@ -2,6 +2,7 @@ import 'server-only'
 
 import crypto from 'node:crypto'
 import { getPgPool } from '@/lib/db'
+import { getPasswordRequirements } from './password-rules'
 const SCRYPT_COST = 32768
 const SCRYPT_BLOCK_SIZE = 8
 const SCRYPT_PARALLELISM = 1
@@ -36,8 +37,12 @@ async function derive(
 }
 
 export function validateNewPassword(password: string): string | null {
-  if (password.length < 12) return 'Use a password with at least 12 characters.'
   if (Buffer.byteLength(password, 'utf8') > 1024) return 'Password is too long.'
+  const requirements = getPasswordRequirements(password)
+  if (!requirements.minLength) return 'Use a password with at least 6 characters.'
+  if (!requirements.hasEnoughCharacterTypes) {
+    return 'Use at least 3 of these: lowercase letters, uppercase letters, numbers, or symbols.'
+  }
   return null
 }
 

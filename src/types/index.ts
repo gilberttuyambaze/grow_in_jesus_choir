@@ -3,6 +3,7 @@
  */
 
 export type UserRole = 'MEMBER' | 'LEADER' | 'ADMIN' | 'AUDITOR'
+export type InvitationRole = Extract<UserRole, 'MEMBER' | 'LEADER' | 'ADMIN'>
 
 export interface User {
   id: string
@@ -31,6 +32,7 @@ export interface MemberInvitation {
   fullName: string
   phone: string | null
   voicePart: Member['voicePart']
+  invitedRole: InvitationRole
   status: MemberInvitationStatus
   invitedByName: string
   message: string

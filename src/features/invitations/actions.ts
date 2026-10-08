@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { getSessionUser, setSession } from '@/lib/auth/session'
 import { hashPassword, validateNewPassword } from '@/lib/auth/password'
 import { canManageMembers } from '@/lib/permissions'
-import type { UserRole } from '@/types'
+import type { InvitationRole, UserRole } from '@/types'
 import { deliverBrevoOutbox } from '@/lib/email/brevo'
 import {
   acceptMemberInvitation,
@@ -19,6 +19,10 @@ import { INVITATION_TOKEN_PATTERN, isInvitationAcceptable } from '@/features/com
 
 function actorError(role: UserRole) {
   return canManageMembers(role) ? null : 'Only leaders and admins can manage member invitations.'
+}
+
+function isInvitationRole(role: string): role is InvitationRole {
+  return role === 'MEMBER' || role === 'LEADER' || role === 'ADMIN'
 }
 
 export async function createMemberInvitationAction(formData: FormData) {
@@ -34,17 +38,22 @@ export async function createMemberInvitationAction(formData: FormData) {
   const fullName = read('fullName', 120)
   const phone = read('phone', 40)
   const voicePart = read('voicePart', 20)
+  const invitedRoleValue = formData.get('invitedRole')
+  const invitedRole = typeof invitedRoleValue === 'string' ? invitedRoleValue.trim() : 'MEMBER'
   const message = read('message', 1000)
   const expiryRaw = read('expiryHours', 3)
   const expiryHours = expiryRaw && /^\d+$/.test(expiryRaw) ? Number(expiryRaw) : 168
   if (!email || !fullName || !voicePart || message === null || phone === null) {
     return { success: false, error: 'Complete the required fields and check their length.' }
   }
+  if (!isInvitationRole(invitedRole)) {
+    return { success: false, error: 'Choose a valid account role.' }
+  }
   try {
     await createMemberInvitation({
       email, fullName, phone: phone || null,
       voicePart: voicePart as 'Soprano' | 'Alto' | 'Tenor' | 'Bass',
-      message, expiryHours
+      invitedRole, message, expiryHours
     }, { id: actor.userId, name: actor.fullName })
     try { await deliverBrevoOutbox(5) } catch { /* The durable outbox is retried by the scheduled worker. */ }
     revalidatePath('/members/invitations')

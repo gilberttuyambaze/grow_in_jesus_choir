@@ -4,11 +4,14 @@ import * as React from 'react'
 import { KeyRound, LoaderCircle } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { changePasswordAction } from '@/features/auth/actions'
+import { getPasswordRequirements } from '@/lib/auth/password-rules'
 
 export function PasswordChangeCard() {
   const { success, error } = useToast()
   const [isSaving, setIsSaving] = React.useState(false)
+  const [newPassword, setNewPassword] = React.useState('')
   const saveLock = React.useRef(false)
+  const passwordRequirements = getPasswordRequirements(newPassword)
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -20,6 +23,7 @@ export function PasswordChangeCard() {
       const result = await changePasswordAction(new FormData(form))
       if (result.success) {
         form.reset()
+        setNewPassword('')
         success('Password updated', result.message)
       } else {
         error('Password not changed', result.error)
@@ -61,12 +65,23 @@ export function PasswordChangeCard() {
             type="password"
             name="newPassword"
             required
-            minLength={12}
+            minLength={6}
             maxLength={128}
             autoComplete="new-password"
+            value={newPassword}
+            onChange={(event) => setNewPassword(event.target.value)}
+            aria-describedby="new-password-requirements"
             className="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
-          <span className="mt-1 block text-[10px] font-normal text-slate-400">Use at least 12 characters.</span>
+          <span id="new-password-requirements" aria-live="polite" className="mt-1 block text-[10px] font-normal text-slate-500">
+            {newPassword.length === 0
+              ? 'Use at least 6 characters and at least 3 character types: lowercase, uppercase, number, or symbol.'
+              : passwordRequirements.isValid
+                ? 'Password is strong.'
+                : !passwordRequirements.minLength
+                  ? 'Use at least 6 characters.'
+                  : 'Use at least 3 character types: lowercase, uppercase, number, or symbol.'}
+          </span>
         </label>
         <button
           type="submit"

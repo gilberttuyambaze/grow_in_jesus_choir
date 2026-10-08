@@ -7,6 +7,7 @@ import {
   MemberCommunication,
   MemberCommunicationMode,
   MemberInvitation,
+  InvitationRole,
   User
 } from '@/types'
 import { renderCommunicationEmail, renderInvitationEmail } from '@/lib/email/brand-templates.mjs'
@@ -119,6 +120,7 @@ export async function createMemberInvitation(input: {
   fullName: string
   phone: string | null
   voicePart: 'Soprano' | 'Alto' | 'Tenor' | 'Bass'
+  invitedRole: InvitationRole
   message: string
   expiryHours: number
 }, actor: { id: string; name: string }): Promise<MemberInvitation> {
@@ -126,6 +128,7 @@ export async function createMemberInvitation(input: {
   if (!isValidEmail(email)) throw new Error('Enter a valid email address.')
   if (!input.fullName.trim() || input.fullName.trim().length > 120) throw new Error('Enter a name under 120 characters.')
   if (!['Soprano', 'Alto', 'Tenor', 'Bass'].includes(input.voicePart)) throw new Error('Choose a valid voice part.')
+  if (!['MEMBER', 'LEADER', 'ADMIN'].includes(input.invitedRole)) throw new Error('Choose a valid account role.')
   if (input.phone && input.phone.length > 40) throw new Error('Keep the phone number under 40 characters.')
   if (input.message.length > 1000) throw new Error('Keep the invitation message under 1,000 characters.')
   if (!INVITATION_HOURS.has(input.expiryHours)) throw new Error('Choose an allowed invitation expiration period.')
@@ -166,16 +169,16 @@ export async function createMemberInvitation(input: {
       `INSERT INTO member_invitations
          (id, email, full_name, phone, voice_part, invited_role, message, token_hash,
           invited_by_id, invited_by_name, expires_at)
-       VALUES ($1, $2, $3, $4, $5, 'MEMBER', $6, $7, $8, $9, NOW() + ($10 * INTERVAL '1 hour'))
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW() + ($11 * INTERVAL '1 hour'))
        RETURNING expires_at::text AS "expiresAt", created_at::text AS "createdAt"`,
-      [invitationId, email, input.fullName.trim(), input.phone?.trim() || null, input.voicePart,
+      [invitationId, email, input.fullName.trim(), input.phone?.trim() || null, input.voicePart, input.invitedRole,
         input.message.trim(), tokenHash, actor.id, actor.name, input.expiryHours]
     )
     const acceptUrl = `${baseUrl}/invite/${token}`
     const expiresAt = formatExpiry(inserted.rows[0].expiresAt)
     const subject = 'You’re invited to join Grow in Jesus Choir'
     const textMessage = [
-      `Hello ${input.fullName.trim()}, ${actor.name} invited you to join Grow in Jesus Choir as a member.`,
+      `Hello ${input.fullName.trim()}, ${actor.name} invited you to join Grow in Jesus Choir as a ${input.invitedRole.toLowerCase()}.`,
       input.message.trim() || '',
       `Accept your invitation and choose a password: ${acceptUrl}`,
       `This link expires ${expiresAt} and can only be used once.`
@@ -191,12 +194,12 @@ export async function createMemberInvitation(input: {
     await audit(client, {
       actorId: actor.id, actorName: actor.name, action: 'MEMBER_INVITATION_CREATED',
       targetType: 'member_invitation', targetId: invitationId,
-      details: { email, fullName: input.fullName.trim(), voicePart: input.voicePart, invitedRole: 'MEMBER', expiresAt: inserted.rows[0].expiresAt }
+      details: { email, fullName: input.fullName.trim(), voicePart: input.voicePart, invitedRole: input.invitedRole, expiresAt: inserted.rows[0].expiresAt }
     })
     await client.query('COMMIT')
     return {
       id: invitationId, email, fullName: input.fullName.trim(), phone: input.phone,
-      voicePart: input.voicePart, status: 'PENDING', invitedByName: actor.name,
+      voicePart: input.voicePart, invitedRole: input.invitedRole, status: 'PENDING', invitedByName: actor.name,
       message: input.message.trim(), expiresAt: inserted.rows[0].expiresAt,
       createdAt: inserted.rows[0].createdAt, lastSentAt: null, resendCount: 0
     }
@@ -214,7 +217,8 @@ export async function getMemberInvitations(limit = 100): Promise<MemberInvitatio
     await client.query('BEGIN')
     await expireInvitations(client)
     const result = await client.query(
-      `SELECT id, email, full_name AS "fullName", phone, voice_part AS "voicePart", status,
+      `SELECT id, email, full_name AS "fullName", phone, voice_part AS "voicePart",
+              invited_role AS "invitedRole", status,
               invited_by_name AS "invitedByName", message, expires_at::text AS "expiresAt",
               created_at::text AS "createdAt", last_sent_at::text AS "lastSentAt", resend_count AS "resendCount"
        FROM member_invitations ORDER BY created_at DESC LIMIT $1`,
@@ -238,7 +242,8 @@ export async function resendMemberInvitation(invitationId: string, actor: { id: 
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`member-invitation-actor:${actor.id}`])
     await expireInvitations(client, actor)
     const result = await client.query(
-      `SELECT id, email, full_name AS "fullName", message, status, delivery_generation AS generation,
+      `SELECT id, email, full_name AS "fullName", message, invited_role AS "invitedRole",
+              status, delivery_generation AS generation,
               resend_count AS "resendCount", last_sent_at AS "lastSentAt", updated_at AS "updatedAt",
               expires_at > NOW() AS "isUnexpired"
        FROM member_invitations WHERE id = $1 FOR UPDATE`,
@@ -280,7 +285,7 @@ export async function resendMemberInvitation(invitationId: string, actor: { id: 
     const acceptUrl = `${appBaseUrl()}/invite/${token}`
     const expiresAt = formatExpiry(updated.rows[0].expiresAt)
     const subject = 'Your Grow in Jesus Choir invitation'
-    const textMessage = `Hello ${invitation.fullName}, ${actor.name} renewed your invitation to Grow in Jesus Choir.\n\nChoose your password here: ${acceptUrl}\n\nThis link expires ${expiresAt} and can only be used once.`
+    const textMessage = `Hello ${invitation.fullName}, ${actor.name} renewed your invitation to join Grow in Jesus Choir as a ${invitation.invitedRole.toLowerCase()}.\n\nChoose your password here: ${acceptUrl}\n\nThis link expires ${expiresAt} and can only be used once.`
     const html = renderInvitationEmail({
       fullName: invitation.fullName, inviterName: actor.name, message: invitation.message,
       acceptUrl, expiresAt
@@ -341,6 +346,7 @@ export async function getPublicInvitation(tokenHash: string): Promise<{
   email: string
   fullName: string
   voicePart: string
+  invitedRole: InvitationRole
   expiresAt: string
   status: string
 } | null> {
@@ -348,7 +354,8 @@ export async function getPublicInvitation(tokenHash: string): Promise<{
   try {
     await client.query('BEGIN')
     const result = await client.query(
-      `SELECT id, email, full_name AS "fullName", voice_part AS "voicePart", status,
+      `SELECT id, email, full_name AS "fullName", voice_part AS "voicePart",
+              invited_role AS "invitedRole", status,
               expires_at AS "expiresAt", expires_at <= NOW() AS "isExpired",
               invited_by_id AS "invitedById", invited_by_name AS "invitedByName"
        FROM member_invitations WHERE token_hash = $1 FOR UPDATE`,
@@ -379,7 +386,7 @@ export async function getPublicInvitation(tokenHash: string): Promise<{
       })
       await client.query('COMMIT')
       return { id: invite.id, email: invite.email, fullName: invite.fullName, voicePart: invite.voicePart,
-        expiresAt: invite.expiresAt.toISOString(), status: 'EXPIRED' }
+        invitedRole: invite.invitedRole, expiresAt: invite.expiresAt.toISOString(), status: 'EXPIRED' }
     }
     await client.query('COMMIT')
     return {
@@ -387,6 +394,7 @@ export async function getPublicInvitation(tokenHash: string): Promise<{
       email: invite.email,
       fullName: invite.fullName,
       voicePart: invite.voicePart,
+      invitedRole: invite.invitedRole,
       expiresAt: invite.expiresAt.toISOString(),
       status: invite.status
     }
@@ -406,7 +414,8 @@ export async function acceptMemberInvitation(input: {
   try {
     await client.query('BEGIN')
     const result = await client.query(
-      `SELECT id, email, full_name AS "fullName", phone, voice_part AS "voicePart", status,
+      `SELECT id, email, full_name AS "fullName", phone, voice_part AS "voicePart",
+              invited_role AS "invitedRole", status,
               expires_at AS "expiresAt", expires_at <= NOW() AS "isExpired",
               invited_by_id AS "invitedById", invited_by_name AS "invitedByName"
        FROM member_invitations WHERE token_hash = $1 FOR UPDATE`,
@@ -443,8 +452,8 @@ export async function acceptMemberInvitation(input: {
       await client.query('COMMIT')
       return { error: 'INVALID' }
     }
-    const role = await client.query(`SELECT id FROM roles WHERE name = 'MEMBER'`)
-    if (!role.rowCount) throw new Error('The MEMBER role is not configured.')
+    const role = await client.query('SELECT id FROM roles WHERE name = $1', [invite.invitedRole])
+    if (!role.rowCount) throw new Error(`The ${invite.invitedRole} role is not configured.`)
     const userId = id()
     const memberId = id()
     await client.query(
@@ -465,17 +474,18 @@ export async function acceptMemberInvitation(input: {
     )
     await client.query(
       `INSERT INTO notifications (id, user_id, title, message, type, link, event_key)
-       VALUES ($1, $2, 'Welcome to Grow in Jesus Choir', 'Your member account is ready. Welcome to the choir workspace.', 'success', '/dashboard', $3)
+       VALUES ($1, $2, 'Welcome to Grow in Jesus Choir', $4, 'success', '/dashboard', $3)
        ON CONFLICT (event_key) WHERE event_key IS NOT NULL DO NOTHING`,
-      [id(), userId, `member-invitation-accepted:${invite.id}`]
+       [id(), userId, `member-invitation-accepted:${invite.id}`,
+         `Your ${invite.invitedRole.toLowerCase()} account is ready. Welcome to the choir workspace.`]
     )
     await audit(client, {
       actorId: userId, actorName: invite.fullName, action: 'MEMBER_INVITATION_ACCEPTED',
       targetType: 'member_invitation', targetId: invite.id,
-      details: { email: invite.email, userId, memberId, invitedRole: 'MEMBER', result: 'ACCEPTED' }
+      details: { email: invite.email, userId, memberId, invitedRole: invite.invitedRole, result: 'ACCEPTED' }
     })
     const user: User = {
-      id: userId, email: invite.email, role: 'MEMBER', fullName: invite.fullName,
+      id: userId, email: invite.email, role: invite.invitedRole, fullName: invite.fullName,
       avatarInitials: avatarInitials(invite.fullName), createdAt: new Date().toISOString()
     }
     await client.query('COMMIT')

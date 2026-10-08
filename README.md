@@ -41,7 +41,7 @@ The session engine's unit tests are included in `pnpm test`. These test the doma
 
 ## Member invitations and communications
 
-- Leaders and admins can invite a person as a Member. Invitation links use random, single-use tokens stored only as hashes, have a selectable expiry, and create the Member account and profile when accepted.
+- Leaders and admins can invite a person as a Member, Leader, or Admin (Member is selected by default). Invitation links use random, single-use tokens stored only as hashes, have a selectable expiry, and create the assigned account role and profile when accepted.
 - Leaders and admins can send branded plain-text communications to one active Member, selected active Members, all active Members (up to 500), or one manually entered email. Group messages are sent individually to protect recipient addresses.
 - Invitation and communication messages use the server-side Brevo outbox. Configure `APP_URL`, `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, optional `BREVO_SENDER_NAME`, and `CRON_SECRET`; schedule authenticated calls to `/api/internal/brevo-outbox` to process queued messages. `SENT` means Brevo accepted the request; this app does not yet process delivered or bounced webhooks.
 - Migration `006_member_invitation_communications.sql` creates the invitation, campaign, per-recipient delivery and outbox fields. `pnpm db:migrate` applies it to the configured PostgreSQL database.
