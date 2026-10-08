@@ -62,7 +62,8 @@ export async function loginAction(_previousState: LoginActionState, formData: Fo
 
     await clearLoginFailures(email)
     await setSession(user)
-  } catch {
+  } catch (error) {
+    console.error('[loginAction error]', error)
     return { error: 'Sign in is temporarily unavailable. Please try again.' }
   }
 

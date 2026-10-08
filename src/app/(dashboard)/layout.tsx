@@ -46,7 +46,10 @@ export default async function DashboardLayout({
       : member
       ? getFinancialRecords({ memberId: member.id, limit: 100 })
       : Promise.resolve([]),
-    getNotifications(session.userId),
+    getNotifications(session.userId).catch((err) => {
+      console.error('[DashboardLayout getNotifications error]', err)
+      return []
+    }),
     getOnboardingProgress(session.userId, WORKSPACE_TOUR_ID, WORKSPACE_TOUR_VERSION)
   ])
 

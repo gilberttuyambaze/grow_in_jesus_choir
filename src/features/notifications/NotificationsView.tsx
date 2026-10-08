@@ -30,12 +30,12 @@ interface NotificationsViewProps {
 }
 
 export function NotificationsView({
-  notifications: initialNotifications,
+  notifications: initialNotifications = [],
   userRole
 }: NotificationsViewProps) {
   const router = useRouter()
   const { success: showToastSuccess, error: showToastError } = useToast()
-  const [notifications, setNotifications] = React.useState(initialNotifications)
+  const [notifications, setNotifications] = React.useState(initialNotifications || [])
   const [filter, setFilter] = React.useState<'all' | 'unread' | 'warning' | 'success'>('all')
   const [search, setSearch] = React.useState('')
   const [isMarkingAll, setIsMarkingAll] = React.useState(false)
@@ -44,29 +44,31 @@ export function NotificationsView({
   const markingAllRef = React.useRef(false)
 
   React.useEffect(() => {
-    setNotifications(initialNotifications)
+    setNotifications(initialNotifications || [])
   }, [initialNotifications])
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length
-  const warningCount = notifications.filter((n) => n.type === 'warning').length
-  const successCount = notifications.filter((n) => n.type === 'success').length
+  const safeNotifications = notifications || []
+  const unreadCount = safeNotifications.filter((n) => n && !n.isRead).length
+  const warningCount = safeNotifications.filter((n) => n && n.type === 'warning').length
+  const successCount = safeNotifications.filter((n) => n && n.type === 'success').length
 
   const filteredNotifications = React.useMemo(() => {
-    return notifications.filter((item) => {
+    return safeNotifications.filter((item) => {
+      if (!item) return false
       if (filter === 'unread' && item.isRead) return false
       if (filter === 'warning' && item.type !== 'warning') return false
       if (filter === 'success' && item.type !== 'success') return false
 
       if (search.trim()) {
         const query = search.toLowerCase()
-        const matchTitle = item.title.toLowerCase().includes(query)
-        const matchMsg = item.message.toLowerCase().includes(query)
+        const matchTitle = (item.title || '').toLowerCase().includes(query)
+        const matchMsg = (item.message || '').toLowerCase().includes(query)
         if (!matchTitle && !matchMsg) return false
       }
 
       return true
     })
-  }, [notifications, filter, search])
+  }, [safeNotifications, filter, search])
 
   const handleMarkAsRead = async (id: string): Promise<boolean> => {
     if (pendingIdsRef.current.has(id) || markingAllRef.current) return false

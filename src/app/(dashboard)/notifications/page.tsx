@@ -9,7 +9,12 @@ export default async function NotificationsPage() {
     redirect('/login')
   }
 
-  const notifications = await getNotifications(session.userId, 100)
+  let notifications: import('@/types').NotificationItem[] = []
+  try {
+    notifications = await getNotifications(session.userId, 100)
+  } catch (error) {
+    console.error('[NotificationsPage getNotifications error]', error)
+  }
 
   return (
     <NotificationsView
