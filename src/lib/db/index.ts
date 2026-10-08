@@ -81,7 +81,7 @@ export function getPgPool(): pg.Pool {
 
   const caCertPath = process.env.POSTGRES_CA_CERT_PATH?.trim()
   const caCert = caCertPath
-    ? readFileSync(path.resolve(process.cwd(), caCertPath), 'utf8')
+    ? readFileSync(path.resolve(/*turbopackIgnore: true*/ process.cwd(), caCertPath), 'utf8')
     : undefined
 
   const pool = new pg.Pool({

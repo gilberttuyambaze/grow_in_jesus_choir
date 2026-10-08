@@ -319,7 +319,7 @@ export function NotificationsView({
                       <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                         {item.message}
                       </p>
-                      <span className="text-[11px] text-slate-400 block mt-1.5 font-medium">
+                      <span suppressHydrationWarning className="text-[11px] text-slate-400 block mt-1.5 font-medium">
                         {formatDateTime(item.createdAt)}
                       </span>
                     </div>

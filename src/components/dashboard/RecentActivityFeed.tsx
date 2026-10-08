@@ -116,7 +116,7 @@ export function RecentActivityFeed({ auditLogs = [], records = [] }: RecentActiv
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-[11px] text-slate-400 font-medium">
+                <span suppressHydrationWarning className="text-[11px] text-slate-400 font-medium">
                   {act.date}
                 </span>
               </div>

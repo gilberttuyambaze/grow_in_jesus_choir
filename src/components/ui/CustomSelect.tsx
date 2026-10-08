@@ -7,12 +7,13 @@ import {
   Check,
   Search,
   X,
-  Calendar,
-  Wallet,
+  MinusCircle,
   ArrowDownLeft,
-  ArrowUpRight,
-  MinusCircle
+  ArrowUpRight
 } from 'lucide-react'
+
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? React.useLayoutEffect : React.useEffect
 
 export interface CustomSelectOption {
   value: string
@@ -55,6 +56,7 @@ export function CustomSelect({
   const [internalValue, setInternalValue] = React.useState(defaultValue)
   const [searchQuery, setSearchQuery] = React.useState('')
   const [isMounted, setIsMounted] = React.useState(false)
+  const [highlightedIndex, setHighlightedIndex] = React.useState<number>(-1)
 
   const triggerRef = React.useRef<HTMLButtonElement>(null)
   const dropdownRef = React.useRef<HTMLDivElement>(null)
@@ -77,40 +79,52 @@ export function CustomSelect({
     return options.find((opt) => opt.value === currentValue)
   }, [options, currentValue])
 
-  // Compute portal coordinates when opening
-  React.useLayoutEffect(() => {
-    if (!isOpen || !triggerRef.current) return
+  const calculatePosition = React.useCallback(() => {
+    if (!triggerRef.current || typeof window === 'undefined') return
+    const rect = triggerRef.current.getBoundingClientRect()
+    const dropdownHeight = 320
+    const spaceBelow = window.innerHeight - rect.bottom
+    const placeAbove = spaceBelow < dropdownHeight && rect.top > dropdownHeight
 
-    const updatePosition = () => {
-      const rect = triggerRef.current?.getBoundingClientRect()
-      if (!rect) return
+    const idealWidth = Math.max(rect.width, 320)
+    const maxWidth = Math.min(idealWidth, window.innerWidth - 16)
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - maxWidth - 8))
 
-      const dropdownHeight = 320
-      const spaceBelow = window.innerHeight - rect.bottom
-      const placeAbove = spaceBelow < dropdownHeight && rect.top > dropdownHeight
+    setCoords({
+      top: placeAbove ? rect.top - 6 : rect.bottom + 6,
+      left,
+      width: maxWidth,
+      placeAbove
+    })
+  }, [])
 
-      setCoords({
-        top: placeAbove ? rect.top - 6 : rect.bottom + 6,
-        left: rect.left,
-        width: Math.max(rect.width, 320),
-        placeAbove
-      })
+  // Reposition on resize and scroll
+  useIsomorphicLayoutEffect(() => {
+    if (!isOpen) return
+
+    calculatePosition()
+
+    const handleScrollOrResize = () => {
+      calculatePosition()
     }
 
-    updatePosition()
-    window.addEventListener('resize', updatePosition)
-    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', handleScrollOrResize)
+    window.addEventListener('scroll', handleScrollOrResize, true)
 
     return () => {
-      window.removeEventListener('resize', updatePosition)
-      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', handleScrollOrResize)
+      window.removeEventListener('scroll', handleScrollOrResize, true)
     }
-  }, [isOpen])
+  }, [isOpen, calculatePosition])
 
   // Click outside and Escape key listeners
   React.useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Node
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
+      const target = event.target as Node | null
+      if (!target) return
+      // Ignore if clicked node is no longer part of document (e.g. state unmount)
+      if (!document.contains(target)) return
+
       if (
         triggerRef.current &&
         !triggerRef.current.contains(target) &&
@@ -124,32 +138,24 @@ export function CustomSelect({
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape' && isOpen) {
         setIsOpen(false)
+        triggerRef.current?.focus()
       }
     }
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('touchstart', handleClickOutside)
       document.addEventListener('keydown', handleKeyDown)
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
       document.removeEventListener('keydown', handleKeyDown)
     }
   }, [isOpen])
 
-  // Focus search input when opened
-  React.useEffect(() => {
-    if (isOpen && searchable && options.length > 4) {
-      const timer = setTimeout(() => {
-        searchInputRef.current?.focus()
-      }, 50)
-      return () => clearTimeout(timer)
-    } else {
-      setSearchQuery('')
-    }
-  }, [isOpen, searchable, options.length])
-
+  // Filter options based on search query
   const filteredOptions = React.useMemo(() => {
     if (!searchQuery.trim()) return options
     const q = searchQuery.toLowerCase().trim()
@@ -162,19 +168,45 @@ export function CustomSelect({
     })
   }, [options, searchQuery])
 
+  // Focus search input when opened
+  React.useEffect(() => {
+    if (isOpen && searchable && options.length > 4) {
+      const timer = setTimeout(() => {
+        searchInputRef.current?.focus()
+      }, 50)
+      return () => clearTimeout(timer)
+    } else {
+      setSearchQuery('')
+      setHighlightedIndex(-1)
+    }
+  }, [isOpen, searchable, options.length])
+
   const handleSelect = (val: string) => {
     if (value === undefined) {
       setInternalValue(val)
     }
     onChange?.(val)
     setIsOpen(false)
+    triggerRef.current?.focus()
+  }
+
+  const handleTriggerClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (disabled) return
+    if (!isOpen) {
+      calculatePosition()
+      setIsOpen(true)
+    } else {
+      setIsOpen(false)
+    }
   }
 
   const showSearch = searchable && options.length > 4
 
   return (
     <div className={`relative w-full ${className}`}>
-      {/* Hidden input for HTML form submissions & FormData */}
+      {/* Hidden input for standard HTML form compatibility & FormData */}
       {name && (
         <input
           type="hidden"
@@ -190,7 +222,7 @@ export function CustomSelect({
         ref={triggerRef}
         type="button"
         disabled={disabled}
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={handleTriggerClick}
         className={`w-full p-2.5 sm:p-3 rounded-2xl border text-xs text-left transition-all flex items-center justify-between cursor-pointer select-none outline-none ${
           isOpen
             ? 'border-indigo-400 bg-white ring-4 ring-indigo-100/70 shadow-md'
@@ -250,13 +282,16 @@ export function CustomSelect({
         </div>
       </button>
 
-      {/* Floating Dropdown via Portal (immune to overflow clipping and native select bugs) */}
+      {/* Floating Dropdown via Portal */}
       {isOpen &&
         isMounted &&
         coords &&
+        typeof document !== 'undefined' &&
         createPortal(
           <div
             ref={dropdownRef}
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
             style={{
               position: 'fixed',
               top: coords.placeAbove ? 'auto' : `${coords.top}px`,

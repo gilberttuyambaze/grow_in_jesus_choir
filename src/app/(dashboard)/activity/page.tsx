@@ -76,7 +76,7 @@ export default async function ActivityPage() {
                     <span className="font-bold text-sm text-slate-900 truncate">
                       {log.actorName}
                     </span>
-                    <span className="text-[11px] text-slate-400 whitespace-nowrap">
+                    <span suppressHydrationWarning className="text-[11px] text-slate-400 whitespace-nowrap">
                       {formatDateTime(log.createdAt)}
                     </span>
                   </div>

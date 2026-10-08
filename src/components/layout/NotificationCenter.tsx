@@ -206,7 +206,7 @@ export function NotificationCenter({ notifications: initialNotifications }: Noti
                       <p className="text-[11px] sm:text-xs text-slate-500 leading-snug">
                         {item.message}
                       </p>
-                      <span className="text-[10px] text-slate-400 block mt-1.5 font-medium">
+                      <span suppressHydrationWarning className="text-[10px] text-slate-400 block mt-1.5 font-medium">
                         {formatDateTime(item.createdAt)}
                       </span>
                     </div>
