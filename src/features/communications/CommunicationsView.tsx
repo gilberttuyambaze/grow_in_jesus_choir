@@ -114,6 +114,10 @@ export function CommunicationsView({ audience, history }: {
       <p className="mt-1 text-xs leading-relaxed text-slate-500 sm:text-sm">Send a branded email to one member, selected members, all active member accounts, or a validated email address.</p>
     </div>
     {(error || notice) && <div role={error ? 'alert' : 'status'} className={`rounded-xl border px-4 py-3 text-xs ${error ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>{error || notice}</div>}
+    {busy && <div role="status" aria-live="polite" className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-800">
+      <LoaderCircle className="h-4 w-4 animate-spin" />
+      Queueing your communication for {previewCount} recipient{previewCount === 1 ? '' : 's'}…
+    </div>}
 
     <section className="card-surface space-y-5 p-4 sm:p-6">
       <div className="flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700"><Mail className="h-4 w-4" /></span><div><h2 className="text-sm font-bold text-slate-900">Compose a message</h2><p className="text-[11px] text-slate-500">The preview shows the exact text and recipient count before confirmation.</p></div></div>

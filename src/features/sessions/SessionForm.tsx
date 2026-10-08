@@ -67,6 +67,10 @@ export function SessionForm({ categories, initialSession, defaultType, onClose }
         </div>
 
         {error && <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700">{error}</div>}
+        {busy && <div role="status" aria-live="polite" className="mb-4 flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-3 text-sm font-semibold text-indigo-800">
+          <LoaderCircle className="h-4 w-4 animate-spin" />
+          {initialSession ? 'Saving session changes…' : 'Creating your session…'}
+        </div>}
 
         <form onSubmit={handleSubmit} aria-busy={busy} className="space-y-4">
           {initialSession && <input type="hidden" name="sessionId" value={initialSession.id} />}
@@ -171,7 +175,7 @@ export function SessionForm({ categories, initialSession, defaultType, onClose }
 
           <div className="flex flex-col-reverse gap-2 border-t border-slate-200/70 pt-4 sm:flex-row sm:justify-end">
             <button type="button" onClick={onClose} disabled={busy} className="rounded-xl border border-slate-200 bg-white/75 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-white disabled:opacity-60">Cancel</button>
-            <button type="submit" disabled={busy} aria-busy={busy} className="inline-flex items-center justify-center gap-2 brand-button rounded-xl px-5 py-2.5 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-60">{busy && <LoaderCircle className="h-4 w-4 animate-spin" />}{busy ? 'Saving…' : initialSession ? 'Save changes' : 'Save as draft'}</button>
+            <button type="submit" disabled={busy} aria-busy={busy} className="inline-flex items-center justify-center gap-2 brand-button rounded-xl px-5 py-2.5 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-60">{busy && <LoaderCircle className="h-4 w-4 animate-spin" />}{busy ? initialSession ? 'Saving…' : 'Creating…' : initialSession ? 'Save changes' : 'Create session draft'}</button>
           </div>
         </form>
       </section>
