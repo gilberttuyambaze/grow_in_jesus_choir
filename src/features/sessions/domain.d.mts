@@ -33,3 +33,18 @@ export function planAttendanceFinalization(
   fees: { lateFee: number; absentFee: number },
   existingPenaltyKeys?: Set<string>
 ): { absentMemberIds: string[]; penalties: { memberId: string; kind: 'LATE_PENALTY' | 'ABSENT_PENALTY'; amount: number }[] }
+export function calculateSessionFinancialTotals(records?: Array<{
+  amount?: number | string | null
+  sessionRecordKind?: string | null
+  status?: string | null
+}>): {
+  collectedContributions: number
+  pendingContributions: number
+  rejectedContributions: number
+  collectedPenalties: number
+  collectedLatePenalties: number
+  collectedAbsentPenalties: number
+  pendingPenalties: number
+  totalPenalties: number
+  totalCollected: number
+}

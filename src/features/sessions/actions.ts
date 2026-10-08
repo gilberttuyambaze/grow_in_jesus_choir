@@ -11,13 +11,14 @@ import {
   publishChoirSession,
   rotateAttendanceQr,
   submitSessionContribution,
+  updateSessionAttendance,
   updateChoirSession,
   ChoirSessionInput
 } from '@/lib/db'
 import { parseCurrencyInput } from '@/lib/utils/currency'
 import { localDateTimeToIso } from '@/lib/utils/zoned-time'
 import { deliverBrevoOutbox } from '@/lib/email/brevo'
-import { UserRole } from '@/types'
+import { AttendanceStatus, UserRole } from '@/types'
 import { sessionTypeRules } from './domain.mjs'
 
 const MAX_RWF_AMOUNT = 9_000_000_000_000
@@ -202,6 +203,47 @@ export async function rotateSessionQrAction(sessionId: string) {
     return { success: true, qrToken: result.qrToken }
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Could not refresh the QR code.' }
+  }
+}
+
+export async function updateAttendanceAction(
+  sessionId: string,
+  memberIds: string[],
+  status: AttendanceStatus
+) {
+  const actor = await getSessionUser()
+  if (!actor) return { success: false, error: 'Sign in to manage attendance.' }
+  const denied = permissionError(actor.role)
+  if (denied) return { success: false, error: denied }
+  if (typeof sessionId !== 'string' || !sessionId || sessionId.length > 100) {
+    return { success: false, error: 'Invalid session.' }
+  }
+  if (!Array.isArray(memberIds) || memberIds.length === 0 || memberIds.length > 500 ||
+      memberIds.some((id) => typeof id !== 'string' || !id || id.length > 100)) {
+    return { success: false, error: 'Select between 1 and 500 valid roster members.' }
+  }
+  if (!['NOT_CHECKED_IN', 'EXPECTED_LATE', 'PRESENT', 'LATE', 'ABSENT'].includes(status)) {
+    return { success: false, error: 'Choose a valid attendance status.' }
+  }
+
+  try {
+    const updatedCount = await updateSessionAttendance(
+      sessionId,
+      memberIds,
+      status,
+      { id: actor.userId, name: actor.fullName }
+    )
+    refreshSessionRoutes(sessionId)
+    const statusLabel = status === 'EXPECTED_LATE' ? 'expected late' : status.toLowerCase().replaceAll('_', ' ')
+    return {
+      success: true,
+      updatedCount,
+      message: updatedCount === 1
+        ? `Attendance updated to ${statusLabel}.`
+        : `Attendance updated to ${statusLabel} for ${updatedCount} members.`
+    }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Could not update attendance.' }
   }
 }
 

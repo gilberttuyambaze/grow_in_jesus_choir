@@ -125,7 +125,7 @@ export function SessionForm({ categories, initialSession, defaultType, onClose }
           {type === 'ATTENDANCE' ? (
             <div className="rounded-2xl border border-indigo-100 bg-indigo-50/55 p-4">
               <h3 className="text-sm font-bold text-slate-800">Attendance rules</h3>
-              <p className="mb-3 mt-1 text-[11px] text-slate-500">Penalties are created as pending records and do not enter official totals until approved.</p>
+              <p className="mb-3 mt-1 text-[11px] text-slate-500">Penalties are created as pending records.</p>
               <div className="grid gap-3 sm:grid-cols-3">
                 <div>
                   <label className={labelClass} htmlFor="session-grace">On-time grace (minutes)</label>

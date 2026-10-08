@@ -8,8 +8,9 @@ import { AddRecordDialog } from '@/components/finance/AddRecordDialog'
 import { CommandSearchModal } from './CommandSearchModal'
 import { WelcomeGuideModal } from './WelcomeGuideModal'
 import { FinancialCategory, FinancialRecord, Member, NotificationItem, UserRole } from '@/types'
-import { canCreateRecord } from '@/lib/permissions'
+import { canCreateRecord, canManageMembers } from '@/lib/permissions'
 import type { OnboardingProgress } from '@/lib/db'
+import { SessionForm } from '@/features/sessions/SessionForm'
 
 interface DashboardShellProps {
   userRole: UserRole
@@ -39,6 +40,7 @@ export function DashboardShell({
   const [isAddRecordOpen, setIsAddRecordOpen] = React.useState(false)
   const [initialRecordType, setInitialRecordType] = React.useState<'income' | 'expense' | null>(null)
   const [isSearchOpen, setIsSearchOpen] = React.useState(false)
+  const [isSessionFormOpen, setIsSessionFormOpen] = React.useState(false)
   const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false)
   const [isTourOpen, setIsTourOpen] = React.useState(onboardingProgress.status === 'not_started')
 
@@ -124,6 +126,7 @@ export function DashboardShell({
           userRole={userRole}
           notifications={notifications}
           onOpenAddRecord={() => setIsAddRecordOpen(true)}
+          onOpenCreateSession={() => setIsSessionFormOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
           onOpenTour={handleOpenTour}
           onToggleMobileNav={() => setIsMobileNavOpen((prev) => !prev)}
@@ -154,6 +157,13 @@ export function DashboardShell({
           members={members}
           userRole={userRole}
           initialRecordType={initialRecordType}
+        />
+      )}
+
+      {canManageMembers(userRole) && isSessionFormOpen && (
+        <SessionForm
+          categories={categories.filter((category) => category.type === 'income')}
+          onClose={() => setIsSessionFormOpen(false)}
         />
       )}
 

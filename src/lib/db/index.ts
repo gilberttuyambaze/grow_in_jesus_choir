@@ -739,9 +739,25 @@ function sessionSelect(where = ''): string {
                  s.target_amount::text AS "targetAmount", s.member_target_amount::text AS "memberTargetAmount",
                  s.financial_category_id AS "financialCategoryId", s.created_by_id AS "createdById",
                  creator.full_name AS "createdByName", s.created_at::text AS "createdAt",
-                 s.updated_at::text AS "updatedAt", s.closed_at::text AS "closedAt"
+                 s.updated_at::text AS "updatedAt", s.closed_at::text AS "closedAt",
+                 COALESCE(f.collected_contributions, 0)::text AS "collectedContributions",
+                 COALESCE(f.pending_contributions, 0)::text AS "pendingContributions",
+                 COALESCE(f.collected_penalties, 0)::text AS "collectedPenalties",
+                 COALESCE(f.pending_penalties, 0)::text AS "pendingPenalties",
+                 COALESCE(f.total_collected, 0)::text AS "totalCollected"
           FROM sessions s
           JOIN users creator ON creator.id = s.created_by_id
+          LEFT JOIN (
+            SELECT session_id,
+                   SUM(amount) FILTER (WHERE session_record_kind = 'CONTRIBUTION' AND status = 'recorded') AS collected_contributions,
+                   SUM(amount) FILTER (WHERE session_record_kind = 'CONTRIBUTION' AND status = 'needs_review') AS pending_contributions,
+                   SUM(amount) FILTER (WHERE session_record_kind IN ('LATE_PENALTY', 'ABSENT_PENALTY') AND status = 'recorded') AS collected_penalties,
+                   SUM(amount) FILTER (WHERE session_record_kind IN ('LATE_PENALTY', 'ABSENT_PENALTY') AND status = 'needs_review') AS pending_penalties,
+                   SUM(amount) FILTER (WHERE status = 'recorded') AS total_collected
+            FROM financial_records
+            WHERE session_id IS NOT NULL
+            GROUP BY session_id
+          ) f ON f.session_id = s.id
           ${where}`
 }
 
@@ -752,7 +768,12 @@ function mapChoirSession(row: any): ChoirSession {
     lateFee: Number(row.lateFee),
     absentFee: Number(row.absentFee),
     targetAmount: row.targetAmount == null ? null : Number(row.targetAmount),
-    memberTargetAmount: row.memberTargetAmount == null ? null : Number(row.memberTargetAmount)
+    memberTargetAmount: row.memberTargetAmount == null ? null : Number(row.memberTargetAmount),
+    collectedContributions: Number(row.collectedContributions || 0),
+    pendingContributions: Number(row.pendingContributions || 0),
+    collectedPenalties: Number(row.collectedPenalties || 0),
+    pendingPenalties: Number(row.pendingPenalties || 0),
+    totalCollected: Number(row.totalCollected || 0)
   }
 }
 
@@ -1145,7 +1166,8 @@ export async function checkInToAttendanceSession(input: {
     const status = checkIn.status || attendanceStatusAt(now, session.startsAt, Number(session.graceMinutes))
     const saved = await client.query(
       `UPDATE session_roster SET attendance_status = $3, checked_in_at = $4
-       WHERE session_id = $1 AND member_id = $2 AND attendance_status = 'NOT_CHECKED_IN'
+       WHERE session_id = $1 AND member_id = $2
+         AND attendance_status IN ('NOT_CHECKED_IN', 'EXPECTED_LATE', 'ABSENT')
        RETURNING checked_in_at::text AS "checkedInAt"`,
       [input.sessionId, member.id, status, now]
     )
@@ -1158,6 +1180,221 @@ export async function checkInToAttendanceSession(input: {
       status === 'LATE' ? 'warning' : 'success', `/sessions/${input.sessionId}`)
     await client.query('COMMIT')
     return { alreadyCheckedIn: false, status, checkedInAt: saved.rows[0].checkedInAt }
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
+  }
+}
+
+export async function updateSessionAttendance(
+  sessionId: string,
+  memberIds: string[],
+  status: AttendanceStatus,
+  actor: { id: string; name: string }
+): Promise<number> {
+  if (memberIds.length === 0 || memberIds.length > 500) {
+    throw new Error('Select between 1 and 500 members.')
+  }
+  const uniqueMemberIds = [...new Set(memberIds)]
+  if (uniqueMemberIds.length !== memberIds.length) {
+    throw new Error('The selected member list is invalid.')
+  }
+
+  const client = await getPgPool().connect()
+  try {
+    await client.query('BEGIN')
+    const sessionResult = await client.query(
+      `SELECT id, title, type, status, starts_at AS "startsAt", attendance_grace_minutes AS "graceMinutes",
+              late_fee AS "lateFee", absent_fee AS "absentFee", financial_category_id AS "financialCategoryId"
+       FROM sessions WHERE id = $1 FOR UPDATE`,
+      [sessionId]
+    )
+    if (!sessionResult.rowCount) throw new Error('This session could not be found.')
+    const session = sessionResult.rows[0]
+    if (session.type !== 'ATTENDANCE') throw new Error('Attendance can only be changed for attendance sessions.')
+    if (!['OPEN', 'CLOSED', 'COMPLETED'].includes(session.status)) {
+      throw new Error('Attendance can only be changed after the session opens.')
+    }
+    if (status === 'EXPECTED_LATE' && session.status !== 'OPEN') {
+      throw new Error('Expected-late status is only available while the session is open.')
+    }
+    if (status === 'NOT_CHECKED_IN' && session.status === 'COMPLETED') {
+      throw new Error('A finalized attendance session cannot be reset to not checked in.')
+    }
+
+    const rosterResult = await client.query(
+      `SELECT sr.member_id AS "memberId", sr.attendance_status AS "attendanceStatus",
+              sr.checked_in_at AS "checkedInAt", m.full_name AS "memberName", u.email
+       FROM session_roster sr
+       JOIN members m ON m.id = sr.member_id
+       LEFT JOIN users u ON u.id = m.user_id
+       WHERE sr.session_id = $1 AND sr.member_id = ANY($2::text[])
+       ORDER BY sr.member_id FOR UPDATE OF sr`,
+      [sessionId, uniqueMemberIds]
+    )
+    if (rosterResult.rowCount !== uniqueMemberIds.length) {
+      throw new Error('One or more selected members are not on this session roster.')
+    }
+
+    let changedCount = 0
+    for (const entry of rosterResult.rows) {
+      const previousStatus = entry.attendanceStatus as AttendanceStatus | null
+      if (previousStatus === status) continue
+      if (status === 'EXPECTED_LATE' && entry.checkedInAt) {
+        throw new Error('Members who have checked in cannot be marked as expected late.')
+      }
+      if (status === 'LATE' && session.status === 'OPEN' && !entry.checkedInAt) {
+        throw new Error('Mark this member as expected late until they check in.')
+      }
+
+      let checkedInAt: Date | null = null
+      if (status === 'PRESENT' || status === 'LATE') {
+        checkedInAt = entry.checkedInAt || (status === 'PRESENT'
+          ? new Date(session.startsAt)
+          : new Date(new Date(session.startsAt).getTime() + Number(session.graceMinutes) * 60_000 + 1))
+      }
+
+      const updated = await client.query(
+        `UPDATE session_roster SET attendance_status = $3, checked_in_at = $4
+         WHERE session_id = $1 AND member_id = $2`,
+        [sessionId, entry.memberId, status, checkedInAt]
+      )
+      if (!updated.rowCount) throw new Error('Attendance could not be updated. Refresh and try again.')
+
+      if (session.status === 'COMPLETED') {
+        const expectedPenaltyKind = status === 'LATE' && Number(session.lateFee) > 0
+          ? 'LATE_PENALTY'
+          : status === 'ABSENT' && Number(session.absentFee) > 0
+            ? 'ABSENT_PENALTY'
+            : null
+        const expectedPenaltyAmount = expectedPenaltyKind === 'LATE_PENALTY'
+          ? Number(session.lateFee)
+          : expectedPenaltyKind === 'ABSENT_PENALTY'
+            ? Number(session.absentFee)
+            : 0
+        const existingPenalties = await client.query(
+          `SELECT id, session_record_kind AS kind, amount::text AS amount, status
+           FROM financial_records
+           WHERE session_id = $1 AND member_id = $2
+             AND session_record_kind IN ('LATE_PENALTY', 'ABSENT_PENALTY')
+           FOR UPDATE`,
+          [sessionId, entry.memberId]
+        )
+        const recordedPenalties = existingPenalties.rows.filter((penalty) => penalty.status === 'recorded')
+        if (recordedPenalties.some((penalty) => penalty.kind !== expectedPenaltyKind)) {
+          const email = entry.email ? ` (${entry.email})` : ''
+          throw new Error(`Attendance for ${entry.memberName}${email} cannot be changed because a related penalty has already been recorded.`)
+        }
+
+        const description = expectedPenaltyKind
+          ? `${expectedPenaltyKind === 'LATE_PENALTY' ? 'Late' : 'Absent'} attendance penalty — ${session.title}`
+          : null
+        const matchingRecordedPenalty = recordedPenalties.find((penalty) => penalty.kind === expectedPenaltyKind)
+        const mutablePenalties = existingPenalties.rows.filter((penalty) => penalty.status !== 'recorded')
+
+        if (!expectedPenaltyKind || matchingRecordedPenalty) {
+          for (const penalty of mutablePenalties) {
+            await client.query(
+              `UPDATE financial_records
+               SET status = 'voided', rejection_reason = 'Voided because the attendance status was updated.',
+                   session_id = NULL, session_record_kind = NULL, updated_at = NOW()
+               WHERE id = $1`,
+              [penalty.id]
+            )
+            await auditWithClient(client, actor, 'RECORD_VOIDED', 'financial_record', penalty.id, {
+              sessionId,
+              memberId: entry.memberId,
+              previousKind: penalty.kind,
+              reason: 'Attendance status updated'
+            })
+          }
+        } else {
+          if (!session.financialCategoryId) {
+            throw new Error('Configure an income category before generating attendance penalties.')
+          }
+          const reusablePenalty = mutablePenalties[0]
+          if (reusablePenalty) {
+            await client.query(
+              `UPDATE financial_records
+               SET session_record_kind = $2, amount = $3, record_date = $4::date, description = $5,
+                   status = 'needs_review', rejection_reason = NULL, updated_at = NOW()
+               WHERE id = $1`,
+              [reusablePenalty.id, expectedPenaltyKind, expectedPenaltyAmount,
+                sessionDateIso(session.startsAt), description]
+            )
+            await auditWithClient(client, actor, 'RECORD_UPDATED', 'financial_record', reusablePenalty.id, {
+              sessionId,
+              memberId: entry.memberId,
+              previousKind: reusablePenalty.kind,
+              previousAmount: Number(reusablePenalty.amount),
+              sessionRecordKind: expectedPenaltyKind,
+              amount: expectedPenaltyAmount,
+              status: 'needs_review',
+              reason: 'Attendance status updated'
+            })
+            for (const penalty of mutablePenalties.slice(1)) {
+              await client.query(
+                `UPDATE financial_records
+                 SET status = 'voided', rejection_reason = 'Voided because the attendance status was updated.',
+                     session_id = NULL, session_record_kind = NULL, updated_at = NOW()
+                 WHERE id = $1`,
+                [penalty.id]
+              )
+              await auditWithClient(client, actor, 'RECORD_VOIDED', 'financial_record', penalty.id, {
+                sessionId,
+                memberId: entry.memberId,
+                previousKind: penalty.kind,
+                reason: 'Duplicate attendance penalty after status update'
+              })
+            }
+          } else {
+            const financialId = makeId()
+            await client.query(
+              `INSERT INTO financial_records
+                 (id, type, category_id, amount, currency, record_date, description, member_id, recorded_by_id,
+                  status, reference_number, session_id, session_record_kind)
+               VALUES ($1, 'income', $2, $3, 'RWF', $4::date, $5, $6, $7, 'needs_review', $8, $9, $10)`,
+              [financialId, session.financialCategoryId, expectedPenaltyAmount, sessionDateIso(session.startsAt),
+                description, entry.memberId, actor.id,
+                `SES-${sessionId.slice(0, 8)}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
+                sessionId, expectedPenaltyKind]
+            )
+            await auditWithClient(client, actor, 'RECORD_CREATED', 'financial_record', financialId, {
+              amount: expectedPenaltyAmount,
+              type: 'income',
+              status: 'needs_review',
+              sessionId,
+              sessionRecordKind: expectedPenaltyKind,
+              memberId: entry.memberId,
+              reason: 'Attendance status updated'
+            })
+            const recipient = await client.query(
+              `SELECT user_id AS "userId" FROM members WHERE id = $1`,
+              [entry.memberId]
+            )
+            if (recipient.rows[0]?.userId) {
+              await queueUserEvent(client, recipient.rows[0].userId, `penalty:${financialId}`,
+                'Attendance penalty pending review',
+                `${session.title}: a ${expectedPenaltyKind === 'LATE_PENALTY' ? 'late' : 'absence'} penalty of ${expectedPenaltyAmount.toLocaleString('en-US')} RWF is awaiting leader review. It has not been added to official totals.`,
+                'warning', `/finances?status=needs_review&recordId=${financialId}`)
+            }
+          }
+        }
+      }
+
+      await auditWithClient(client, actor, 'ATTENDANCE_STATUS_UPDATED', 'session', sessionId, {
+        memberId: entry.memberId,
+        previousStatus,
+        status,
+        checkedInAt: checkedInAt?.toISOString() || null
+      })
+      changedCount += 1
+    }
+
+    await client.query('COMMIT')
+    return changedCount
   } catch (error) {
     await client.query('ROLLBACK')
     throw error
@@ -1217,7 +1454,8 @@ export async function completeChoirSession(
       if (plan.absentMemberIds.length) {
         await client.query(
           `UPDATE session_roster SET attendance_status = 'ABSENT'
-           WHERE session_id = $1 AND member_id = ANY($2::text[]) AND attendance_status = 'NOT_CHECKED_IN'`,
+           WHERE session_id = $1 AND member_id = ANY($2::text[])
+             AND attendance_status IN ('NOT_CHECKED_IN', 'EXPECTED_LATE')`,
           [sessionId, plan.absentMemberIds]
         )
       }
@@ -1386,6 +1624,8 @@ export async function getChoirSessionOverview(
             COALESCE(SUM(r.amount) FILTER (WHERE r.session_record_kind = 'CONTRIBUTION' AND r.status = 'needs_review'), 0)::text AS "pendingAmount",
             COUNT(*) FILTER (WHERE r.session_record_kind = 'CONTRIBUTION' AND r.status = 'rejected')::int AS "rejectedCount",
             COALESCE(SUM(r.amount) FILTER (WHERE r.session_record_kind IN ('LATE_PENALTY', 'ABSENT_PENALTY')), 0)::text AS "penaltyAmount",
+            COALESCE(SUM(r.amount) FILTER (WHERE r.session_record_kind IN ('LATE_PENALTY', 'ABSENT_PENALTY') AND r.status = 'recorded'), 0)::text AS "penaltyCollectedAmount",
+            COALESCE(SUM(r.amount) FILTER (WHERE r.session_record_kind IN ('LATE_PENALTY', 'ABSENT_PENALTY') AND r.status = 'needs_review'), 0)::text AS "penaltyPendingAmount",
             (ARRAY_AGG(r.status ORDER BY r.created_at DESC)
               FILTER (WHERE r.session_record_kind IN ('LATE_PENALTY', 'ABSENT_PENALTY')))[1] AS "penaltyStatus"
      FROM session_roster sr
@@ -1406,6 +1646,8 @@ export async function getChoirSessionOverview(
       pendingAmount,
       rejectedCount,
       penaltyAmount: Number(row.penaltyAmount),
+      penaltyCollectedAmount: Number(row.penaltyCollectedAmount || 0),
+      penaltyPendingAmount: Number(row.penaltyPendingAmount || 0),
       attendanceStatus: row.attendanceStatus as AttendanceStatus | null,
       penaltyStatus: row.penaltyStatus as FinancialRecordStatus | null,
       contributionStatus: session.type === 'CONTRIBUTION'
@@ -1422,14 +1664,35 @@ export async function getChoirSessionOverview(
       return counts
     }, { presentCount: 0, lateCount: 0, absentCount: 0, notCheckedInCount: 0 })
     : { presentCount: 0, lateCount: 0, absentCount: 0, notCheckedInCount: 0 }
-  const approvedAmount = allRoster.reduce((sum, entry) => sum + entry.approvedAmount, 0)
-  const pendingAmount = allRoster.reduce((sum, entry) => sum + entry.pendingAmount, 0)
-  const rejectedAmountResult = await getPgPool().query(
-    `SELECT COALESCE(SUM(amount), 0)::text AS amount, COUNT(*)::int AS count
-     FROM financial_records WHERE session_id = $1 AND session_record_kind = 'CONTRIBUTION' AND status = 'rejected'`,
+
+  const financeTotalsResult = await getPgPool().query(
+    `SELECT
+       COALESCE(SUM(amount) FILTER (WHERE session_record_kind = 'CONTRIBUTION' AND status = 'recorded'), 0)::text AS "approvedAmount",
+       COALESCE(SUM(amount) FILTER (WHERE session_record_kind = 'CONTRIBUTION' AND status = 'needs_review'), 0)::text AS "pendingAmount",
+       COALESCE(SUM(amount) FILTER (WHERE session_record_kind = 'CONTRIBUTION' AND status = 'rejected'), 0)::text AS "rejectedAmount",
+       COALESCE(SUM(amount) FILTER (WHERE session_record_kind IN ('LATE_PENALTY', 'ABSENT_PENALTY') AND status = 'recorded'), 0)::text AS "collectedPenaltyAmount",
+       COALESCE(SUM(amount) FILTER (WHERE session_record_kind IN ('LATE_PENALTY', 'ABSENT_PENALTY') AND status = 'needs_review'), 0)::text AS "pendingPenaltyAmount",
+       COALESCE(SUM(amount) FILTER (WHERE session_record_kind IN ('LATE_PENALTY', 'ABSENT_PENALTY')), 0)::text AS "totalPenaltyAmount",
+       COALESCE(SUM(amount) FILTER (WHERE session_record_kind = 'LATE_PENALTY' AND status = 'recorded'), 0)::text AS "collectedLatePenaltyAmount",
+       COALESCE(SUM(amount) FILTER (WHERE session_record_kind = 'ABSENT_PENALTY' AND status = 'recorded'), 0)::text AS "collectedAbsentPenaltyAmount",
+       COALESCE(SUM(amount) FILTER (WHERE status = 'recorded'), 0)::text AS "totalCollectedAmount",
+       COUNT(*) FILTER (WHERE session_record_kind = 'CONTRIBUTION' AND status = 'rejected')::int AS "rejectedSubmissionCount"
+     FROM financial_records
+     WHERE session_id = $1`,
     [sessionId]
   )
-  const rejectedAmount = Number(rejectedAmountResult.rows[0].amount)
+  const finRow = financeTotalsResult.rows[0]
+  const approvedAmount = Number(finRow?.approvedAmount || 0)
+  const pendingAmount = Number(finRow?.pendingAmount || 0)
+  const rejectedAmount = Number(finRow?.rejectedAmount || 0)
+  const collectedPenaltyAmount = Number(finRow?.collectedPenaltyAmount || 0)
+  const pendingPenaltyAmount = Number(finRow?.pendingPenaltyAmount || 0)
+  const totalPenaltyAmount = Number(finRow?.totalPenaltyAmount || 0)
+  const collectedLatePenaltyAmount = Number(finRow?.collectedLatePenaltyAmount || 0)
+  const collectedAbsentPenaltyAmount = Number(finRow?.collectedAbsentPenaltyAmount || 0)
+  const totalCollectedAmount = Number(finRow?.totalCollectedAmount || (approvedAmount + collectedPenaltyAmount))
+  const rejectedSubmissionCount = Number(finRow?.rejectedSubmissionCount || 0)
+
   let contributorCount = 0, partialCount = 0, completedCount = 0, pendingContributorCount = 0, notYetCount = 0
   for (const entry of allRoster) {
     if (entry.approvedAmount > 0) contributorCount += 1
@@ -1452,11 +1715,17 @@ export async function getChoirSessionOverview(
     approvedAmount,
     pendingAmount,
     rejectedAmount,
+    collectedPenaltyAmount,
+    pendingPenaltyAmount,
+    totalPenaltyAmount,
+    collectedLatePenaltyAmount,
+    collectedAbsentPenaltyAmount,
+    totalCollectedAmount,
     contributorCount,
     partialCount,
     completedCount,
     pendingContributorCount,
-    rejectedSubmissionCount: Number(rejectedAmountResult.rows[0].count),
+    rejectedSubmissionCount,
     notYetCount
   }
 }
@@ -1470,6 +1739,8 @@ export async function getMemberSessionHistory(memberId: string): Promise<MemberS
             COALESCE(SUM(r.amount) FILTER (WHERE r.session_record_kind = 'CONTRIBUTION' AND r.status = 'needs_review'), 0)::text AS "pendingAmount",
             COUNT(*) FILTER (WHERE r.session_record_kind = 'CONTRIBUTION' AND r.status = 'rejected')::int AS "rejectedCount",
             COALESCE(SUM(r.amount) FILTER (WHERE r.session_record_kind IN ('LATE_PENALTY', 'ABSENT_PENALTY')), 0)::text AS "penaltyAmount",
+            COALESCE(SUM(r.amount) FILTER (WHERE r.session_record_kind IN ('LATE_PENALTY', 'ABSENT_PENALTY') AND r.status = 'recorded'), 0)::text AS "penaltyCollectedAmount",
+            COALESCE(SUM(r.amount) FILTER (WHERE r.session_record_kind IN ('LATE_PENALTY', 'ABSENT_PENALTY') AND r.status = 'needs_review'), 0)::text AS "penaltyPendingAmount",
             (ARRAY_AGG(r.status ORDER BY r.created_at DESC)
               FILTER (WHERE r.session_record_kind IN ('LATE_PENALTY', 'ABSENT_PENALTY')))[1] AS "penaltyStatus"
      FROM session_roster sr
@@ -1498,6 +1769,8 @@ export async function getMemberSessionHistory(memberId: string): Promise<MemberS
         ? classifyContributionMember({ approvedAmount, pendingAmount, rejectedCount, memberTargetAmount })
         : null,
       penaltyAmount: Number(row.penaltyAmount),
+      penaltyCollectedAmount: Number(row.penaltyCollectedAmount || 0),
+      penaltyPendingAmount: Number(row.penaltyPendingAmount || 0),
       penaltyStatus: row.penaltyStatus
     }
   })

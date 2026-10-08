@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   attendanceStatusAt,
+  calculateSessionFinancialTotals,
   canTransitionSession,
   canViewSession,
   classifyContributionMember,
@@ -54,6 +55,7 @@ test('4. session finalization marks an unchecked roster member absent', () => {
 test('5. a second scan detects the existing attendance instead of creating a second check-in', () => {
   assert.equal(hasCheckedIn('PRESENT'), true)
   assert.equal(hasCheckedIn('LATE'), true)
+  assert.equal(hasCheckedIn('ABSENT'), false)
 })
 
 test('6. a closed session rejects another QR check-in', () => {
@@ -200,4 +202,49 @@ test('32. QR token, deadline, and open window are checked before check-in', () =
   assert.equal(validateAttendanceCheckIn(checkInContext({ tokenValid: false })).reason, 'invalid_qr')
   assert.equal(validateAttendanceCheckIn(checkInContext({ checkedInAt: '2026-10-12T14:59:00Z' })).reason, 'window_not_open')
   assert.equal(validateAttendanceCheckIn(checkInContext({ checkedInAt: '2026-10-12T17:16:00Z' })).reason, 'deadline_passed')
+})
+
+test('33. session analytics accurately computes collected penalty fees and pending penalties', () => {
+  const records = [
+    { sessionRecordKind: 'LATE_PENALTY', amount: 500, status: 'recorded' },
+    { sessionRecordKind: 'ABSENT_PENALTY', amount: 1000, status: 'recorded' },
+    { sessionRecordKind: 'LATE_PENALTY', amount: 500, status: 'needs_review' },
+    { sessionRecordKind: 'ABSENT_PENALTY', amount: 1000, status: 'needs_review' }
+  ]
+  const totals = calculateSessionFinancialTotals(records)
+  assert.equal(totals.collectedPenalties, 1500)
+  assert.equal(totals.collectedLatePenalties, 500)
+  assert.equal(totals.collectedAbsentPenalties, 1000)
+  assert.equal(totals.pendingPenalties, 1500)
+  assert.equal(totals.totalPenalties, 3000)
+  assert.equal(totals.totalCollected, 1500)
+})
+
+test('34. session analytics computes session collected contributions and total collected funds', () => {
+  const records = [
+    { sessionRecordKind: 'CONTRIBUTION', amount: 50000, status: 'recorded' },
+    { sessionRecordKind: 'CONTRIBUTION', amount: 20000, status: 'recorded' },
+    { sessionRecordKind: 'CONTRIBUTION', amount: 15000, status: 'needs_review' },
+    { sessionRecordKind: 'CONTRIBUTION', amount: 10000, status: 'rejected' },
+    { sessionRecordKind: 'LATE_PENALTY', amount: 1000, status: 'recorded' }
+  ]
+  const totals = calculateSessionFinancialTotals(records)
+  assert.equal(totals.collectedContributions, 70000)
+  assert.equal(totals.pendingContributions, 15000)
+  assert.equal(totals.rejectedContributions, 10000)
+  assert.equal(totals.collectedPenalties, 1000)
+  assert.equal(totals.totalCollected, 71000)
+})
+
+test('35. expected-late members remain unchecked until they scan in', () => {
+  assert.equal(hasCheckedIn('EXPECTED_LATE'), false)
+})
+
+test('36. expected-late members who never scan in are finalized as absent', () => {
+  const plan = planAttendanceFinalization(
+    [{ memberId: 'm1', attendanceStatus: 'EXPECTED_LATE' }],
+    { lateFee: 500, absentFee: 1000 }
+  )
+  assert.deepEqual(plan.absentMemberIds, ['m1'])
+  assert.deepEqual(plan.penalties, [{ memberId: 'm1', kind: 'ABSENT_PENALTY', amount: 1000 }])
 })

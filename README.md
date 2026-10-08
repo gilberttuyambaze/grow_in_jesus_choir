@@ -31,11 +31,12 @@ The provisioning command creates or updates an account and revokes its existing 
 
 - Leaders and admins can create draft attendance or contribution sessions, select a public or private audience, and schedule/open/close sessions.
 - Attendance uses a rotating QR token. Members must sign in to their own linked active account; the database stores only a hash of the token and rejects duplicate check-ins.
+- During an open attendance session, leaders can mark unchecked members as expected late or absent, edit one member or apply a status to selected members, and still let members check in. A successful scan determines present versus late using the session grace period; unchecked or expected-late members are finalized as absent when the session closes. Leaders can correct statuses and pending penalties after finalization, but cannot change a penalty that has already been recorded.
 - Attendance penalties and member contributions enter the existing financial review workflow as `needs_review`. They affect official balances and collection progress only after approval.
 - Member rosters are snapshotted when a session is scheduled. A private session is visible to leaders and admins; public session summaries do not expose other members' names to members or auditors.
 - Session times use `APP_TIME_ZONE` (default `Africa/Kigali`).
 
-Migration `005_session_engine.sql` adds the session tables, financial record links, idempotency constraints, notification event keys, and email outbox. Run `pnpm db:migrate` after deploying the code. Session emails require `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, and a scheduler that calls `/api/internal/brevo-outbox` with `Authorization: Bearer $CRON_SECRET`. The endpoint is authenticated; provider credentials and deployment scheduling have not been verified from this repository.
+Migration `005_session_engine.sql` adds the session tables, financial record links, idempotency constraints, notification event keys, and email outbox. Migration `008_expected_late_attendance.sql` adds the provisional expected-late status used before members check in. Run `pnpm db:migrate` after deploying the code. Session emails require `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, and a scheduler that calls `/api/internal/brevo-outbox` with `Authorization: Bearer $CRON_SECRET`. The endpoint is authenticated; provider credentials and deployment scheduling have not been verified from this repository.
 
 The session engine's unit tests are included in `pnpm test`. These test the domain rules and QR matrix; they do not substitute for database-backed concurrency, browser, or live email-provider checks. See [the session engine audit](doc/session-engine-audit.md) for coverage and verification status.
 

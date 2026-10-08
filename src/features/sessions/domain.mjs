@@ -72,7 +72,7 @@ export function sessionTypeRules(type, config = {}) {
 }
 
 export function hasCheckedIn(attendanceStatus) {
-  return attendanceStatus !== 'NOT_CHECKED_IN'
+  return attendanceStatus === 'PRESENT' || attendanceStatus === 'LATE'
 }
 
 export function resolveIdempotentSubmission(existing, requestedAmount) {
@@ -117,7 +117,7 @@ export function planAttendanceFinalization(roster, fees, existingPenaltyKeys = n
   const penalties = []
   for (const entry of roster) {
     let status = entry.attendanceStatus
-    if (status === 'NOT_CHECKED_IN') {
+    if (status === 'NOT_CHECKED_IN' || status === 'EXPECTED_LATE') {
       status = 'ABSENT'
       absentMemberIds.push(entry.memberId)
     }
@@ -128,4 +128,46 @@ export function planAttendanceFinalization(roster, fees, existingPenaltyKeys = n
     }
   }
   return { absentMemberIds, penalties }
+}
+
+export function calculateSessionFinancialTotals(records = []) {
+  let collectedContributions = 0
+  let pendingContributions = 0
+  let rejectedContributions = 0
+  let collectedLatePenalties = 0
+  let collectedAbsentPenalties = 0
+  let pendingPenalties = 0
+
+  for (const record of records) {
+    const amount = Number(record?.amount) || 0
+    const kind = record?.sessionRecordKind
+    const status = record?.status
+
+    if (kind === 'CONTRIBUTION') {
+      if (status === 'recorded') collectedContributions += amount
+      else if (status === 'needs_review') pendingContributions += amount
+      else if (status === 'rejected') rejectedContributions += amount
+    } else if (kind === 'LATE_PENALTY') {
+      if (status === 'recorded') collectedLatePenalties += amount
+      else if (status === 'needs_review') pendingPenalties += amount
+    } else if (kind === 'ABSENT_PENALTY') {
+      if (status === 'recorded') collectedAbsentPenalties += amount
+      else if (status === 'needs_review') pendingPenalties += amount
+    }
+  }
+
+  const collectedPenalties = collectedLatePenalties + collectedAbsentPenalties
+  const totalCollected = collectedContributions + collectedPenalties
+
+  return {
+    collectedContributions,
+    pendingContributions,
+    rejectedContributions,
+    collectedPenalties,
+    collectedLatePenalties,
+    collectedAbsentPenalties,
+    pendingPenalties,
+    totalPenalties: collectedPenalties + pendingPenalties,
+    totalCollected
+  }
 }

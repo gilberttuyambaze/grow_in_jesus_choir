@@ -3,9 +3,9 @@
 import * as React from 'react'
 import Link from 'next/link'
 import gsap from 'gsap'
-import { Search, Plus, Menu, FolderLock, CircleHelp } from 'lucide-react'
+import { Search, Plus, Menu, FolderLock, CircleHelp, CalendarPlus } from 'lucide-react'
 import { UserRole, NotificationItem } from '@/types'
-import { canCreateRecord } from '@/lib/permissions'
+import { canCreateRecord, canManageMembers } from '@/lib/permissions'
 import { NotificationCenter } from './NotificationCenter'
 
 interface TopbarProps {
@@ -13,6 +13,7 @@ interface TopbarProps {
   userRole: UserRole
   notifications: NotificationItem[]
   onOpenAddRecord: () => void
+  onOpenCreateSession: () => void
   onOpenSearch: () => void
   onOpenTour: () => void
   onToggleMobileNav?: () => void
@@ -23,6 +24,7 @@ export function Topbar({
   userRole,
   notifications,
   onOpenAddRecord,
+  onOpenCreateSession,
   onOpenSearch,
   onOpenTour,
   onToggleMobileNav
@@ -166,6 +168,19 @@ export function Topbar({
         >
           <FolderLock className="w-4 h-4" />
         </Link>
+
+        {canManageMembers(userRole) && (
+          <button
+            type="button"
+            onClick={onOpenCreateSession}
+            className="inline-flex h-9 w-9 sm:h-10 sm:w-auto items-center justify-center gap-2 rounded-full border border-indigo-200 bg-white px-0 sm:px-4 text-xs font-semibold text-indigo-700 shadow-xs transition-colors hover:bg-indigo-50"
+            aria-label="Create a session"
+            title="Create a session"
+          >
+            <CalendarPlus className="h-4 w-4" />
+            <span className="hidden sm:inline">New Session</span>
+          </button>
+        )}
 
         {/* Primary CTA Button (Responsive) */}
         {canCreateRecord(userRole) && (

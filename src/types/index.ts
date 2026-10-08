@@ -109,7 +109,7 @@ export interface FinancialRecord {
 export type ChoirSessionType = 'ATTENDANCE' | 'CONTRIBUTION'
 export type ChoirSessionVisibility = 'PUBLIC' | 'PRIVATE'
 export type ChoirSessionStatus = 'DRAFT' | 'SCHEDULED' | 'OPEN' | 'CLOSED' | 'COMPLETED'
-export type AttendanceStatus = 'NOT_CHECKED_IN' | 'PRESENT' | 'LATE' | 'ABSENT'
+export type AttendanceStatus = 'NOT_CHECKED_IN' | 'EXPECTED_LATE' | 'PRESENT' | 'LATE' | 'ABSENT'
 export type ContributionMemberStatus = 'COMPLETED' | 'PARTIAL' | 'CONTRIBUTED' | 'PENDING' | 'REJECTED' | 'NOT_YET'
 
 export interface ChoirSession {
@@ -134,6 +134,11 @@ export interface ChoirSession {
   createdAt: string
   updatedAt: string
   closedAt: string | null
+  collectedPenalties?: number
+  pendingPenalties?: number
+  collectedContributions?: number
+  pendingContributions?: number
+  totalCollected?: number
 }
 
 export interface SessionRosterEntry {
@@ -148,6 +153,8 @@ export interface SessionRosterEntry {
   contributionStatus: ContributionMemberStatus | null
   penaltyAmount: number
   penaltyStatus: FinancialRecordStatus | null
+  penaltyCollectedAmount?: number
+  penaltyPendingAmount?: number
 }
 
 export interface SessionOverview {
@@ -161,6 +168,12 @@ export interface SessionOverview {
   approvedAmount: number
   pendingAmount: number
   rejectedAmount: number
+  collectedPenaltyAmount: number
+  pendingPenaltyAmount: number
+  totalPenaltyAmount: number
+  collectedLatePenaltyAmount: number
+  collectedAbsentPenaltyAmount: number
+  totalCollectedAmount: number
   contributorCount: number
   partialCount: number
   completedCount: number
@@ -181,6 +194,8 @@ export interface MemberSessionHistoryItem {
   contributionStatus: ContributionMemberStatus | null
   penaltyAmount: number
   penaltyStatus: FinancialRecordStatus | null
+  penaltyCollectedAmount?: number
+  penaltyPendingAmount?: number
 }
 
 export interface FinancialSummary {

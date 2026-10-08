@@ -61,6 +61,18 @@ export function SessionsView({ sessions, categories, userRole, memberHistory }: 
   const openCount = sessions.filter((session) => session.status === 'OPEN').length
   const upcomingCount = sessions.filter((session) => session.status === 'SCHEDULED').length
 
+  const totalSessionMoneyCollected = React.useMemo(() => {
+    return sessions.reduce((sum, s) => sum + (s.totalCollected || 0), 0)
+  }, [sessions])
+
+  const totalPenaltiesCollected = React.useMemo(() => {
+    return sessions.reduce((sum, s) => sum + (s.collectedPenalties || 0), 0)
+  }, [sessions])
+
+  const totalContributionsCollected = React.useMemo(() => {
+    return sessions.reduce((sum, s) => sum + (s.collectedContributions || 0), 0)
+  }, [sessions])
+
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-[28px] border border-white/80 bg-gradient-to-br from-white/85 via-indigo-50/55 to-cyan-50/60 p-5 shadow-[0_18px_55px_rgba(68,75,130,0.08)] sm:p-7">
@@ -71,22 +83,57 @@ export function SessionsView({ sessions, categories, userRole, memberHistory }: 
               <CalendarDays className="h-3.5 w-3.5" /> Attendance & collections
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Sessions</h1>
-            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-600">Manage choir activities and purpose based collections in one place.</p>
+            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-600">Manage choir activities, session contributions, and attendance penalty fees in one place.</p>
           </div>
           {canManage && <button onClick={() => setShowForm(true)} className="brand-button inline-flex shrink-0 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white"><Plus className="h-4 w-4" /> Create session</button>}
         </div>
-        <div className="relative mt-6 grid grid-cols-2 gap-3 sm:max-w-xl sm:grid-cols-3">
-          <div className="rounded-2xl border border-white/90 bg-white/65 p-3.5">
-            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500"><CalendarClock className="h-3.5 w-3.5" /> Scheduled</span>
-            <strong className="mt-1 block text-xl text-slate-900">{upcomingCount}</strong>
+
+        {/* SESSION FINANCIAL & OPERATIONAL ANALYTICS */}
+        <div className="relative mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="rounded-2xl border border-white/90 bg-white/80 p-3.5 shadow-2xs">
+            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+              <CircleDollarSign className="h-3.5 w-3.5 text-emerald-600" /> Total Money Collected
+            </span>
+            <strong className="mt-1 block text-lg sm:text-xl text-slate-900 truncate">
+              {formatCurrency(totalSessionMoneyCollected)}
+            </strong>
+            <span className="mt-0.5 block text-[10px] text-slate-400">All sessions & fees</span>
           </div>
-          <div className="rounded-2xl border border-white/90 bg-white/65 p-3.5">
-            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500"><CheckCircle2 className="h-3.5 w-3.5" /> Open now</span>
-            <strong className="mt-1 block text-xl text-slate-900">{openCount}</strong>
+
+          <div className="rounded-2xl border border-white/90 bg-white/80 p-3.5 shadow-2xs">
+            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-purple-700">
+              <CircleDollarSign className="h-3.5 w-3.5 text-purple-600" /> Penalty Fee Collected
+            </span>
+            <strong className="mt-1 block text-lg sm:text-xl text-purple-900 truncate">
+              {formatCurrency(totalPenaltiesCollected)}
+            </strong>
+            <span className="mt-0.5 block text-[10px] text-slate-400">Late & absent penalties</span>
           </div>
-          <div className="col-span-2 rounded-2xl border border-white/90 bg-white/65 p-3.5 sm:col-span-1">
-            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500"><Users className="h-3.5 w-3.5" /> Total sessions</span>
-            <strong className="mt-1 block text-xl text-slate-900">{sessions.length}</strong>
+
+          <div className="rounded-2xl border border-white/90 bg-white/80 p-3.5 shadow-2xs">
+            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-indigo-700">
+              <CircleDollarSign className="h-3.5 w-3.5 text-indigo-600" /> Contributions Collected
+            </span>
+            <strong className="mt-1 block text-lg sm:text-xl text-indigo-900 truncate">
+              {formatCurrency(totalContributionsCollected)}
+            </strong>
+            <span className="mt-0.5 block text-[10px] text-slate-400">Target collections</span>
+          </div>
+
+          <div className="rounded-2xl border border-white/90 bg-white/65 p-3.5">
+            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Open now
+            </span>
+            <strong className="mt-1 block text-lg sm:text-xl text-slate-900">{openCount}</strong>
+            <span className="mt-0.5 block text-[10px] text-slate-400">Active sessions</span>
+          </div>
+
+          <div className="rounded-2xl border border-white/90 bg-white/65 p-3.5 col-span-2 sm:col-span-1">
+            <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+              <Users className="h-3.5 w-3.5 text-indigo-600" /> Total sessions
+            </span>
+            <strong className="mt-1 block text-lg sm:text-xl text-slate-900">{sessions.length}</strong>
+            <span className="mt-0.5 block text-[10px] text-slate-400">{upcomingCount} scheduled</span>
           </div>
         </div>
       </section>
