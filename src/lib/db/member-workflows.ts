@@ -40,7 +40,7 @@ function appBaseUrl() {
   try {
     url = new URL(value)
   } catch {
-    throw new Error('Set APP_URL or NEXT_PUBLIC_APP_URL to the public application URL before inviting a member.')
+    throw new Error('Set APP_URL or NEXT_PUBLIC_APP_URL to the public application URL before sending email.')
   }
   if (!['http:', 'https:'].includes(url.protocol) || (process.env.NODE_ENV === 'production' && url.protocol !== 'https:')) {
     throw new Error('The public application URL must use HTTPS in production.')
@@ -184,7 +184,7 @@ export async function createMemberInvitation(input: {
       `This link expires ${expiresAt} and can only be used once.`
     ].filter(Boolean).join('\n\n')
     const html = renderInvitationEmail({
-      fullName: input.fullName.trim(), inviterName: actor.name, message: input.message,
+      baseUrl, fullName: input.fullName.trim(), inviterName: actor.name, message: input.message,
       acceptUrl, expiresAt
     })
     await queueInvitationEmail(client, {
@@ -235,6 +235,7 @@ export async function getMemberInvitations(limit = 100): Promise<MemberInvitatio
 }
 
 export async function resendMemberInvitation(invitationId: string, actor: { id: string; name: string }): Promise<boolean> {
+  const baseUrl = appBaseUrl()
   const client = await getPgPool().connect()
   const token = crypto.randomBytes(32).toString('base64url')
   try {
@@ -282,12 +283,12 @@ export async function resendMemberInvitation(invitationId: string, actor: { id: 
        WHERE invitation_id = $1 AND status IN ('QUEUED', 'SENDING')`,
       [invitationId]
     )
-    const acceptUrl = `${appBaseUrl()}/invite/${token}`
+    const acceptUrl = `${baseUrl}/invite/${token}`
     const expiresAt = formatExpiry(updated.rows[0].expiresAt)
     const subject = 'Your Grow in Jesus Choir invitation'
     const textMessage = `Hello ${invitation.fullName}, ${actor.name} renewed your invitation to join Grow in Jesus Choir as a ${invitation.invitedRole.toLowerCase()}.\n\nChoose your password here: ${acceptUrl}\n\nThis link expires ${expiresAt} and can only be used once.`
     const html = renderInvitationEmail({
-      fullName: invitation.fullName, inviterName: actor.name, message: invitation.message,
+      baseUrl, fullName: invitation.fullName, inviterName: actor.name, message: invitation.message,
       acceptUrl, expiresAt
     })
     await queueInvitationEmail(client, {
@@ -540,6 +541,7 @@ export async function createMemberCommunication(input: {
   if (input.mode === 'ALL_MEMBERS' && memberIds.length > 0) throw new Error('The all-members message cannot include a client-supplied recipient list.')
   if (input.mode === 'MANUAL_EMAIL' && !isValidEmail(input.manualEmail)) throw new Error('Enter a valid recipient email address.')
 
+  const baseUrl = appBaseUrl()
   const client = await getPgPool().connect()
   const communicationId = id()
   try {
@@ -605,7 +607,7 @@ export async function createMemberCommunication(input: {
       [communicationId, actor.id, actor.name, input.mode, subject, body, input.inAppNotification,
         input.important, recipients.length, invalidCount]
     )
-    const html = renderCommunicationEmail({ subject, body, senderName: actor.name, important: input.important })
+    const html = renderCommunicationEmail({ baseUrl, subject, body, senderName: actor.name, important: input.important })
     for (const recipient of recipients) {
       const recipientId = id()
       await client.query(

@@ -62,17 +62,43 @@ test('communication rate limits stop excessive sends and mass sends', () => {
 test('email body, names, subject, and URLs are encoded in the branded templates', () => {
   assert.equal(escapeHtml(`<script a="x">'&`), '&lt;script a=&quot;x&quot;&gt;&#39;&amp;')
   const communication = renderCommunicationEmail({
+    baseUrl: 'https://choir.example',
     subject: '<img src=x onerror=alert(1)>', body: '<script>alert(1)</script>',
     senderName: 'Leader <admin>', important: true
   })
   assert.equal(communication.includes('<script>alert(1)</script>'), false)
   assert.equal(communication.includes('&lt;script&gt;alert(1)&lt;/script&gt;'), true)
   assert.equal(communication.includes('&lt;img src=x onerror=alert(1)&gt;'), true)
+  assert.match(communication, /grow-in-jesus-choir-logo-static\.png/)
+  assert.match(communication, /href="https:\/\/choir\.example\/"/)
+  assert.match(communication, /href="https:\/\/choir\.example\/login"/)
+  assert.match(communication, /#c47a16/)
+  assert.match(communication, /Open the choir workspace/)
+
+  const standard = renderCommunicationEmail({
+    baseUrl: 'https://choir.example', subject: 'Weekly update', body: 'First paragraph.\n\nSecond paragraph.',
+    senderName: 'Choir Leader', important: false
+  })
+  assert.match(standard, /#6254c7/)
+  assert.match(standard, /First paragraph\.<\/p><p/)
+  assert.doesNotMatch(standard, /IMPORTANT ANNOUNCEMENT/)
+
   const invitation = renderInvitationEmail({
+    baseUrl: 'https://choir.example',
     fullName: '<svg onload=alert(1)>', inviterName: 'Leader', message: '<b>Welcome</b>',
     acceptUrl: 'https://choir.example/invite/abc?x="<script>', expiresAt: '12 Oct 2026, 5:00 pm'
   })
   assert.equal(invitation.includes('<svg onload=alert(1)>'), false)
   assert.equal(invitation.includes('&lt;b&gt;Welcome&lt;/b&gt;'), true)
-  assert.equal(invitation.includes('&lt;script&gt;'), true)
+  assert.equal(invitation.includes('<script>'), false)
+  assert.match(invitation, /href="https:\/\/choir\.example\/invite\/abc\?x=%22%3Cscript%3E"/)
+  assert.match(invitation, /#16a8c7/)
+  assert.match(invitation, /Accept your invitation/)
+  assert.match(invitation, /Visit our website/)
+})
+
+test('email templates reject unsafe links', () => {
+  assert.throws(() => renderCommunicationEmail({
+    baseUrl: 'javascript:alert(1)', subject: 'Update', body: 'Details', senderName: 'Leader', important: false
+  }), /absolute HTTP or HTTPS URL/)
 })
