@@ -113,13 +113,16 @@ export function NotificationCenter({ notifications: initialNotifications }: Noti
       {/* Bell Trigger */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="relative p-2 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        aria-label="Open notifications"
+        className="relative p-2 rounded-full text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+        aria-label={`Open notifications (${unreadCount} unread)`}
+        title={unreadCount > 0 ? `${unreadCount} unread notifications` : 'Notifications'}
         aria-busy={isMarkingAll}
       >
-        <Bell className="w-4 h-4" />
+        <Bell className="w-4 h-4 text-slate-600" />
         {unreadCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white" />
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black flex items-center justify-center shadow-xs z-10">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
         )}
       </button>
 

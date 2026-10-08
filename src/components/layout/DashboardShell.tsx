@@ -37,12 +37,49 @@ export function DashboardShell({
   children
 }: DashboardShellProps) {
   const [isAddRecordOpen, setIsAddRecordOpen] = React.useState(false)
+  const [initialRecordType, setInitialRecordType] = React.useState<'income' | 'expense' | null>(null)
   const [isSearchOpen, setIsSearchOpen] = React.useState(false)
   const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false)
   const [isTourOpen, setIsTourOpen] = React.useState(onboardingProgress.status === 'not_started')
 
   const handleOpenTour = React.useCallback(() => setIsTourOpen(true), [])
   const handleCloseTour = React.useCallback(() => setIsTourOpen(false), [])
+
+  // Listen for 1-click open-add-record event across the platform
+  React.useEffect(() => {
+    const handleOpenRecord = (event?: Event) => {
+      const customEvent = event as CustomEvent<{ type?: 'income' | 'expense' }> | undefined
+      if (customEvent?.detail?.type) {
+        setInitialRecordType(customEvent.detail.type)
+      } else {
+        setInitialRecordType(null)
+      }
+      setIsAddRecordOpen(true)
+    }
+
+    window.addEventListener('open-add-record', handleOpenRecord)
+
+    // Check query params if record=1 or record=true
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      if (urlParams.get('record') === '1' || urlParams.get('record') === 'true') {
+        const typeParam = urlParams.get('type')
+        if (typeParam === 'income' || typeParam === 'expense') {
+          setInitialRecordType(typeParam)
+        }
+        setIsAddRecordOpen(true)
+      }
+    }
+
+    return () => {
+      window.removeEventListener('open-add-record', handleOpenRecord)
+    }
+  }, [])
+
+  const unreadNotificationCount = React.useMemo(
+    () => notifications.filter((n) => !n.isRead).length,
+    [notifications]
+  )
 
   return (
     <div className="dashboard-shell h-dvh w-full flex overflow-hidden">
@@ -53,6 +90,7 @@ export function DashboardShell({
           userName={userName}
           userInitials={userInitials}
           pendingCount={pendingCount}
+          unreadNotificationCount={unreadNotificationCount}
         />
       </div>
 
@@ -71,6 +109,7 @@ export function DashboardShell({
               userName={userName}
               userInitials={userInitials}
               pendingCount={pendingCount}
+              unreadNotificationCount={unreadNotificationCount}
               onClose={() => setIsMobileNavOpen(false)}
               onNavigate={() => setIsMobileNavOpen(false)}
             />
@@ -98,6 +137,7 @@ export function DashboardShell({
       {/* Mobile Fixed Bottom Navigation Bar (Section 26) */}
       <MobileBottomNav
         userRole={userRole}
+        unreadNotificationCount={unreadNotificationCount}
         onOpenAddRecord={() => setIsAddRecordOpen(true)}
         onToggleMobileNav={() => setIsMobileNavOpen(true)}
       />
@@ -106,10 +146,14 @@ export function DashboardShell({
       {canCreateRecord(userRole) && (
         <AddRecordDialog
           isOpen={isAddRecordOpen}
-          onClose={() => setIsAddRecordOpen(false)}
+          onClose={() => {
+            setIsAddRecordOpen(false)
+            setInitialRecordType(null)
+          }}
           categories={categories}
           members={members}
           userRole={userRole}
+          initialRecordType={initialRecordType}
         />
       )}
 

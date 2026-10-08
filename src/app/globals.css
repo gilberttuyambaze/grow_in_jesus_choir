@@ -142,15 +142,84 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 /* Shared surfaces and actions follow the login screen's soft blue language. */
 .card-surface {
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.92);
-  box-shadow: 0 18px 48px -28px rgba(15, 23, 42, 0.22), 0 1px 3px rgba(15, 23, 42, 0.04);
-  border-radius: 1.75rem;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03), 0 16px 36px -6px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.9) inset;
+  border-radius: 1.625rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .card-surface:hover {
-  box-shadow: 0 22px 52px -28px rgba(15, 23, 42, 0.25), 0 2px 5px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 8px 30px -3px rgba(15, 23, 42, 0.05), 0 22px 46px -6px rgba(15, 23, 42, 0.09), 0 0 0 1px rgba(255, 255, 255, 1) inset;
+}
+
+.card-surface-interactive {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-surface-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px -4px rgba(15, 23, 42, 0.07), 0 24px 48px -6px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(255, 255, 255, 1) inset;
+}
+
+/* Liquid silver action button matching reference media_1791454046098_7779ab90.png */
+.liquid-silver-button {
+  background: linear-gradient(180deg, #ffffff 0%, rgba(243, 246, 249, 0.96) 48%, rgba(226, 232, 240, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 3px 12px -1px rgba(15, 23, 42, 0.08), inset 0 1px 1.5px #ffffff, inset 0 -1.5px 2px rgba(148, 163, 184, 0.3);
+  color: #1e293b;
+  font-weight: 600;
+  border-radius: 9999px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.liquid-silver-button:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffffff 0%, rgba(248, 250, 252, 1) 48%, rgba(228, 234, 242, 1) 100%);
+  box-shadow: 0 6px 20px -2px rgba(15, 23, 42, 0.13), inset 0 1px 1.5px #ffffff, inset 0 -1px 2px rgba(148, 163, 184, 0.35);
+  transform: translateY(-1px);
+  color: #0f172a;
+}
+
+.liquid-silver-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08), inset 0 1px 2px rgba(148, 163, 184, 0.25);
+}
+
+.liquid-silver-button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.liquid-silver-button-sm {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+/* Frosted search pill matching reference */
+.frosted-search-pill {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.8), 0 2px 10px rgba(15, 23, 42, 0.04);
+  border-radius: 9999px;
+}
+
+/* Glowing count pill */
+.glowing-count-pill {
+  background: linear-gradient(135deg, rgba(224, 242, 254, 0.9) 0%, rgba(219, 234, 254, 0.9) 100%);
+  border: 1px solid rgba(186, 230, 253, 0.8);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
+  color: #0284c7;
+  font-weight: 600;
+  border-radius: 9999px;
 }
 
 .glass-panel {
@@ -185,13 +254,24 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 
 .dashboard-shell input:not([type='file']):not([type='checkbox']):not([type='radio']):not([type='hidden']):not(.command-search-input),
-.dashboard-shell select,
 .dashboard-shell textarea {
   border: 1px solid rgba(203, 213, 225, 0.78);
   border-radius: 1rem;
   background-color: rgba(238, 242, 252, 0.88);
   color: #1e293b;
   transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.dashboard-shell select,
+select {
+  border: 1px solid rgba(203, 213, 225, 0.78);
+  border-radius: 1rem;
+  background-color: rgba(238, 242, 252, 0.88);
+  color: #1e293b;
+  padding-right: 2.75rem !important;
+  cursor: pointer;
+  -webkit-transition: none !important;
+  transition: none !important;
 }
 
 .dashboard-shell input:not([type='file']):not([type='checkbox']):not([type='radio']):not([type='hidden']):not(.command-search-input):focus,

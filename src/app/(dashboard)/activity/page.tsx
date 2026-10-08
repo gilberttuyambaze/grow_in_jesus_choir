@@ -1,20 +1,9 @@
 import { redirect } from 'next/navigation'
-import {
-  Clock,
-  ShieldCheck,
-  UserCheck,
-  FileText,
-  CheckCircle2,
-  XCircle,
-  PlusCircle,
-  Ban,
-  BellRing,
-  Sparkles
-} from 'lucide-react'
 import { getSessionUser } from '@/lib/auth/session'
 import { getAuditLogs } from '@/lib/db'
 import { formatDateTime } from '@/lib/utils/date'
 import { formatCurrency } from '@/lib/utils/currency'
+import { CrystalBadge } from '@/components/ui/CrystalBadge'
 
 export default async function ActivityPage() {
   const session = await getSessionUser()
@@ -31,18 +20,27 @@ export default async function ActivityPage() {
   return (
     <div className="space-y-6 max-w-4xl">
       {/* Header matching Reference */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 font-sans">
-          Audit Ledger & Activity Timeline
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Historical, verifiable record of all financial creations, approvals, rejections, and reminders.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 font-sans">
+            Audit Ledger & Activity Timeline
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Historical, verifiable record of all financial creations, approvals, rejections, and reminders.
+          </p>
+        </div>
+        <div className="glowing-count-pill self-start sm:self-auto px-3.5 py-1 text-xs">
+          {auditLogs.length} events logged
+        </div>
       </div>
 
-      {/* Audit Log Card matching Reference */}
-      <div className="card-surface p-6 bg-white space-y-6">
-        <div className="space-y-5">
+      {/* Audit Log Cards matching Reference */}
+      {auditLogs.length === 0 ? (
+        <div className="card-surface p-12 text-center text-xs text-slate-400">
+          No audit events recorded yet.
+        </div>
+      ) : (
+        <div className="space-y-3.5">
           {auditLogs.map((log) => {
             const isApproved = log.action === 'RECORD_APPROVED'
             const isRejected = log.action === 'RECORD_REJECTED'
@@ -52,34 +50,28 @@ export default async function ActivityPage() {
 
             const details = log.details as any
 
+            const badgeType = isApproved
+              ? 'success'
+              : isCreated
+              ? 'success'
+              : isRejected
+              ? 'alert'
+              : isVoided
+              ? 'warning'
+              : isReminders
+              ? 'purple'
+              : 'info'
+
             return (
-              <div key={log.id} className="flex items-start gap-4 text-xs">
-                {/* Event Icon Pill */}
-                <div
-                  className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 shadow-xs ${
-                    isApproved
-                      ? 'bg-emerald-50 text-emerald-600'
-                      : isRejected
-                      ? 'bg-rose-50 text-rose-600'
-                      : isVoided
-                      ? 'bg-slate-100 text-slate-600'
-                      : isReminders
-                      ? 'bg-purple-50 text-purple-600'
-                      : 'bg-indigo-50 text-indigo-600'
-                  }`}
-                >
-                  {isApproved && <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />}
-                  {isRejected && <XCircle className="w-5 h-5 stroke-[2.5]" />}
-                  {isVoided && <Ban className="w-5 h-5 stroke-[2.5]" />}
-                  {isReminders && <BellRing className="w-5 h-5 stroke-[2.5]" />}
-                  {isCreated && <PlusCircle className="w-5 h-5 stroke-[2.5]" />}
-                  {!isApproved && !isRejected && !isVoided && !isReminders && !isCreated && (
-                    <Clock className="w-5 h-5 stroke-[2.5]" />
-                  )}
-                </div>
+              <div
+                key={log.id}
+                className="p-4 sm:p-5 rounded-[22px] sm:rounded-[26px] bg-white/85 backdrop-blur-xl border border-white/95 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.03),0_12px_32px_-4px_rgba(15,23,42,0.06),0_0_0_1px_rgba(255,255,255,0.9)_inset] hover:shadow-[0_8px_28px_-2px_rgba(15,23,42,0.06),0_20px_44px_-4px_rgba(15,23,42,0.08),0_0_0_1px_rgba(255,255,255,1)_inset] transition-all duration-200 flex items-start gap-4 text-xs"
+              >
+                {/* 3D Crystal Gem Emblem */}
+                <CrystalBadge type={badgeType} size="md" className="shrink-0 mt-0.5" />
 
                 {/* Details */}
-                <div className="flex-1 pb-5 border-b border-slate-100 min-w-0">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="font-bold text-sm text-slate-900 truncate">
                       {log.actorName}
@@ -89,12 +81,12 @@ export default async function ActivityPage() {
                     </span>
                   </div>
 
-                  {/* Human-friendly action description (Section 2 & 71) */}
+                  {/* Human-friendly action description */}
                   <p className="text-slate-600 leading-relaxed font-medium">
                     {isCreated && (
                       <span>
                         Added a new financial record:{' '}
-                        <strong>
+                        <strong className="text-slate-900">
                           {details?.amount ? formatCurrency(details.amount) : ''}
                         </strong>{' '}
                         ({details?.description || 'Choir transaction'}).
@@ -140,7 +132,7 @@ export default async function ActivityPage() {
             )
           })}
         </div>
-      </div>
+      )}
     </div>
   )
 }

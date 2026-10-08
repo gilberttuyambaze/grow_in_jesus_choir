@@ -15,12 +15,14 @@ import { canCreateRecord } from '@/lib/permissions'
 
 interface MobileBottomNavProps {
   userRole: UserRole
+  unreadNotificationCount?: number
   onOpenAddRecord: () => void
   onToggleMobileNav: () => void
 }
 
 export function MobileBottomNav({
   userRole,
+  unreadNotificationCount = 0,
   onOpenAddRecord,
   onToggleMobileNav
 }: MobileBottomNavProps) {
@@ -82,10 +84,15 @@ export function MobileBottomNav({
       {/* More / Menu Drawer */}
       <button
         onClick={onToggleMobileNav}
-        className="flex flex-col items-center justify-center p-1.5 rounded-xl text-[10px] font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+        className="relative flex flex-col items-center justify-center p-1.5 rounded-xl text-[10px] font-semibold text-slate-500 hover:text-slate-900 transition-colors"
         aria-label="Open full menu"
       >
         <Menu className="w-5 h-5 mb-0.5" />
+        {unreadNotificationCount > 0 && (
+          <span className="absolute top-0.5 right-2 min-w-[16px] h-[16px] px-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[9px] font-black flex items-center justify-center shadow-xs">
+            {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+          </span>
+        )}
         <span>More</span>
       </button>
     </nav>

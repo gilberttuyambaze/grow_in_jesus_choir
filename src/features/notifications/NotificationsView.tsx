@@ -22,6 +22,7 @@ import { NotificationItem, UserRole } from '@/types'
 import { markNotificationReadAction } from '@/features/notifications/actions'
 import { formatDateTime } from '@/lib/utils/date'
 import { useToast } from '@/components/ui/Toast'
+import { CrystalBadge } from '@/components/ui/CrystalBadge'
 
 interface NotificationsViewProps {
   notifications: NotificationItem[]
@@ -127,6 +128,45 @@ export function NotificationsView({
     }
   }
 
+  const indicators = [
+    {
+      id: 'all' as const,
+      alt: `All (${notifications.length})`,
+      count: notifications.length,
+      Icon: Bell,
+      color: 'text-purple-600',
+      activeStyle: 'bg-purple-100 text-purple-700 ring-2 ring-purple-500/80',
+      badgeBg: 'bg-purple-600',
+    },
+    {
+      id: 'unread' as const,
+      alt: `Unread (${unreadCount})`,
+      count: unreadCount,
+      Icon: Clock,
+      color: 'text-indigo-600',
+      activeStyle: 'bg-indigo-100 text-indigo-700 ring-2 ring-indigo-500/80',
+      badgeBg: 'bg-indigo-600',
+    },
+    {
+      id: 'warning' as const,
+      alt: `Actionable (${warningCount})`,
+      count: warningCount,
+      Icon: AlertTriangle,
+      color: 'text-amber-600',
+      activeStyle: 'bg-amber-100 text-amber-700 ring-2 ring-amber-500/80',
+      badgeBg: 'bg-amber-500',
+    },
+    {
+      id: 'success' as const,
+      alt: `Milestones (${successCount})`,
+      count: successCount,
+      Icon: CheckCircle2,
+      color: 'text-emerald-600',
+      activeStyle: 'bg-emerald-100 text-emerald-700 ring-2 ring-emerald-500/80',
+      badgeBg: 'bg-emerald-600',
+    },
+  ]
+
   return (
     <div className="space-y-6 max-w-4xl min-w-0">
       {/* Top Banner matching Reference Mood */}
@@ -153,107 +193,80 @@ export function NotificationsView({
         )}
       </div>
 
-      {/* Futuristic Metric Pills */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-4">
-        <div className="card-surface p-4 sm:p-5 bg-white flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-              Total Notifications
-            </span>
-            <span className="text-2xl font-bold text-slate-900 font-sans tracking-tight">
-              {notifications.length}
-            </span>
-          </div>
-          <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shadow-xs">
-            <Bell className="w-5 h-5 stroke-[2.2]" />
-          </div>
-        </div>
+      {/* Space-Optimized Pure Icon Indicators Dock (No pop-up card, micro-alt message, pure icons at best size, futuristic seamless design) */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="inline-flex items-center gap-2 p-1.5 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200/80 shadow-xs">
+          {indicators.map((item) => {
+            const isActive = filter === item.id
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setFilter(item.id)}
+                title={item.alt}
+                aria-label={item.alt}
+                className={`relative group w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer ${
+                  isActive
+                    ? `${item.activeStyle} shadow-xs scale-105`
+                    : 'bg-slate-50/80 hover:bg-slate-100/90 text-slate-500 hover:text-slate-800 border border-slate-200/50 hover:scale-105'
+                }`}
+              >
+                {/* Meaningful Icon at Best Size */}
+                <item.Icon className={`w-5 h-5 sm:w-5.5 sm:h-5.5 stroke-[2.2] ${item.color}`} />
 
-        <div className="card-surface p-4 sm:p-5 bg-white flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-              Unread Updates
-            </span>
-            <span className="text-2xl font-bold text-indigo-600 font-sans tracking-tight">
-              {unreadCount}
-            </span>
-          </div>
-          <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shadow-xs">
-            <Clock className="w-5 h-5 stroke-[2.2]" />
-          </div>
-        </div>
+                {/* Number Indicator Badge */}
+                <span
+                  className={`absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-black border-2 border-white shadow-xs ${item.badgeBg} text-white`}
+                >
+                  {item.count}
+                </span>
 
-        <div className="card-surface p-4 sm:p-5 bg-white flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-              Actionable Reviews
-            </span>
-            <span className="text-2xl font-bold text-amber-600 font-sans tracking-tight">
-              {warningCount}
-            </span>
-          </div>
-          <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold shadow-xs">
-            <AlertTriangle className="w-5 h-5 stroke-[2.2]" />
-          </div>
+                {/* Minimal Micro Alt Tooltip (Smallest possible size, never blocks content) */}
+                <span className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded bg-slate-900/90 text-white text-[10px] font-semibold whitespace-nowrap shadow-xs opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-20">
+                  {item.alt}
+                </span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
+      {/* Notifications List Card */}
       <div className="card-surface p-4 sm:p-5 bg-white space-y-4 min-w-0">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 pb-4 border-b border-slate-100">
-          {/* Filter Pills */}
-          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100/80 text-xs font-medium overflow-x-auto max-w-full">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-3.5 py-1.5 rounded-xl transition-all whitespace-nowrap ${
-                filter === 'all'
-                  ? 'bg-white text-slate-900 font-bold shadow-xs'
-                  : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              All ({notifications.length})
-            </button>
-            <button
-              onClick={() => setFilter('unread')}
-              className={`px-3.5 py-1.5 rounded-xl transition-all whitespace-nowrap ${
-                filter === 'unread'
-                  ? 'bg-white text-indigo-700 font-bold shadow-xs'
-                  : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              Unread ({unreadCount})
-            </button>
-            <button
-              onClick={() => setFilter('warning')}
-              className={`px-3.5 py-1.5 rounded-xl transition-all whitespace-nowrap ${
-                filter === 'warning'
-                  ? 'bg-white text-amber-700 font-bold shadow-xs'
-                  : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              Reviews ({warningCount})
-            </button>
-            <button
-              onClick={() => setFilter('success')}
-              className={`px-3.5 py-1.5 rounded-xl transition-all whitespace-nowrap ${
-                filter === 'success'
-                  ? 'bg-white text-emerald-700 font-bold shadow-xs'
-                  : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              Milestones ({successCount})
-            </button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-semibold text-slate-700">
+              {filter === 'all'
+                ? 'All Notifications'
+                : filter === 'unread'
+                ? 'Unread Notifications'
+                : filter === 'warning'
+                ? 'Actionable Reviews'
+                : 'Milestones'}
+            </span>
+            <span className="glowing-count-pill px-3 py-1 text-xs">
+              {filteredNotifications.length} {filteredNotifications.length === 1 ? 'container' : 'containers'}
+            </span>
+            {filter !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setFilter('all')}
+                className="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold ml-1 cursor-pointer"
+              >
+                Clear filter
+              </button>
+            )}
           </div>
 
-          {/* Search Box */}
-          <div className="relative w-full sm:w-64">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-3" />
+          {/* Frosted Glass Search Box matching reference media_1791454046098_7779ab90.png */}
+          <div className="frosted-search-pill relative w-full sm:w-64 px-3.5 py-1.5 flex items-center">
+            <Search className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
             <input
               type="text"
               placeholder="Search notifications..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-full border border-slate-200 bg-slate-50/60 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none border-0 ring-0 shadow-none"
             />
           </div>
         </div>
@@ -270,7 +283,7 @@ export function NotificationsView({
             </span>
           </div>
         ) : (
-          <div className="space-y-3 pt-1">
+          <div className="space-y-3.5 pt-1">
             {filteredNotifications.map((item) => {
               const isPending = pendingIds.has(item.id) || isMarkingAll
               const isWarning = item.type === 'warning'
@@ -280,34 +293,21 @@ export function NotificationsView({
               return (
                 <div
                   key={item.id}
-                  className={`p-4 sm:p-5 rounded-2xl border transition-all duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-                    item.isRead
-                      ? 'border-slate-100 bg-white hover:border-slate-200'
-                      : 'border-indigo-150 bg-indigo-50/30 hover:bg-indigo-50/50'
+                  className={`p-4 sm:p-5 rounded-[22px] sm:rounded-[26px] bg-white/85 backdrop-blur-xl border border-white/95 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.03),0_12px_32px_-4px_rgba(15,23,42,0.06),0_0_0_1px_rgba(255,255,255,0.9)_inset] hover:shadow-[0_8px_28px_-2px_rgba(15,23,42,0.06),0_20px_44px_-4px_rgba(15,23,42,0.08),0_0_0_1px_rgba(255,255,255,1)_inset] transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group ${
+                    !item.isRead ? 'ring-1 ring-indigo-200/50 bg-gradient-to-r from-white/95 via-indigo-50/15 to-white/90' : ''
                   }`}
                 >
-                  <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                    {/* Reference Circle Icon matching media_1791402053359_0b6949c6.png */}
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-0.5 shadow-xs ${
-                        isWarning
-                          ? 'bg-amber-100/80 text-amber-800'
-                          : isSuccess
-                          ? 'bg-emerald-100/80 text-emerald-800'
-                          : isAlert
-                          ? 'bg-rose-100/80 text-rose-800'
-                          : 'bg-indigo-100/80 text-indigo-800'
-                      }`}
-                    >
-                      {isWarning && <AlertTriangle className="w-5 h-5 stroke-[2.2]" />}
-                      {isSuccess && <CheckCircle2 className="w-5 h-5 stroke-[2.2]" />}
-                      {isAlert && <AlertCircle className="w-5 h-5 stroke-[2.2]" />}
-                      {!isWarning && !isSuccess && !isAlert && <Info className="w-5 h-5 stroke-[2.2]" />}
-                    </div>
+                  <div className="flex items-start gap-4 min-w-0 flex-1">
+                    {/* 3D Crystal Gem Emblem matching media_1791454046098_7779ab90.png and media_1791454111794_e621fd98.png */}
+                    <CrystalBadge
+                      type={isWarning ? 'warning' : isSuccess ? 'success' : isAlert ? 'alert' : 'info'}
+                      size="md"
+                      className="shrink-0 mt-0.5"
+                    />
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                        <h4 className="font-bold text-sm text-slate-900 tracking-tight">
+                        <h4 className="font-bold text-sm sm:text-base text-slate-900 tracking-tight">
                           {item.title}
                         </h4>
                         {!item.isRead && (
@@ -316,7 +316,7 @@ export function NotificationsView({
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-600 leading-relaxed">
+                      <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                         {item.message}
                       </p>
                       <span className="text-[11px] text-slate-400 block mt-1.5 font-medium">
@@ -326,27 +326,32 @@ export function NotificationsView({
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                  <div className="flex items-center gap-2.5 self-end sm:self-center shrink-0">
                     {!item.isRead && (
                       <button
                         onClick={() => void handleMarkAsRead(item.id)}
                         disabled={isPending}
                         aria-busy={isPending}
-                        className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors disabled:cursor-wait disabled:opacity-50"
+                        className="p-2.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100/80 transition-colors disabled:cursor-wait disabled:opacity-50"
                         title="Mark as read"
                       >
                         {isPending ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4 stroke-[2.2]" />}
                       </button>
                     )}
 
+                    {/* Liquid Silver Action Button matching reference */}
                     <button
                       onClick={() => void handleNavigate(item)}
                       disabled={isPending}
                       aria-busy={isPending}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-xs transition-all active:scale-[0.99] disabled:cursor-wait disabled:opacity-60"
+                      className="liquid-silver-button px-5 py-2.5 text-xs sm:text-sm font-semibold tracking-tight shadow-md flex items-center gap-1.5 active:scale-[0.98] transition-all group-hover:shadow-lg shrink-0 cursor-pointer"
                     >
                       <span>{isPending ? 'Opening…' : item.type === 'warning' ? 'Review Record' : 'View Record'}</span>
-                      {isPending ? <LoaderCircle className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
+                      {isPending ? (
+                        <LoaderCircle className="w-3.5 h-3.5 animate-spin text-slate-700" />
+                      ) : (
+                        <ArrowRight className="w-3.5 h-3.5 stroke-[2.2] text-slate-700 transition-transform group-hover:translate-x-0.5" />
+                      )}
                     </button>
                   </div>
                 </div>

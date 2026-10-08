@@ -160,7 +160,7 @@ export function FinancialCategoryManager({ categories: initialCategories, canMan
   )
 
   return (
-    <section className="card-surface min-w-0 space-y-5 bg-white p-4 sm:p-6">
+    <section className="card-surface min-w-0 space-y-5 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 shadow-xs">

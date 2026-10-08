@@ -157,7 +157,7 @@ export function MembersView({ members, records = [], userRole }: MembersViewProp
       </div>
 
       {/* Filter Bar & Controls */}
-      <div className="card-surface p-3.5 sm:p-5 bg-white space-y-4 min-w-0">
+      <div className="card-surface p-3.5 sm:p-5 space-y-4 min-w-0">
         {/* Section 74 Drilldown Tabs: All (50) | Recorded (42) | Not Recorded (8) */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 pb-4 border-b border-slate-100">
           <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100/80 text-xs font-medium overflow-x-auto max-w-full">
@@ -211,15 +211,15 @@ export function MembersView({ members, records = [], userRole }: MembersViewProp
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="relative max-w-md">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+        {/* Search Bar matching reference */}
+        <div className="frosted-search-pill relative max-w-md px-3.5 py-2 flex items-center">
+          <Search className="w-4 h-4 text-slate-400 mr-2.5 shrink-0" />
           <input
             type="text"
             placeholder="Search choir member by name or phone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-full border border-slate-200 bg-slate-50/60 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none border-0 ring-0 shadow-none"
           />
         </div>
 
@@ -231,7 +231,7 @@ export function MembersView({ members, records = [], userRole }: MembersViewProp
             return (
               <div
                 key={member.id}
-                className="p-4 rounded-3xl border border-slate-150 bg-white hover:border-indigo-300 hover:shadow-xs transition-all flex flex-col justify-between"
+                className="p-4 sm:p-5 rounded-[24px] sm:rounded-[26px] bg-white/85 backdrop-blur-xl border border-white/95 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.03),0_12px_32px_-4px_rgba(15,23,42,0.06),0_0_0_1px_rgba(255,255,255,0.9)_inset] hover:shadow-[0_8px_28px_-2px_rgba(15,23,42,0.06),0_20px_44px_-4px_rgba(15,23,42,0.08),0_0_0_1px_rgba(255,255,255,1)_inset] hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-3">
@@ -254,11 +254,11 @@ export function MembersView({ members, records = [], userRole }: MembersViewProp
                     </div>
 
                     {isRecorded ? (
-                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold">
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[11px] font-bold">
                         Recorded
                       </span>
                     ) : (
-                      <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[11px] font-bold">
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/60 text-[11px] font-bold">
                         Pending
                       </span>
                     )}
@@ -282,7 +282,7 @@ export function MembersView({ members, records = [], userRole }: MembersViewProp
                       onClick={() => void handleSendSingleReminder(member)}
                       disabled={isSendingBatch || pendingReminderId !== null}
                       aria-busy={pendingReminderId === member.id}
-                      className="px-3 py-1 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold transition-colors flex items-center gap-1 shadow-xs disabled:cursor-wait disabled:opacity-60"
+                      className="liquid-silver-button liquid-silver-button-sm text-amber-800 flex items-center gap-1 shadow-xs disabled:cursor-wait disabled:opacity-60"
                     >
                       {pendingReminderId === member.id ? <LoaderCircle className="w-3 h-3 animate-spin" /> : <BellRing className="w-3 h-3" />}
                       <span>{pendingReminderId === member.id ? 'Queueing…' : 'Remind'}</span>

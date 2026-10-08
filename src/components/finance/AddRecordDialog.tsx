@@ -11,7 +11,8 @@ import {
   FileText,
   UploadCloud,
   RotateCcw,
-  LoaderCircle
+  LoaderCircle,
+  ChevronDown
 } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { RecordTypeSelectionCard, RecordTypeModal } from './RecordTypeSelectionCard'
@@ -20,6 +21,7 @@ import { createRecordAction } from '@/features/finances/actions'
 import { formatCurrency } from '@/lib/utils/currency'
 import { getTodayISODate } from '@/lib/utils/date'
 import { useToast } from '@/components/ui/Toast'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 
 interface AddRecordDialogProps {
   isOpen: boolean
@@ -27,6 +29,7 @@ interface AddRecordDialogProps {
   categories: FinancialCategory[]
   members: Member[]
   userRole: UserRole
+  initialRecordType?: 'income' | 'expense' | null
   onSuccess?: () => void
 }
 
@@ -36,11 +39,12 @@ export function AddRecordDialog({
   categories,
   members,
   userRole,
+  initialRecordType = null,
   onSuccess
 }: AddRecordDialogProps) {
   const { success: showToastSuccess, error: showToastError } = useToast()
 
-  const [recordType, setRecordType] = React.useState<'income' | 'expense' | null>(null)
+  const [recordType, setRecordType] = React.useState<'income' | 'expense' | null>(initialRecordType)
   const [amount, setAmount] = React.useState('')
   const [categoryId, setCategoryId] = React.useState('')
   const [memberId, setMemberId] = React.useState('')
@@ -48,6 +52,12 @@ export function AddRecordDialog({
   const [recordDate, setRecordDate] = React.useState(getTodayISODate())
   const [receiptFile, setReceiptFile] = React.useState<File | null>(null)
   const submitLock = React.useRef(false)
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setRecordType(initialRecordType)
+    }
+  }, [isOpen, initialRecordType])
 
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -63,8 +73,29 @@ export function AddRecordDialog({
     return categories.filter((c) => c.type === recordType)
   }, [categories, recordType])
 
+  const categoryOptions = React.useMemo(() => {
+    return [
+      { value: '', label: 'Select a category' },
+      ...availableCategories.map((c) => ({
+        value: c.id,
+        label: c.name
+      }))
+    ]
+  }, [availableCategories])
+
+  const memberOptions = React.useMemo(() => {
+    return [
+      { value: '', label: 'None / General choir funds' },
+      ...members.map((m) => ({
+        value: m.id,
+        label: `${m.fullName} (${m.voicePart})`,
+        sublabel: m.voicePart
+      }))
+    ]
+  }, [members])
+
   const clearDraft = () => {
-    setRecordType(null)
+    setRecordType(initialRecordType)
     setAmount('')
     setCategoryId('')
     setMemberId('')
@@ -283,19 +314,13 @@ export function AddRecordDialog({
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Financial Category *
             </label>
-            <select
-              required
+            <CustomSelect
               value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50/60 text-slate-900 text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-            >
-              <option value="">Select a category</option>
-              {availableCategories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setCategoryId(val)}
+              options={categoryOptions}
+              placeholder="Select a category"
+              required
+            />
           </div>
 
           {/* Member Association (Optional for Income) */}
@@ -304,18 +329,12 @@ export function AddRecordDialog({
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                 Choir Member (Optional)
               </label>
-              <select
+              <CustomSelect
                 value={memberId}
-                onChange={(e) => setMemberId(e.target.value)}
-                className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50/60 text-slate-900 text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-              >
-                <option value="">None / General choir funds</option>
-                {members.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.fullName} ({m.voicePart})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setMemberId(val)}
+                options={memberOptions}
+                placeholder="None / General choir funds"
+              />
             </div>
           )}
 

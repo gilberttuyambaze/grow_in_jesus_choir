@@ -118,7 +118,7 @@ export function MoneyFlowChart({ records = [] }: MoneyFlowChartProps) {
   const incomeArea = `${incomePath} L ${lastIncomeCoord?.x || 640} ${svgHeight} L ${firstIncomeCoord?.x || 20} ${svgHeight} Z`
 
   return (
-    <div className="card-surface p-4 sm:p-6 bg-white flex flex-col justify-between min-w-0">
+    <div className="card-surface p-4 sm:p-6 flex flex-col justify-between min-w-0">
       {/* Chart Header matching Reference */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>

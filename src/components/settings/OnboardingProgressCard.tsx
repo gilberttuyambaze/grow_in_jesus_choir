@@ -19,7 +19,7 @@ export function OnboardingProgressCard({ users }: OnboardingProgressCardProps) {
   const notStartedCount = users.length - completedCount - inProgressCount
 
   return (
-    <section className="card-surface space-y-5 bg-white p-5 sm:p-6" aria-labelledby="onboarding-progress-heading">
+    <section className="card-surface space-y-5 p-5 sm:p-6" aria-labelledby="onboarding-progress-heading">
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
           <ListChecks className="h-5 w-5" />

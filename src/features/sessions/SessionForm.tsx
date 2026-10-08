@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { CalendarDays, X, LoaderCircle } from 'lucide-react'
+import { CalendarDays, X, LoaderCircle, ChevronDown } from 'lucide-react'
 import { FinancialCategory, ChoirSession } from '@/types'
 import { saveSessionAction } from '@/features/sessions/actions'
 import { sessionDateTimeLocalValue } from '@/lib/utils/zoned-time'
@@ -10,15 +10,17 @@ import { sessionDateTimeLocalValue } from '@/lib/utils/zoned-time'
 interface SessionFormProps {
   categories: FinancialCategory[]
   initialSession?: ChoirSession | null
+  defaultType?: 'ATTENDANCE' | 'CONTRIBUTION'
   onClose: () => void
 }
 
 const inputClass = 'w-full rounded-xl border border-slate-200 bg-white/90 px-3.5 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100'
+const selectClass = 'w-full appearance-none pl-3.5 pr-11 py-2.5 rounded-xl border border-slate-200 bg-white/90 text-sm text-slate-800 shadow-sm outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 cursor-pointer'
 const labelClass = 'mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500'
 
-export function SessionForm({ categories, initialSession, onClose }: SessionFormProps) {
+export function SessionForm({ categories, initialSession, defaultType, onClose }: SessionFormProps) {
   const router = useRouter()
-  const [type, setType] = React.useState(initialSession?.type || 'ATTENDANCE')
+  const [type, setType] = React.useState(initialSession?.type || defaultType || 'ATTENDANCE')
   const [error, setError] = React.useState('')
   const [busy, setBusy] = React.useState(false)
   const saveLock = React.useRef(false)
@@ -79,17 +81,23 @@ export function SessionForm({ categories, initialSession, onClose }: SessionForm
             </div>
             <div>
               <label className={labelClass} htmlFor="session-type">Type</label>
-              <select id="session-type" name="type" value={type} onChange={(event) => setType(event.target.value as typeof type)} className={inputClass}>
-                <option value="ATTENDANCE">Attendance</option>
-                <option value="CONTRIBUTION">Contribution collection</option>
-              </select>
+              <div className="relative">
+                <select id="session-type" name="type" value={type} onChange={(event) => setType(event.target.value as typeof type)} className={selectClass}>
+                  <option value="ATTENDANCE">Attendance</option>
+                  <option value="CONTRIBUTION">Contribution collection</option>
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 stroke-[2.2]" />
+              </div>
             </div>
             <div>
               <label className={labelClass} htmlFor="session-visibility">Visibility</label>
-              <select id="session-visibility" name="visibility" defaultValue={initialSession?.visibility || 'PUBLIC'} className={inputClass}>
-                <option value="PUBLIC">Public — signed-in users</option>
-                <option value="PRIVATE">Private — leaders and admins</option>
-              </select>
+              <div className="relative">
+                <select id="session-visibility" name="visibility" defaultValue={initialSession?.visibility || 'PUBLIC'} className={selectClass}>
+                  <option value="PUBLIC">Public — signed-in users</option>
+                  <option value="PRIVATE">Private — leaders and admins</option>
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 stroke-[2.2]" />
+              </div>
             </div>
             <div className="sm:col-span-2">
               <label className={labelClass} htmlFor="session-location">Location</label>
@@ -152,10 +160,13 @@ export function SessionForm({ categories, initialSession, onClose }: SessionForm
 
           <div>
             <label className={labelClass} htmlFor="session-category">Income category {type === 'ATTENDANCE' && '(required when penalties are non-zero)'}</label>
-            <select id="session-category" name="financialCategoryId" defaultValue={initialSession?.financialCategoryId || ''} required={type === 'CONTRIBUTION'} className={inputClass}>
-              <option value="">{type === 'CONTRIBUTION' ? 'Choose an income category' : 'Choose a category for penalties'}</option>
-              {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-            </select>
+            <div className="relative">
+              <select id="session-category" name="financialCategoryId" defaultValue={initialSession?.financialCategoryId || ''} required={type === 'CONTRIBUTION'} className={selectClass}>
+                <option value="">{type === 'CONTRIBUTION' ? 'Choose an income category' : 'Choose a category for penalties'}</option>
+                {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 stroke-[2.2]" />
+            </div>
           </div>
 
           <div className="flex flex-col-reverse gap-2 border-t border-slate-200/70 pt-4 sm:flex-row sm:justify-end">

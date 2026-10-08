@@ -6,6 +6,7 @@ import { Check, Clock, User, X, PlusCircle, BellRing, Sparkles } from 'lucide-re
 import { AuditLogEntry, FinancialRecord } from '@/types'
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatDate } from '@/lib/utils/date'
+import { CrystalBadge } from '@/components/ui/CrystalBadge'
 
 interface RecentActivityFeedProps {
   auditLogs?: AuditLogEntry[]
@@ -74,7 +75,7 @@ export function RecentActivityFeed({ auditLogs = [], records = [] }: RecentActiv
   }, [auditLogs, records])
 
   return (
-    <div className="card-surface p-4 sm:p-6 bg-white flex flex-col justify-between h-full min-w-0">
+    <div className="card-surface p-4 sm:p-6 flex flex-col justify-between h-full min-w-0">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-bold text-slate-900 tracking-tight">
@@ -82,9 +83,9 @@ export function RecentActivityFeed({ auditLogs = [], records = [] }: RecentActiv
         </h3>
         <Link
           href="/activity"
-          className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+          className="liquid-silver-button liquid-silver-button-sm text-[11px] font-semibold text-slate-700"
         >
-          View All
+          View All →
         </Link>
       </div>
 
@@ -94,35 +95,15 @@ export function RecentActivityFeed({ auditLogs = [], records = [] }: RecentActiv
           No recent activity entries recorded yet.
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3.5 pt-1">
           {items.map((act) => (
-            <div key={act.id} className="flex items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                {act.color === 'emerald' && (
-                  <div className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
-                    <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                  </div>
-                )}
-                {act.color === 'amber' && (
-                  <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0">
-                    <Clock className="w-3.5 h-3.5 stroke-[2.5]" />
-                  </div>
-                )}
-                {act.color === 'purple' && (
-                  <div className="w-7 h-7 rounded-full bg-purple-500 text-white flex items-center justify-center shrink-0">
-                    <BellRing className="w-3.5 h-3.5 stroke-[2.5]" />
-                  </div>
-                )}
-                {act.color === 'rose' && (
-                  <div className="w-7 h-7 rounded-full bg-rose-500 text-white flex items-center justify-center shrink-0">
-                    <X className="w-3.5 h-3.5 stroke-[2.5]" />
-                  </div>
-                )}
-                {act.color === 'blue' && (
-                  <div className="w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center shrink-0">
-                    <PlusCircle className="w-3.5 h-3.5 stroke-[2.5]" />
-                  </div>
-                )}
+            <div key={act.id} className="p-2.5 rounded-2xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-slate-200 transition-all flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                {act.color === 'emerald' && <CrystalBadge type="success" size="xs" className="shrink-0" />}
+                {act.color === 'amber' && <CrystalBadge type="warning" size="xs" className="shrink-0" />}
+                {act.color === 'purple' && <CrystalBadge type="purple" size="xs" className="shrink-0" />}
+                {act.color === 'rose' && <CrystalBadge type="alert" size="xs" className="shrink-0" />}
+                {act.color === 'blue' && <CrystalBadge type="info" size="xs" className="shrink-0" />}
 
                 <div className="min-w-0 flex-1">
                   <h4 className="font-semibold text-slate-900 text-xs truncate leading-tight">
@@ -138,19 +119,6 @@ export function RecentActivityFeed({ auditLogs = [], records = [] }: RecentActiv
                 <span className="text-[11px] text-slate-400 font-medium">
                   {act.date}
                 </span>
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    act.color === 'emerald'
-                      ? 'bg-emerald-500'
-                      : act.color === 'amber'
-                      ? 'bg-amber-500'
-                      : act.color === 'purple'
-                      ? 'bg-purple-500'
-                      : act.color === 'rose'
-                      ? 'bg-rose-500'
-                      : 'bg-blue-500'
-                  }`}
-                />
               </div>
             </div>
           ))}

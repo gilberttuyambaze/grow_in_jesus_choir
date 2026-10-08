@@ -1,7 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { X } from 'lucide-react'
+import { CrystalBadge } from '@/components/ui/CrystalBadge'
+import { ArrowRight, X } from 'lucide-react'
 import { UserRole } from '@/types'
 
 /**
@@ -56,7 +57,7 @@ export interface RecordTypeSelectionCardProps {
 
 /**
  * Reusable inner selection card grid:
- * Renders the Money Received and Money Spent option cards.
+ * Upgraded with 3D crystal gemstone medallions, frosted glassmorphism, and liquid silver action buttons.
  */
 export function RecordTypeSelectionCard({
   onSelect,
@@ -73,20 +74,32 @@ export function RecordTypeSelectionCard({
       <button
         type="button"
         onClick={() => onSelect('income')}
-        className="group relative p-6 sm:p-7 rounded-[22px] sm:rounded-[26px] bg-white/70 hover:bg-white border border-white/90 hover:border-purple-200 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_32px_rgba(147,51,234,0.08)] text-left transition-all duration-200 flex flex-col justify-between cursor-pointer active:scale-[0.99] min-w-0"
+        className="group relative p-6 sm:p-7 rounded-[24px] sm:rounded-[28px] bg-white/85 backdrop-blur-xl hover:bg-white border border-white/95 hover:border-purple-200/90 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.03),0_12px_32px_-4px_rgba(15,23,42,0.06),0_0_0_1px_rgba(255,255,255,0.9)_inset] hover:shadow-[0_8px_32px_-4px_rgba(147,51,234,0.14),0_20px_48px_-6px_rgba(15,23,42,0.08),0_0_0_1px_rgba(255,255,255,1)_inset] text-left transition-all duration-200 flex flex-col justify-between cursor-pointer hover:-translate-y-1 active:scale-[0.99] min-w-0"
       >
-        {/* Soft Lavender Icon Badge */}
-        <div className="w-12 h-12 rounded-[18px] bg-[#F5E8FF] text-[#9333EA] flex items-center justify-center mb-5 group-hover:scale-105 transition-transform shadow-xs shrink-0">
-          <MoneyReceivedIcon className="w-6 h-6" />
+        <div>
+          {/* 3D Amethyst Gemstone Medallion */}
+          <div className="mb-4">
+            <CrystalBadge type="purple" size="md" className="group-hover:scale-105 transition-transform" />
+          </div>
+
+          <div>
+            <h4 className="text-base sm:text-[18px] font-bold text-slate-900 tracking-tight mb-1.5 leading-snug font-sans">
+              Money Received
+            </h4>
+            <p className="text-xs sm:text-[13px] text-slate-500 leading-relaxed font-normal">
+              Member contributions, Sunday offerings, gifts, and donations.
+            </p>
+          </div>
         </div>
 
-        <div>
-          <h4 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight mb-2 leading-snug font-sans">
-            Money Received
-          </h4>
-          <p className="text-xs sm:text-[13px] text-slate-400 leading-relaxed font-normal">
-            Member contributions, Sunday offerings, gifts, and donations.
-          </p>
+        <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-purple-600">
+            Choir Inflow
+          </span>
+          <span className="liquid-silver-button liquid-silver-button-sm flex items-center gap-1 group-hover:shadow-md">
+            <span>Select</span>
+            <ArrowRight className="w-3 h-3 text-slate-700 transition-transform group-hover:translate-x-0.5" />
+          </span>
         </div>
       </button>
 
@@ -95,20 +108,32 @@ export function RecordTypeSelectionCard({
         <button
           type="button"
           onClick={() => onSelect('expense')}
-          className="group relative p-6 sm:p-7 rounded-[22px] sm:rounded-[26px] bg-white/70 hover:bg-white border border-white/90 hover:border-amber-200 shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_32px_rgba(245,158,11,0.08)] text-left transition-all duration-200 flex flex-col justify-between cursor-pointer active:scale-[0.99] min-w-0"
+          className="group relative p-6 sm:p-7 rounded-[24px] sm:rounded-[28px] bg-white/85 backdrop-blur-xl hover:bg-white border border-white/95 hover:border-amber-200/90 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.03),0_12px_32px_-4px_rgba(15,23,42,0.06),0_0_0_1px_rgba(255,255,255,0.9)_inset] hover:shadow-[0_8px_32px_-4px_rgba(245,158,11,0.14),0_20px_48px_-6px_rgba(15,23,42,0.08),0_0_0_1px_rgba(255,255,255,1)_inset] text-left transition-all duration-200 flex flex-col justify-between cursor-pointer hover:-translate-y-1 active:scale-[0.99] min-w-0"
         >
-          {/* Soft Amber Icon Badge */}
-          <div className="w-12 h-12 rounded-[18px] bg-[#FEF9C3] text-[#F59E0B] flex items-center justify-center mb-5 group-hover:scale-105 transition-transform shadow-xs shrink-0">
-            <MoneySpentIcon className="w-6 h-6" />
+          <div>
+            {/* 3D Golden Crystal Gemstone Medallion */}
+            <div className="mb-4">
+              <CrystalBadge type="warning" size="md" className="group-hover:scale-105 transition-transform" />
+            </div>
+
+            <div>
+              <h4 className="text-base sm:text-[18px] font-bold text-slate-900 tracking-tight mb-1.5 leading-snug font-sans">
+                Money Spent
+              </h4>
+              <p className="text-xs sm:text-[13px] text-slate-500 leading-relaxed font-normal">
+                Transport, uniforms/robes, rehearsal venue, sound & equipment.
+              </p>
+            </div>
           </div>
 
-          <div>
-            <h4 className="text-base sm:text-[17px] font-bold text-slate-900 tracking-tight mb-2 leading-snug font-sans">
-              Money Spent
-            </h4>
-            <p className="text-xs sm:text-[13px] text-slate-400 leading-relaxed font-normal">
-              Transport, uniforms/robes, rehearsal venue, sound & equipment.
-            </p>
+          <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600">
+              Choir Outflow
+            </span>
+            <span className="liquid-silver-button liquid-silver-button-sm flex items-center gap-1 group-hover:shadow-md">
+              <span>Select</span>
+              <ArrowRight className="w-3 h-3 text-slate-700 transition-transform group-hover:translate-x-0.5" />
+            </span>
           </div>
         </button>
       )}
@@ -138,7 +163,7 @@ export function RecordTypePopupCard({
       role="dialog"
       aria-modal="true"
       aria-labelledby="record-type-title"
-      className={`relative w-full max-w-xl sm:max-w-2xl bg-white/80 backdrop-blur-2xl rounded-[28px] sm:rounded-[34px] border border-white/90 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.1),0_0_0_1px_rgba(255,255,255,0.8)_inset] p-6 sm:p-8 z-10 transition-all duration-200 animate-in fade-in zoom-in-95 ${className}`}
+      className={`relative w-full max-w-xl sm:max-w-2xl bg-white/85 backdrop-blur-2xl rounded-[30px] sm:rounded-[36px] border border-white/95 shadow-[0_30px_70px_-15px_rgba(15,23,42,0.18),0_0_0_1px_rgba(255,255,255,0.95)_inset] p-6 sm:p-8 z-10 transition-all duration-200 animate-in fade-in zoom-in-95 ${className}`}
     >
       {/* Header row with title, subtitle & circular close button */}
       <div className="flex items-start justify-between gap-4 mb-6">

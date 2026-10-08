@@ -209,7 +209,7 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
 
       {/* Summary KPI Cards matching Reference */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <div className="card-surface p-6 bg-white">
+        <div className="card-surface p-6">
           <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">
             Total Money Received
           </span>
@@ -221,7 +221,7 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
           </span>
         </div>
 
-        <div className="card-surface p-6 bg-white">
+        <div className="card-surface p-6">
           <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">
             Total Money Spent
           </span>
@@ -233,7 +233,7 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
           </span>
         </div>
 
-        <div className="card-surface p-6 bg-white">
+        <div className="card-surface p-6">
           <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">
             Reconciled Net Balance
           </span>
@@ -250,7 +250,7 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
       {/* Category Breakdown Grids */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Income Breakdown Card */}
-        <div className="card-surface p-6 bg-white space-y-4">
+        <div className="card-surface p-6 space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shadow-xs">
               <ArrowDownLeft className="w-5 h-5 stroke-[2.5]" />
@@ -287,7 +287,7 @@ export function ReportsView({ summary, records, categories }: ReportsViewProps) 
         </div>
 
         {/* Expense Breakdown Card */}
-        <div className="card-surface p-6 bg-white space-y-4">
+        <div className="card-surface p-6 space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold shadow-xs">
               <ArrowUpRight className="w-5 h-5 stroke-[2.5]" />

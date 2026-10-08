@@ -49,7 +49,7 @@ export function TopCategoriesCard({ records = [] }: TopCategoriesCardProps) {
   }
 
   return (
-    <div className="card-surface p-4 sm:p-6 bg-white flex flex-col justify-between h-full min-w-0">
+    <div className="card-surface p-4 sm:p-6 flex flex-col justify-between h-full min-w-0">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-bold text-slate-900 tracking-tight">
@@ -57,9 +57,9 @@ export function TopCategoriesCard({ records = [] }: TopCategoriesCardProps) {
         </h3>
         <Link
           href="/reports"
-          className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+          className="liquid-silver-button liquid-silver-button-sm text-[11px] font-semibold text-slate-700"
         >
-          View All
+          View All →
         </Link>
       </div>
 

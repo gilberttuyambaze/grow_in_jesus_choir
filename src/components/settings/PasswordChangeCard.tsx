@@ -37,7 +37,7 @@ export function PasswordChangeCard() {
   }
 
   return (
-    <div className="card-surface p-4 sm:p-6 bg-white space-y-5 min-w-0">
+    <div className="card-surface p-4 sm:p-6 space-y-5 min-w-0">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center">
           <KeyRound className="w-5 h-5" />

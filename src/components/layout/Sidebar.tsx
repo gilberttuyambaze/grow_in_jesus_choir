@@ -30,6 +30,7 @@ interface SidebarProps {
   userName: string
   userInitials: string
   pendingCount?: number
+  unreadNotificationCount?: number
   onClose?: () => void
   onNavigate?: () => void
 }
@@ -39,6 +40,7 @@ export function Sidebar({
   userName,
   userInitials,
   pendingCount = 0,
+  unreadNotificationCount = 0,
   onClose,
   onNavigate
 }: SidebarProps) {
@@ -69,7 +71,12 @@ export function Sidebar({
         { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { label: 'My Contributions', href: '/finances', icon: WalletCards },
         { label: 'Sessions', href: '/sessions', icon: CalendarDays },
-        { label: 'Notifications', href: '/notifications', icon: Bell },
+        {
+          label: 'Notifications',
+          href: '/notifications',
+          icon: Bell,
+          count: unreadNotificationCount > 0 ? unreadNotificationCount : undefined
+        },
         { label: 'Documents', href: '/documents', icon: FileText },
         { label: 'Settings', href: '/settings', icon: Settings }
       ]
@@ -85,10 +92,15 @@ export function Sidebar({
       { label: 'Reports & Analytics', href: '/reports', icon: BarChart3 },
       { label: 'Documents', href: '/documents', icon: FileText },
       { label: 'Audit Logs', href: '/activity', icon: ShieldCheck },
-      { label: 'Notifications', href: '/notifications', icon: Bell },
+      {
+        label: 'Notifications',
+        href: '/notifications',
+        icon: Bell,
+        count: unreadNotificationCount > 0 ? unreadNotificationCount : undefined
+      },
       { label: 'Settings', href: '/settings', icon: Settings }
     ]
-  }, [userRole, pendingCount])
+  }, [userRole, pendingCount, unreadNotificationCount])
 
   return (
     <aside className="w-64 max-w-[85vw] shrink-0 bg-white/95 md:bg-white/80 backdrop-blur-md border-r border-slate-200/80 flex flex-col justify-between p-5 min-h-0 h-full select-none overflow-y-auto">

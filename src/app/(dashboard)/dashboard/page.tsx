@@ -30,6 +30,7 @@ import { DonutStatusCard } from '@/components/dashboard/DonutStatusCard'
 import { FinancialRecordTable } from '@/components/finance/FinancialRecordTable'
 import { Badge } from '@/components/ui/Badge'
 import { canViewAllFinances } from '@/lib/permissions'
+import { DashboardQuickActions, DashboardHeaderQuickButtons } from '@/components/dashboard/DashboardQuickActions'
 
 export default async function DashboardPage() {
   const session = await getSessionUser()
@@ -82,17 +83,23 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6 min-w-0 w-full">
-      {/* Welcome Greeting matching Reference */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 font-sans truncate">
-          Welcome back, {firstName} 👋
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          {isLeader
-            ? "Here's what's happening in your choir finances today."
-            : 'Here is your personal choir contribution overview.'}
-        </p>
+      {/* Welcome Greeting and 1-Click Header Buttons */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 font-sans truncate">
+            Welcome back, {firstName} 👋
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            {isLeader
+              ? "Here's what's happening in your choir finances today."
+              : 'Here is your personal choir contribution overview.'}
+          </p>
+        </div>
+        <DashboardHeaderQuickButtons userRole={session.role} />
       </div>
+
+      {/* Prominent 1-Click Visual Communication Cards for Recording & Creation */}
+      <DashboardQuickActions userRole={session.role} />
 
       {/* LEADER DASHBOARD EXPERIENCE MATCHING REFERENCE IMAGE */}
       {isLeader ? (
@@ -164,7 +171,7 @@ export default async function DashboardPage() {
           </div>
 
           {/* RECENT RECORDS TABLE SECTION */}
-          <div className="card-surface p-4 sm:p-6 bg-white min-w-0 overflow-hidden">
+          <div className="card-surface p-4 sm:p-6 min-w-0 overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
               <div>
                 <h3 className="text-sm font-bold text-slate-900 tracking-tight">
@@ -176,10 +183,9 @@ export default async function DashboardPage() {
               </div>
               <Link
                 href="/finances"
-                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors inline-flex items-center gap-1"
+                className="liquid-silver-button liquid-silver-button-sm text-[11px] font-semibold text-slate-700"
               >
-                <span>View all records</span>
-                <span>→</span>
+                <span>View all records →</span>
               </Link>
             </div>
 
@@ -217,7 +223,7 @@ export default async function DashboardPage() {
           </div>
 
           {/* Member Contribution History */}
-          <div className="card-surface p-4 sm:p-6 bg-white min-w-0">
+          <div className="card-surface p-4 sm:p-6 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
               <div>
                 <h3 className="text-sm font-bold text-slate-900 tracking-tight">
@@ -229,10 +235,9 @@ export default async function DashboardPage() {
               </div>
               <Link
                 href="/finances"
-                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors inline-flex items-center gap-1"
+                className="liquid-silver-button liquid-silver-button-sm text-[11px] font-semibold text-slate-700"
               >
-                <span>View all records</span>
-                <span>→</span>
+                <span>View all records →</span>
               </Link>
             </div>
 

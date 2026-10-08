@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock, XCircle, MoreHorizontal, LoaderCircle } from 'lucide-react'
+import { ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock, XCircle, MoreHorizontal, LoaderCircle, ArrowRight } from 'lucide-react'
 import { FinancialRecord, UserRole } from '@/types'
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatDate } from '@/lib/utils/date'
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/Badge'
 import { reviewRecordAction } from '@/features/finances/actions'
 import { RecordDetailModal } from './RecordDetailModal'
 import { useToast } from '@/components/ui/Toast'
+import { CrystalBadge } from '@/components/ui/CrystalBadge'
 
 interface FinancialRecordTableProps {
   records: FinancialRecord[]
@@ -79,7 +80,7 @@ export function FinancialRecordTable({
   return (
     <div>
       {/* DESKTOP TABLE VIEW (Visible md and above) */}
-      <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200/80 bg-white/95">
+      <div className="hidden md:block overflow-x-auto rounded-[24px] border border-white/95 bg-white/85 backdrop-blur-xl shadow-[0_4px_20px_-2px_rgba(15,23,42,0.03),0_14px_34px_-4px_rgba(15,23,42,0.06),0_0_0_1px_rgba(255,255,255,0.9)_inset]">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
@@ -185,7 +186,7 @@ export function FinancialRecordTable({
       </div>
 
       {/* MOBILE RESPONSIVE CARDS VIEW (Visible below md) */}
-      <div className="md:hidden space-y-3">
+      <div className="md:hidden space-y-3.5">
         {records.map((record) => {
           const isReceived = record.type === 'income'
           const isPending = record.status === 'needs_review'
@@ -194,21 +195,15 @@ export function FinancialRecordTable({
             <div
               key={record.id}
               onClick={() => setSelectedRecord(record)}
-              className="p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 bg-white shadow-xs hover:border-indigo-300 flex flex-col gap-3 cursor-pointer active:scale-[0.99] transition-all min-w-0"
+              className="p-4 sm:p-5 rounded-[22px] sm:rounded-[26px] bg-white/85 backdrop-blur-xl border border-white/95 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.03),0_12px_32px_-4px_rgba(15,23,42,0.06),0_0_0_1px_rgba(255,255,255,0.9)_inset] hover:shadow-[0_8px_28px_-2px_rgba(15,23,42,0.06),0_20px_44px_-4px_rgba(15,23,42,0.08),0_0_0_1px_rgba(255,255,255,1)_inset] flex flex-col gap-3.5 cursor-pointer active:scale-[0.99] transition-all min-w-0"
             >
               <div className="flex items-start justify-between gap-2.5 min-w-0">
-                <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <span
-                    className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                      isReceived ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'
-                    }`}
-                  >
-                    {isReceived ? (
-                      <ArrowDownLeft className="w-4 h-4 stroke-[2.5]" />
-                    ) : (
-                      <ArrowUpRight className="w-4 h-4 stroke-[2.5]" />
-                    )}
-                  </span>
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <CrystalBadge
+                    type={isReceived ? 'purple' : 'warning'}
+                    size="xs"
+                    className="shrink-0"
+                  />
                   <div className="min-w-0 flex-1">
                     <h5 className="font-bold text-xs sm:text-sm text-slate-900 leading-tight truncate">
                       {record.description}
@@ -229,7 +224,7 @@ export function FinancialRecordTable({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+              <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 text-xs">
                 <span className="text-[11px] text-slate-500 truncate max-w-[150px]">
                   {record.memberName || record.recordedByName}
                 </span>
@@ -251,7 +246,7 @@ export function FinancialRecordTable({
               </div>
 
               {canReview && isPending && (
-                <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center gap-2 pt-2.5 border-t border-slate-100">
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
@@ -259,7 +254,7 @@ export function FinancialRecordTable({
                     }}
                     disabled={isProcessing}
                     aria-busy={isProcessing && activeReviewId === record.id}
-                    className="brand-button flex-1 min-h-[44px] rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 disabled:cursor-wait disabled:opacity-60"
+                    className="liquid-silver-button flex-1 min-h-[42px] text-xs font-semibold text-emerald-800 flex items-center justify-center gap-1.5 disabled:cursor-wait disabled:opacity-60 shadow-xs"
                   >
                     {isProcessing && activeReviewId === record.id && activeDecision === 'approve' ? <><LoaderCircle className="h-3.5 w-3.5 animate-spin" /> Approving…</> : 'Approve'}
                   </button>
@@ -270,7 +265,7 @@ export function FinancialRecordTable({
                     }}
                     disabled={isProcessing}
                     aria-busy={isProcessing && activeReviewId === record.id}
-                    className="flex-1 min-h-[44px] rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors disabled:cursor-wait disabled:opacity-60"
+                    className="liquid-silver-button flex-1 min-h-[42px] text-xs font-semibold text-rose-700 flex items-center justify-center gap-1.5 transition-colors disabled:cursor-wait disabled:opacity-60 shadow-xs"
                   >
                     {isProcessing && activeReviewId === record.id && activeDecision === 'reject' ? <><LoaderCircle className="h-3.5 w-3.5 animate-spin" /> Rejecting…</> : 'Reject'}
                   </button>

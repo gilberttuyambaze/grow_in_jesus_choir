@@ -7,6 +7,8 @@ import { FinancialRecord } from '@/types'
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatDate } from '@/lib/utils/date'
 
+import { CrystalBadge } from '@/components/ui/CrystalBadge'
+
 interface ReviewQueueCardProps {
   records?: FinancialRecord[]
 }
@@ -14,15 +16,8 @@ interface ReviewQueueCardProps {
 export function ReviewQueueCard({ records = [] }: ReviewQueueCardProps) {
   const pendingRecords = records.filter((r) => r.status === 'needs_review')
 
-  const badgeStyles = [
-    'bg-amber-100/70 text-amber-800',
-    'bg-purple-100/70 text-purple-800',
-    'bg-indigo-100/70 text-indigo-800',
-    'bg-blue-100/70 text-blue-800'
-  ]
-
   return (
-    <div className="card-surface p-4 sm:p-6 bg-white flex flex-col justify-between h-full min-w-0">
+    <div className="card-surface p-4 sm:p-6 flex flex-col justify-between h-full min-w-0">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -30,7 +25,7 @@ export function ReviewQueueCard({ records = [] }: ReviewQueueCardProps) {
             Leader Review Queue
           </h3>
           {pendingRecords.length > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold">
+            <span className="glowing-count-pill px-2.5 py-0.5 text-[10px] font-bold">
               {pendingRecords.length}
             </span>
           )}
@@ -46,24 +41,16 @@ export function ReviewQueueCard({ records = [] }: ReviewQueueCardProps) {
       {/* Queue items matching real database records */}
       {pendingRecords.length === 0 ? (
         <div className="py-8 text-center flex flex-col items-center justify-center">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2 shadow-xs">
-            <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
-          </div>
+          <CrystalBadge type="success" size="sm" className="mb-2" />
           <p className="text-xs font-semibold text-slate-800">All records verified!</p>
           <span className="text-[11px] text-slate-400 mt-0.5">No transactions currently awaiting review.</span>
         </div>
       ) : (
-        <div className="space-y-3.5">
-          {pendingRecords.slice(0, 4).map((rec, idx) => (
-            <div key={rec.id} className="flex items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div
-                  className={`w-8 h-8 rounded-xl font-bold flex items-center justify-center shrink-0 text-xs ${
-                    badgeStyles[idx % badgeStyles.length]
-                  }`}
-                >
-                  {idx + 1}
-                </div>
+        <div className="space-y-3 pt-1">
+          {pendingRecords.slice(0, 4).map((rec) => (
+            <div key={rec.id} className="p-2.5 rounded-2xl bg-white/60 hover:bg-white/90 border border-white/80 hover:border-amber-200 transition-all flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <CrystalBadge type="warning" size="xs" className="shrink-0" />
 
                 <div className="min-w-0 flex-1">
                   <h4 className="font-semibold text-slate-900 truncate leading-tight">
@@ -89,10 +76,10 @@ export function ReviewQueueCard({ records = [] }: ReviewQueueCardProps) {
       )}
 
       {/* Quick link at bottom */}
-      <div className="pt-4 mt-2 border-t border-slate-100">
+      <div className="pt-4 mt-3 border-t border-slate-100">
         <Link
           href="/finances?status=needs_review"
-          className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center justify-center gap-1"
+          className="liquid-silver-button w-full py-2.5 text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm"
         >
           <span>Verify All Records →</span>
         </Link>

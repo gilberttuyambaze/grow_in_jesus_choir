@@ -36,7 +36,7 @@ export function DonutStatusCard({ records = [] }: DonutStatusCardProps) {
   const voidedOffset = rejectedOffset - rejectedDash
 
   return (
-    <div className="card-surface p-5 sm:p-6 bg-white flex flex-col justify-between h-full min-w-0">
+    <div className="card-surface p-5 sm:p-6 flex flex-col justify-between h-full min-w-0">
       {/* Header */}
       <div className="mb-2">
         <h3 className="text-sm font-bold text-slate-900 tracking-tight truncate">

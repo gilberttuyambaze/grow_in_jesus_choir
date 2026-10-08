@@ -16,13 +16,15 @@ import {
   FileUp,
   FolderLock,
   Sparkles,
-  LoaderCircle
+  LoaderCircle,
+  ChevronDown
 } from 'lucide-react'
 import { FinancialDocument, FinancialRecord, UserRole } from '@/types'
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatDate } from '@/lib/utils/date'
 import { Modal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 
 interface DocumentsViewProps {
   documents: FinancialDocument[]
@@ -64,6 +66,24 @@ export function DocumentsView({ documents, records, userRole }: DocumentsViewPro
     const bytes = documents.reduce((sum, d) => sum + d.sizeBytes, 0)
     return (bytes / 1024).toFixed(1) + ' KB'
   }, [documents])
+
+  const recordOptions = React.useMemo(() => {
+    return [
+      {
+        value: '',
+        label: 'Do not link to a specific record',
+        sublabel: 'General receipt or invoice for the choir vault'
+      },
+      ...records.map((r) => ({
+        value: r.id,
+        label: r.description,
+        date: formatDate(r.recordDate),
+        amount: formatCurrency(r.amount),
+        sublabel: r.categoryName || 'Financial Entry',
+        type: r.type as 'income' | 'expense'
+      }))
+    ]
+  }, [records])
 
   const handleUploadSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -127,7 +147,7 @@ export function DocumentsView({ documents, records, userRole }: DocumentsViewPro
 
       {/* Metric Cards matching Reference */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <div className="card-surface p-6 bg-white">
+        <div className="card-surface p-6">
           <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">
             Archived Documents
           </span>
@@ -139,7 +159,7 @@ export function DocumentsView({ documents, records, userRole }: DocumentsViewPro
           </span>
         </div>
 
-        <div className="card-surface p-6 bg-white">
+        <div className="card-surface p-6">
           <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">
             Storage Footprint
           </span>
@@ -151,7 +171,7 @@ export function DocumentsView({ documents, records, userRole }: DocumentsViewPro
           </span>
         </div>
 
-        <div className="card-surface p-6 bg-white">
+        <div className="card-surface p-6">
           <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">
             Linked Transactions
           </span>
@@ -166,7 +186,7 @@ export function DocumentsView({ documents, records, userRole }: DocumentsViewPro
       </div>
 
       {/* Filter and Document Grid */}
-      <div className="card-surface p-3.5 sm:p-6 bg-white space-y-4 min-w-0">
+      <div className="card-surface p-3.5 sm:p-6 space-y-4 min-w-0">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3.5 pb-4 border-b border-slate-100">
           <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100/80 text-xs font-medium overflow-x-auto max-w-full">
             <button
@@ -412,17 +432,13 @@ export function DocumentsView({ documents, records, userRole }: DocumentsViewPro
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                   Link to Financial Record (Optional)
                 </label>
-                <select
+                <CustomSelect
                   name="recordId"
-                  className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50/60 text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">Do not link to a specific record</option>
-                  {records.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {formatDate(r.recordDate)}: {r.description} ({formatCurrency(r.amount)})
-                    </option>
-                  ))}
-                </select>
+                  options={recordOptions}
+                  defaultValue=""
+                  placeholder="Do not link to a specific record"
+                  searchable
+                />
               </div>
 
               <div>

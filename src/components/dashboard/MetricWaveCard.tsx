@@ -59,7 +59,7 @@ export function MetricWaveCard({
   const gradId = `wave-grad-${color}-${label.replace(/\s+/g, '')}`
 
   return (
-    <div className="card-surface p-5 flex flex-col justify-between relative overflow-hidden bg-white">
+    <div className="card-surface card-surface-interactive p-5 flex flex-col justify-between relative overflow-hidden">
       <div>
         {/* Icon & Label */}
         <div className="flex items-center gap-2.5 mb-3">
